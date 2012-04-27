@@ -547,13 +547,13 @@ static int __dwc3_gadget_ep_enable(struct dwc3_ep *dep,
 	return 0;
 }
 
-static void dwc3_stop_active_transfer(struct dwc3 *dwc, u32 epnum);
+static void dwc3_stop_active_transfer(struct dwc3 *dwc, u32 epnum, bool force);
 static void dwc3_remove_requests(struct dwc3 *dwc, struct dwc3_ep *dep)
 {
 	struct dwc3_request		*req;
 
 	if (!list_empty(&dep->req_queued)) {
-		dwc3_stop_active_transfer(dwc, dep->number);
+		dwc3_stop_active_transfer(dwc, dep->number, true);
 
 		/* - giveback all requests to gadget driver */
 		while (!list_empty(&dep->req_queued)) {
@@ -1012,7 +1012,7 @@ static int __dwc3_gadget_kick_transfer(struct dwc3_ep *dep, u16 cmd_param,
 								dep->number);
 				WARN_ON_ONCE(!dep->resource_index);
 			}
-			dwc3_stop_active_transfer(dwc, dep->number);
+			dwc3_stop_active_transfer(dwc, dep->number, true);
 			list_for_each_entry_safe_reverse(req1, n,
 						 &dep->req_queued, list) {
 				req1->trb = NULL;
@@ -1137,11 +1137,13 @@ static int __dwc3_gadget_ep_queue(struct dwc3_ep *dep, struct dwc3_request *req)
 			 * Rather start queueing the requests by issuing START
 			 * TRANSFER command.
 			 */
-			if (list_empty(&dep->req_queued) && dep->resource_index)
-				dwc3_stop_active_transfer(dwc, dep->number);
-			else
+			if (list_empty(&dep->req_queued) && dep->resource_index) {
+				dwc3_stop_active_transfer(dwc, dep->number, true);
+				dep->flags = DWC3_EP_ENABLED;
+			} else {
 				__dwc3_gadget_start_isoc(dwc, dep,
 							dep->current_uf);
+			}
 			dep->flags &= ~DWC3_EP_PENDING_REQUEST;
 			return 0;
 		}
@@ -1231,7 +1233,7 @@ static int dwc3_gadget_ep_dequeue_forced(struct usb_ep *ep,
 				goto out0;
 			} else {
 				/* wait until it is processed */
-				dwc3_stop_active_transfer(dwc, dep->number);
+				dwc3_stop_active_transfer(dwc, dep->number, true);
 				goto out1;
 			}
 		}
@@ -2040,7 +2042,7 @@ static int dwc3_cleanup_done_reqs(struct dwc3 *dwc, struct dwc3_ep *dep,
 
 	if (dep->endpoint.desc && usb_endpoint_xfer_isoc(dep->endpoint.desc) &&
 			list_empty(&dep->req_queued)) {
-		if (list_empty(&dep->request_list))
+		if (list_empty(&dep->request_list)) {
 			/*
 			 * If there is no entry in request list then do
 			 * not issue END TRANSFER now. Just set PENDING
@@ -2048,8 +2050,10 @@ static int dwc3_cleanup_done_reqs(struct dwc3 *dwc, struct dwc3_ep *dep,
 			 * entry is added into request list.
 			 */
 			dep->flags |= DWC3_EP_PENDING_REQUEST;
-		else
-			dwc3_stop_active_transfer(dwc, dep->number);
+		} else {
+			dwc3_stop_active_transfer(dwc, dep->number, true);
+			dep->flags = DWC3_EP_ENABLED;
+		}
 		dep->flags &= ~DWC3_EP_MISSED_ISOC;
 		return 1;
 	}
@@ -2213,7 +2217,7 @@ static void dwc3_resume_gadget(struct dwc3 *dwc)
 	}
 }
 
-static void dwc3_stop_active_transfer(struct dwc3 *dwc, u32 epnum)
+static void dwc3_stop_active_transfer(struct dwc3 *dwc, u32 epnum, bool force)
 {
 	struct dwc3_ep *dep;
 	struct dwc3_gadget_ep_cmd_params params;
@@ -2245,7 +2249,8 @@ static void dwc3_stop_active_transfer(struct dwc3 *dwc, u32 epnum)
 	 */
 
 	cmd = DWC3_DEPCMD_ENDTRANSFER;
-	cmd |= DWC3_DEPCMD_HIPRI_FORCERM | DWC3_DEPCMD_CMDIOC;
+	cmd |= force ? DWC3_DEPCMD_HIPRI_FORCERM : 0;
+	cmd |= DWC3_DEPCMD_CMDIOC;
 	cmd |= DWC3_DEPCMD_PARAM(dep->resource_index);
 	memset(&params, 0, sizeof(params));
 	ret = dwc3_send_gadget_ep_cmd(dwc, dep->number, cmd, &params);
