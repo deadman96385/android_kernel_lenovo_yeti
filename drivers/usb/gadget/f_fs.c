@@ -602,11 +602,18 @@ static ssize_t ffs_epfile_io(struct file *file,
 		 */
 		struct usb_gadget *gadget = epfile->ffs->gadget;
 
+		spin_lock_irq(&epfile->ffs->eps_lock);
+		/* In the meantime, endpoint got disabled or changed. */
+		if (epfile->ep != ep) {
+			spin_unlock_irq(&epfile->ffs->eps_lock);
+			return -ESHUTDOWN;
+		}
 		/*
 		 * Controller may require buffer size to be aligned to
 		 * maxpacketsize of an out endpoint.
 		 */
 		data_len = read ? usb_ep_align_maybe(gadget, ep->ep, len) : len;
+		spin_unlock_irq(&epfile->ffs->eps_lock);
 
 		data = kmalloc(data_len, GFP_KERNEL);
 		if (unlikely(!data))
