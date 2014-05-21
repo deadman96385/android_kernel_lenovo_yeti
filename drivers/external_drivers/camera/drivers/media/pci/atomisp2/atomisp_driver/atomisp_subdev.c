@@ -389,8 +389,20 @@ int atomisp_subdev_set_selection(struct v4l2_subdev *sd,
 	switch (pad) {
 	case ATOMISP_SUBDEV_PAD_SINK: {
 		/* Only crop target supported on sink pad. */
-		unsigned int dvs_w, dvs_h;
+		unsigned int dvs_w = 0;
+		unsigned int dvs_h = 0;
 
+#ifndef CONFIG_EXTERNAL_BTNS_CAMERA
+		if (!isp_sd->params.video_dis_en &&
+			isp_sd->run_mode->val == ATOMISP_RUN_MODE_VIDEO) {
+			/*
+			 * For CSS2.0, digital zoom needs to set dvs envelope to
+			 * 12 when dvs is disabled.
+			 */
+			dvs_w = 12;
+			dvs_h = 12;
+		}
+#endif
 		crop[pad]->width = ffmt[pad]->width;
 		crop[pad]->height = ffmt[pad]->height;
 
@@ -416,18 +428,14 @@ int atomisp_subdev_set_selection(struct v4l2_subdev *sd,
 		if (isp->inputs[isp_sd->input_curr].type == SOC_CAMERA)
 			isp_sd->params.video_dis_en = 0;
 
-		if (isp_sd->params.video_dis_en &&
-		    isp_sd->run_mode->val == ATOMISP_RUN_MODE_VIDEO &&
-		    !isp_sd->continuous_mode->val) {
-			/* This resolution contains 20 % of DVS slack
-			 * (of the desired captured image before
-			 * scaling, or 1 / 6 of what we get from the
-			 * sensor) in both width and height. Remove
-			 * it. */
-			crop[pad]->width = roundup(crop[pad]->width * 5 / 6,
-						   ATOM_ISP_STEP_WIDTH);
-			crop[pad]->height = roundup(crop[pad]->height * 5 / 6,
-						    ATOM_ISP_STEP_HEIGHT);
+		if (isp_sd->run_mode->val == ATOMISP_RUN_MODE_VIDEO &&
+			!isp_sd->continuous_mode->val) {
+			dvs_w = rounddown(crop[pad]->width - r->width,
+				ATOM_ISP_STEP_WIDTH);
+			dvs_h = rounddown(crop[pad]->height - r->height,
+				ATOM_ISP_STEP_HEIGHT);
+			crop[pad]->width = r->width;
+			crop[pad]->height = r->height;
 		}
 
 		crop[pad]->width = min(crop[pad]->width, r->width);
@@ -446,23 +454,6 @@ int atomisp_subdev_set_selection(struct v4l2_subdev *sd,
 
 		if (which == V4L2_SUBDEV_FORMAT_TRY)
 			break;
-
-		if (isp_sd->params.video_dis_en &&
-		    isp_sd->run_mode->val == ATOMISP_RUN_MODE_VIDEO &&
-		    !isp_sd->continuous_mode->val) {
-			dvs_w = rounddown(crop[pad]->width / 5,
-					  ATOM_ISP_STEP_WIDTH);
-			dvs_h = rounddown(crop[pad]->height / 5,
-					  ATOM_ISP_STEP_HEIGHT);
-		} else if (!isp_sd->params.video_dis_en &&
-			   isp_sd->run_mode->val == ATOMISP_RUN_MODE_VIDEO) {
-			/*
-			 * For CSS2.0, digital zoom needs to set dvs envelope to 12
-			 * when dvs is disabled.
-			 */
-			dvs_w = dvs_h = 12;
-		} else
-			dvs_w = dvs_h = 0;
 
 		atomisp_css_video_set_dis_envelope(isp_sd, dvs_w, dvs_h);
 		atomisp_css_input_set_effective_resolution(isp_sd, stream_id,

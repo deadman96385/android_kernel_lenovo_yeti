@@ -2587,18 +2587,20 @@ int atomisp_get_dvs2_bq_resolutions(struct atomisp_sub_device *asd,
 	if (!bq_res)
 		return -EINVAL;
 
-	/* the GDC output resolution */
-	bq_res->output_bq.width_bq = pipe_cfg->output_info[0].res.width / 2;
-	bq_res->output_bq.height_bq = pipe_cfg->output_info[0].res.height / 2;
+	if (input_config->effective_res.width == 0 ||
+		input_config->effective_res.height == 0) {
+		dev_warn(asd->isp->dev, "%s: effective resolution is not valid, please do set format first\n",
+			__func__);
+		return -EINVAL;
+	}
 
 	bq_res->envelope_bq.width_bq = 0;
 	bq_res->envelope_bq.height_bq = 0;
 	/* the GDC input resolution */
 	if (!asd->continuous_mode->val) {
-		bq_res->source_bq.width_bq = bq_res->output_bq.width_bq +
-				pipe_cfg->dvs_envelope.width / 2;
-		bq_res->source_bq.height_bq = bq_res->output_bq.height_bq +
-				pipe_cfg->dvs_envelope.height / 2;
+		unsigned int pad_width, pad_height;
+		unsigned int cropped_w, cropped_h;
+
 		/*
 		 * Bad pixels caused by spatial filter processing
 		 * ISP filter resolution should be given by CSS/FW, but for now
@@ -2607,19 +2609,61 @@ int atomisp_get_dvs2_bq_resolutions(struct atomisp_sub_device *asd,
 		 */
 		bq_res->ispfilter_bq.width_bq = 12 / 2;
 		bq_res->ispfilter_bq.height_bq = 12 / 2;
+
+		if (IS_BYT) {
+			pad_width = 12;
+			pad_height = 12;
+		} else {
+			pad_width = pad_w;
+			pad_height = pad_h;
+		}
+
+		/* the GDC output resolution */
+		bq_res->output_bq.width_bq =
+			input_config->effective_res.width / 2;
+		bq_res->output_bq.height_bq =
+			input_config->effective_res.height / 2;
+
+		cropped_w = input_config->input_res.width - pad_width;
+		cropped_h = input_config->input_res.height - pad_height;
+
+		/* the GDC input resolution */
+		bq_res->source_bq.width_bq = cropped_w / 2;
+		bq_res->source_bq.height_bq = cropped_h / 2;
 		/* spatial filter shift, always 4 pixels */
 		bq_res->gdc_shift_bq.width_bq = 4 / 2;
 		bq_res->gdc_shift_bq.height_bq = 4 / 2;
 
 		if (asd->params.video_dis_en) {
-			bq_res->envelope_bq.width_bq = pipe_cfg->dvs_envelope.width
-					/ 2 - bq_res->ispfilter_bq.width_bq;
-			bq_res->envelope_bq.height_bq = pipe_cfg->dvs_envelope.height
-					/ 2 - bq_res->ispfilter_bq.height_bq;
+			unsigned int evlp_w, evlp_h;
+
+			evlp_w = min(pipe_cfg->dvs_envelope.width,
+				     rounddown(input_config->effective_res.
+					       width / 5, ATOM_ISP_STEP_WIDTH));
+			evlp_h = min(pipe_cfg->dvs_envelope.height,
+				     rounddown(input_config->effective_res.
+					       height / 5,
+					       ATOM_ISP_STEP_HEIGHT));
+			evlp_w = min(
+				(unsigned int)(bq_res->source_bq.width_bq -
+				bq_res->output_bq.width_bq) * 2, evlp_w);
+			evlp_h = min(
+				(unsigned int)(bq_res->source_bq.height_bq -
+				bq_res->output_bq.height_bq) * 2, evlp_h);
+			bq_res->envelope_bq.width_bq =
+				evlp_w / 2 - bq_res->ispfilter_bq.width_bq;
+			bq_res->envelope_bq.height_bq =
+				evlp_h / 2 - bq_res->ispfilter_bq.height_bq;
 		}
 	} else {
 		unsigned int w_padding;
 		unsigned int gdc_effective_input = 0;
+
+		/* the GDC output resolution */
+		bq_res->output_bq.width_bq =
+			pipe_cfg->output_info[0].res.width / 2;
+		bq_res->output_bq.height_bq =
+			pipe_cfg->output_info[0].res.height / 2;
 
 		/* For GDC:
 		 * gdc_effective_input = effective_input + envelope
