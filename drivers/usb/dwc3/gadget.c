@@ -2544,6 +2544,7 @@ static void dwc3_gadget_disconnect_interrupt(struct dwc3 *dwc)
 
 	dwc->gadget.speed = USB_SPEED_UNKNOWN;
 	dwc->setup_packet_pending = false;
+	usb_gadget_set_state(&dwc->gadget, USB_STATE_NOTATTACHED);
 
 	if (dwc->runtime_suspend) {
 		pm_runtime_mark_last_busy(dwc->dev);
