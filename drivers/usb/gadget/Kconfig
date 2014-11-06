@@ -558,6 +558,9 @@ config USB_F_AUDIO_SRC
 config USB_F_ACC
 	tristate
 
+config USB_F_HID
+	tristate
+
 choice
 	tristate "USB Gadget Drivers"
 	default USB_ETH
