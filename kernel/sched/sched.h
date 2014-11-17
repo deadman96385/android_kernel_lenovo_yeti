@@ -514,6 +514,9 @@ extern struct root_domain def_root_domain;
 
 struct cpu_concurrency_t {
 	struct sched_avg avg;
+	int unload;
+	int dst_cpu;
+	struct cpu_stop_work unload_work;
 };
 
 #endif /* CONFIG_SMP */
@@ -717,16 +720,22 @@ extern int migrate_swap(struct task_struct *, struct task_struct *);
  *		be returned.
  * @flag:	The flag to check for the highest sched_domain
  *		for the given cpu.
+ * @all:	The flag is contained by all sched_domains from the hightest down
  *
  * Returns the highest sched_domain of a cpu which contains the given flag.
  */
-static inline struct sched_domain *highest_flag_domain(int cpu, int flag)
+static inline struct
+sched_domain *highest_flag_domain(int cpu, int flag, int all)
 {
 	struct sched_domain *sd, *hsd = NULL;
 
 	for_each_domain(cpu, sd) {
-		if (!(sd->flags & flag))
-			break;
+		if (!(sd->flags & flag)) {
+			if (all)
+				break;
+			else
+				continue;
+		}
 		hsd = sd;
 	}
 
@@ -751,6 +760,7 @@ DECLARE_PER_CPU(int, sd_llc_id);
 DECLARE_PER_CPU(struct sched_domain *, sd_numa);
 DECLARE_PER_CPU(struct sched_domain *, sd_busy);
 DECLARE_PER_CPU(struct sched_domain *, sd_asym);
+DECLARE_PER_CPU(struct sched_domain *, sd_wc);
 
 struct sched_group_power {
 	atomic_t ref;
@@ -1185,6 +1195,7 @@ extern void idle_enter_fair(struct rq *this_rq);
 extern void idle_exit_fair(struct rq *this_rq);
 
 extern void update_cpu_concurrency(struct rq *rq);
+extern void init_workload_consolidation(struct rq *rq);
 
 #else	/* CONFIG_SMP */
 
@@ -1193,6 +1204,7 @@ static inline void idle_balance(int cpu, struct rq *rq)
 }
 
 static inline void update_cpu_concurrency(struct rq *rq) {}
+static inline void init_workload_consolidation(struct rq *rq) {}
 
 #endif
 
