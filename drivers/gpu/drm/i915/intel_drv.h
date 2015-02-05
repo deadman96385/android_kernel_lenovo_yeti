@@ -36,6 +36,7 @@
 #include <drm/drm_dp_helper.h>
 
 #include "intel_drrs.h"
+#include "intel_edp_drrs.h"
 
 /**
  * _wait_for - magic (register) wait macro
@@ -712,6 +713,7 @@ struct intel_dp {
 				     int send_bytes,
 				     uint32_t aux_clock_divider);
 
+	struct edp_drrs_platform_ops *drrs_ops;
 };
 
 struct intel_digital_port {
