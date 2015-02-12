@@ -2056,8 +2056,11 @@ void intel_hdmi_init_connector(struct intel_digital_port *intel_dig_port,
 	intel_connector->hotplug_switch.name =
 		kasprintf(GFP_KERNEL, "hdmi_%c", 'a' + port);
 #ifdef CONFIG_SUPPORT_LPDMA_HDMI_AUDIO
-		if (IS_VALLEYVIEW(dev))
-			intel_connector->hotplug_switch.name = "hdmi";
+		if (IS_VALLEYVIEW(dev)) {
+			kfree(intel_connector->hotplug_switch.name);
+			intel_connector->hotplug_switch.name =
+				kasprintf(GFP_KERNEL, "hdmi");
+		}
 #endif
 	if (!intel_connector->hotplug_switch.name) {
 		DRM_ERROR("%s failed to allocate memory", __func__);
