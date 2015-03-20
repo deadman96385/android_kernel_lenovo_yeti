@@ -939,9 +939,11 @@ intel_execlists_TDR_get_submitted_context(struct intel_engine_cs *ring,
 }
 
 static bool execlists_check_remove_request(struct intel_engine_cs *ring,
-					   u32 request_id)
+						u8 read_pointer)
 {
 	struct intel_ctx_submit_request *head_req;
+	struct drm_i915_private *dev_priv = ring->dev->dev_private;
+	u32 request_id;
 
 	assert_spin_locked(&ring->execlist_lock);
 
@@ -952,6 +954,8 @@ static bool execlists_check_remove_request(struct intel_engine_cs *ring,
 	if (head_req != NULL) {
 		struct drm_i915_gem_object *ctx_obj =
 				head_req->ctx->engine[ring->id].state;
+		request_id = I915_READ(RING_CONTEXT_STATUS_BUF(ring) +
+				       (read_pointer % 6) * 8 + 4);
 		if (intel_execlists_ctx_id(ctx_obj) == request_id) {
 			WARN(head_req->elsp_submitted == 0,
 			     "Never submitted head request\n");
@@ -982,7 +986,6 @@ void intel_execlists_handle_ctx_events(struct intel_engine_cs *ring)
 	u8 read_pointer;
 	u8 write_pointer;
 	u32 status;
-	u32 status_id;
 	u32 submit_contexts = 0;
 
 	status_pointer = I915_READ(RING_CONTEXT_STATUS_PTR(ring));
@@ -996,22 +999,22 @@ void intel_execlists_handle_ctx_events(struct intel_engine_cs *ring)
 
 	while (read_pointer < write_pointer) {
 		read_pointer++;
+
 		status = I915_READ(RING_CONTEXT_STATUS_BUF(ring) +
 				(read_pointer % 6) * 8);
-		status_id = I915_READ(RING_CONTEXT_STATUS_BUF(ring) +
-				(read_pointer % 6) * 8 + 4);
 
 		if (status & GEN8_CTX_STATUS_PREEMPTED) {
 			if (status & GEN8_CTX_STATUS_LITE_RESTORE) {
-				if (execlists_check_remove_request(ring, status_id))
+				if (execlists_check_remove_request(ring,
+								read_pointer))
 					WARN(1, "Lite Restored request removed from queue\n");
 			} else
 				WARN(1, "Preemption without Lite Restore\n");
 		}
 
 		 if ((status & GEN8_CTX_STATUS_ACTIVE_IDLE) ||
-		     (status & GEN8_CTX_STATUS_ELEMENT_SWITCH)) {
-			if (execlists_check_remove_request(ring, status_id))
+			(status & GEN8_CTX_STATUS_ELEMENT_SWITCH)) {
+			if (execlists_check_remove_request(ring, read_pointer))
 				submit_contexts++;
 		}
 	}
