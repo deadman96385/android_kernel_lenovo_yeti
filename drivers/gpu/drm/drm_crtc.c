@@ -2239,9 +2239,19 @@ int drm_mode_setplane(struct drm_device *dev, void *data,
 		return -ENOENT;
 	}
 
+	crtc = drm_crtc_find(dev, plane_req->crtc_id);
+	if (!crtc) {
+		DRM_DEBUG_KMS("Unknown crtc ID %d\n",
+			      plane_req->crtc_id);
+		ret = -ENOENT;
+		goto out;
+	}
+
 	/* No fb means shut it down */
 	if (!plane_req->fb_id) {
-		drm_modeset_lock_all(dev);
+		if (drm_modeset_lock(&crtc->mutex, NULL))
+			DRM_ERROR("CRTC(%d) lock(noi fb)failed\n",
+				crtc->base.id);
 		old_fb = plane->fb;
 		ret = plane->funcs->disable_plane(plane);
 		if (!ret) {
@@ -2250,15 +2260,7 @@ int drm_mode_setplane(struct drm_device *dev, void *data,
 		} else {
 			old_fb = NULL;
 		}
-		drm_modeset_unlock_all(dev);
-		goto out;
-	}
-
-	crtc = drm_crtc_find(dev, plane_req->crtc_id);
-	if (!crtc) {
-		DRM_DEBUG_KMS("Unknown crtc ID %d\n",
-			      plane_req->crtc_id);
-		ret = -ENOENT;
+		drm_modeset_unlock(&crtc->mutex);
 		goto out;
 	}
 
@@ -2322,7 +2324,8 @@ int drm_mode_setplane(struct drm_device *dev, void *data,
 		goto out;
 	}
 
-	drm_modeset_lock_all(dev);
+	if (drm_modeset_lock(&crtc->mutex, NULL))
+		DRM_ERROR("CRTC(%d) lock failed\n", crtc->base.id);
 	old_fb = plane->fb;
 
 	if (plane_req->flags & DRM_MODE_PAGE_FLIP_EVENT) {
@@ -2370,7 +2373,7 @@ int drm_mode_setplane(struct drm_device *dev, void *data,
 	}
 
 unlock:
-	drm_modeset_unlock_all(dev);
+	drm_modeset_unlock(&crtc->mutex);
 
 out:
 	if (fb)
@@ -4141,13 +4144,12 @@ int drm_mode_obj_set_property_ioctl(struct drm_device *dev, void *data,
 	struct drm_mode_object *arg_obj;
 	struct drm_mode_object *prop_obj;
 	struct drm_property *property;
+	struct drm_crtc *crtc;
 	int ret = -EINVAL;
 	int i;
 
 	if (!drm_core_check_feature(dev, DRIVER_MODESET))
 		return -EINVAL;
-
-	drm_modeset_lock_all(dev);
 
 	arg_obj = drm_mode_object_find(dev, arg->obj_id, arg->obj_type);
 	if (!arg_obj) {
@@ -4171,6 +4173,17 @@ int drm_mode_obj_set_property_ioctl(struct drm_device *dev, void *data,
 		goto out;
 	}
 	property = obj_to_property(prop_obj);
+	crtc = obj_to_crtc(prop_obj);
+
+	/*
+	 * If we keep all the CRTCs locked for any property change,
+	 * it will block flips on other displays till the change is done,
+	 * causing stuttering/blanking. We should only lock this CRTC
+	 * which is going through property change.
+	 */
+	ret = drm_modeset_lock(&crtc->mutex, NULL);
+	if (ret)
+		DRM_ERROR("Cant acquire CRTC lock\n");
 
 	if (!drm_property_change_is_valid(property, arg->value))
 		goto out;
@@ -4189,7 +4202,7 @@ int drm_mode_obj_set_property_ioctl(struct drm_device *dev, void *data,
 	}
 
 out:
-	drm_modeset_unlock_all(dev);
+	drm_modeset_unlock(&crtc->mutex);
 	return ret;
 }
 
