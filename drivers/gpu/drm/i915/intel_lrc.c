@@ -2262,6 +2262,12 @@ static int gen8_init_common_ring(struct intel_engine_cs *ring)
 	I915_WRITE_IMR(ring, ~(ring->irq_enable_mask | ring->irq_keep_mask));
 	I915_WRITE(RING_HWSTAM(ring->mmio_base), 0xffffffff);
 
+	if (ring->status_page.obj) {
+		I915_WRITE(RING_HWS_PGA(ring->mmio_base),
+			   (u32)ring->status_page.gfx_addr);
+		POSTING_READ(RING_HWS_PGA(ring->mmio_base));
+	}
+
 	I915_WRITE(RING_MODE_GEN7(ring),
 		   _MASKED_BIT_DISABLE(GFX_REPLAY_MODE) |
 		   _MASKED_BIT_ENABLE(GFX_RUN_LIST_ENABLE));
@@ -2570,7 +2576,6 @@ gen8_ring_save(struct intel_engine_cs *ring, struct intel_context *ctx,
 	uint32_t tail;
 	uint32_t head_addr;
 	uint32_t tail_addr;
-	uint32_t hws_pga;
 	uint32_t hw_context_id1 = ~0u;
 	uint32_t hw_context_id2 = ~0u;
 
@@ -2677,9 +2682,6 @@ gen8_ring_save(struct intel_engine_cs *ring, struct intel_context *ctx,
 	if (flags & RESET_HEAD_TAIL)
 		head = tail = 0;
 
-	/* HW is losing HWS Page address after reset, save it */
-	hws_pga = I915_READ(RING_HWS_PGA(ring->mmio_base));
-
 	data[0] = ctl;
 	data[1] = tail;
 
@@ -2689,7 +2691,6 @@ gen8_ring_save(struct intel_engine_cs *ring, struct intel_context *ctx,
 	 * save the current value as the value to restart at
 	 */
 	data[2] = head;
-	data[3] = hws_pga;
 
 	return 0;
 }
@@ -2702,7 +2703,6 @@ gen8_ring_restore(struct intel_engine_cs *ring, struct intel_context *ctx,
 	uint32_t head;
 	uint32_t tail;
 	uint32_t ctl;
-	uint32_t hws_pga;
 
 	/*
 	 * Expect no less space than for three registers:
@@ -2750,14 +2750,12 @@ gen8_ring_restore(struct intel_engine_cs *ring, struct intel_context *ctx,
 	ctl = data[0];
 	tail = data[1];
 	head = data[2];
-	hws_pga = data[3];
 
-	/* Restore head, tail ring buffer control and hws page address */
+	/* Restore head, tail and ring buffer control */
 
 	I915_WRITE_HEAD_CTX_MMIO(ring, ctx, head);
 	I915_WRITE_TAIL(ring, tail);
 	I915_WRITE_CTL_CTX_MMIO(ring, ctx, ctl);
-	I915_WRITE(RING_HWS_PGA(ring->mmio_base), hws_pga);
 
 	return 0;
 }
