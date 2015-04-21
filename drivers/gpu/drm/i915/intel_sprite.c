@@ -2116,8 +2116,12 @@ intel_plane_init(struct drm_device *dev, enum pipe pipe, int plane)
 			     &intel_plane_funcs,
 			     plane_formats, num_plane_formats,
 			     false);
-	if (ret)
+
+	if (ret) {
 		kfree(intel_plane);
+		DRM_DEBUG_KMS("Returning from plane init...\n");
+		return ret;
+	}
 
 	if (IS_CHERRYVIEW(dev) && STEP_FROM(STEP_B0) && pipe == PIPE_B) {
 		intel_plane->csc_profile = 4;
@@ -2127,5 +2131,6 @@ intel_plane_init(struct drm_device *dev, enum pipe pipe, int plane)
 		drm_object_attach_property(&intel_plane->base.base,
 			intel_plane->csc_profile_property, 4);
 	}
+
 	return ret;
 }

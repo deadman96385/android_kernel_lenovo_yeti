@@ -551,11 +551,17 @@ bool chv_set_cgm_gamma(struct intel_crtc *intel_crtc,
 	u32 cgm_gamma_reg = 0;
 	u32 cgm_ctrl_reg = 0;
 
-	struct drm_device *dev = intel_crtc->base.dev;
-	struct drm_i915_private *dev_priv = dev->dev_private;
+	struct drm_device *dev;
+	struct drm_i915_private *dev_priv;
 	struct drm_property *property;
 
 	property = cgm_gamma->property;
+
+	if (intel_crtc == NULL)
+		return false;
+
+	dev = intel_crtc->base.dev;
+	dev_priv = dev->dev_private;
 
 	/* Validate input */
 	if (!intel_crtc) {
@@ -613,13 +619,19 @@ bool chv_set_cgm_degamma(struct intel_crtc *intel_crtc,
 			const struct clrmgr_regd_prop *cgm_degamma,
 			const struct gamma_lut_data *data, bool enable)
 {
-	struct drm_device *dev = intel_crtc->base.dev;
-	struct drm_i915_private *dev_priv = dev->dev_private;
+	struct drm_device *dev;
+	struct drm_i915_private *dev_priv;
 	struct drm_property *property;
 	u32 i = 0;
 	u32 cgm_degamma_reg = 0;
 	u32 cgm_ctrl_reg = 0;
 	property = cgm_degamma->property;
+
+	if (intel_crtc == NULL)
+		return false;
+
+	dev = intel_crtc->base.dev;
+	dev_priv = dev->dev_private;
 
 	/* Validate input */
 	if (!intel_crtc) {
@@ -843,9 +855,14 @@ bool intel_clrmgr_set_cgm_gamma(void *crtc,
 				const struct lut_info  *info)
 {
 	struct intel_crtc *intel_crtc = crtc;
-	struct drm_device *dev = intel_crtc->base.dev;
+	struct drm_device *dev;
 	struct gamma_lut_data *data;
 	int ret = false;
+
+	if (intel_crtc == NULL)
+		return false;
+
+	dev = intel_crtc->base.dev;
 
 	/* Validate input */
 	if (!info->data || !cgm_gamma || !cgm_gamma->property) {
