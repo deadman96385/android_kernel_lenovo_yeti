@@ -3464,7 +3464,7 @@ int atomisp_css_cp_dvs2_coefs(struct atomisp_sub_device *asd,
 		return 0;
 
 	if (sizeof(*cur) != sizeof(coefs->grid) ||
-	    memcmp(&coefs->grid, cur, sizeof(*cur))) {
+	    memcmp(&coefs->grid, cur, sizeof(coefs->grid))) {
 		dev_err(asd->isp->dev, "dvs grid mis-match!\n");
 		/* If the grid info in the argument differs from the current
 		   grid info, we tell the caller to reset the grid size and
