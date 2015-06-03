@@ -803,6 +803,16 @@ static void execlists_context_unqueue(struct intel_engine_cs *ring)
 
 	execlists_fetch_requests(ring, &req0, &req1);
 
+	/* check for a simulated hang request */
+	if (intel_ring_stopped(ring)) {
+		/*
+		 * mark the request at the head of the queue as submitted
+		 * but dont actually submit it
+		 */
+		req0->elsp_submitted++;
+		return;
+	}
+
 	WARN_ON(req1 && req1->elsp_submitted);
 
 	WARN_ON(execlists_submit_context(ring, req0->ctx, req0->tail,
@@ -915,9 +925,20 @@ intel_execlists_TDR_get_submitted_context(struct intel_engine_cs *ring,
 		unsigned sw_context =
 			intel_execlists_ctx_id((tmpctx)->engine[ring->id].state);
 
-		status = ((hw_context == sw_context) && (0 != hw_context)) ?
-			CONTEXT_SUBMISSION_STATUS_OK :
-			CONTEXT_SUBMISSION_STATUS_SUBMITTED;
+		/*
+		 * Check for simuated hang. In this case the head entry in the
+		 * sw execlist queue will not have been submitted to the ELSP, so
+		 * the hw and sw context id's may well disagree, but we still want
+		 * to proceed with hang recovery. So we return OK which allows
+		 * the TDR recovery mechanism to proceed with a ring reset.
+		 */
+		if (intel_ring_stopped(ring)) {
+			status = CONTEXT_SUBMISSION_STATUS_OK;
+		} else {
+			status = ((hw_context == sw_context) && (0 != hw_context)) ?
+				CONTEXT_SUBMISSION_STATUS_OK :
+				CONTEXT_SUBMISSION_STATUS_SUBMITTED;
+		}
 	} else {
 		/*
 		 * If we don't have any queue entries and the
@@ -991,9 +1012,9 @@ void intel_execlists_handle_ctx_events(struct intel_engine_cs *ring)
 	status_pointer = I915_READ(RING_CONTEXT_STATUS_PTR(ring));
 
 	read_pointer = ring->next_context_status_buffer;
-	write_pointer = status_pointer & 0x07;
+	write_pointer = status_pointer & GEN8_CSB_PTR_MASK;
 	if (read_pointer > write_pointer)
-		write_pointer += 6;
+		write_pointer += GEN8_CSB_ENTRIES;
 
 	spin_lock(&ring->execlist_lock);
 
@@ -1001,7 +1022,7 @@ void intel_execlists_handle_ctx_events(struct intel_engine_cs *ring)
 		read_pointer++;
 
 		status = I915_READ(RING_CONTEXT_STATUS_BUF(ring) +
-				(read_pointer % 6) * 8);
+				(read_pointer % GEN8_CSB_ENTRIES) * 8);
 
 		if (status & GEN8_CTX_STATUS_PREEMPTED) {
 			if (status & GEN8_CTX_STATUS_LITE_RESTORE) {
@@ -1025,10 +1046,10 @@ void intel_execlists_handle_ctx_events(struct intel_engine_cs *ring)
 	spin_unlock(&ring->execlist_lock);
 
 	WARN(submit_contexts > 2, "More than two context complete events?\n");
-	ring->next_context_status_buffer = write_pointer % 6;
+	ring->next_context_status_buffer = write_pointer % GEN8_CSB_ENTRIES;
 
 	I915_WRITE(RING_CONTEXT_STATUS_PTR(ring),
-		   ((u32)ring->next_context_status_buffer & 0x07) << 8);
+		((u32)ring->next_context_status_buffer & GEN8_CSB_PTR_MASK) << 8);
 }
 
 static int execlists_context_queue(struct intel_engine_cs *ring,
@@ -1746,9 +1767,6 @@ void intel_logical_ring_advance_and_submit(struct intel_ringbuffer *ringbuf)
 
 	intel_logical_ring_advance(ringbuf);
 
-	if (intel_ring_stopped(ring))
-		return;
-
 	execlists_context_queue(ring, ctx, ringbuf->tail);
 }
 
@@ -2273,6 +2291,14 @@ static int gen8_init_common_ring(struct intel_engine_cs *ring)
 		   _MASKED_BIT_DISABLE(GFX_REPLAY_MODE) |
 		   _MASKED_BIT_ENABLE(GFX_RUN_LIST_ENABLE));
 	POSTING_READ(RING_MODE_GEN7(ring));
+
+	/*
+	 * Reset next_context_status_buffer to GEN8_CSB_ENTRIES - 1.
+	 * This is because it is pre-incremented (to GEN8_CSB_ENTRIES = 0
+	 * modulo GEN8_CSB_ENTRIES) before it is used.
+	 */
+	ring->next_context_status_buffer = GEN8_CSB_ENTRIES - 1;
+
 	DRM_DEBUG_DRIVER("Execlists enabled for %s\n", ring->name);
 
 	return 0;
