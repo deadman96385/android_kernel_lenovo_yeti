@@ -654,6 +654,7 @@ struct intel_hdmi {
 	bool rgb_quant_range_selectable;
 	struct edid *edid;
 	u32 edid_mode_count;
+	int notify_had;
 
 	/*
 	 * For HDCP compliance, we disable port immediately after detecting
@@ -721,6 +722,7 @@ struct intel_dp {
 				     uint32_t aux_clock_divider);
 
 	struct edp_drrs_platform_ops *drrs_ops;
+	int notify_had;
 };
 
 struct intel_digital_port {
