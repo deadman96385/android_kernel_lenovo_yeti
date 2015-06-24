@@ -119,10 +119,17 @@ int dw9718_vcm_power_up(struct v4l2_subdev *sd)
 	ret = dw9718_i2c_rd8(client, DW9718_SACT, &value);
 	if (ret < 0)
 		goto fail_powerdown;
-	if (value != DW9718_SACT_DEFAULT_VAL) {
-		dev_err(&client->dev, "%s error, incorrect ID\n", __func__);
-		return -ENXIO;
-	}
+
+	/*
+	 * WORKAROUND: for module P8V12F-203 which are used on
+	 * Cherrytrail Refresh Davis Reef AoB, register SACT is not
+	 * returning default value as spec. But VCM works as expected and
+	 * root cause is still under discussion with vendor.
+	 * workaround here to avoid aborting the power up sequence and just
+	 * give a warning about this error.
+	 */
+	if (value != DW9718_SACT_DEFAULT_VAL)
+		dev_warn(&client->dev, "%s error, incorrect ID\n", __func__);
 
 	/* Initialize according to recommended settings */
 	ret = dw9718_i2c_wr8(client, DW9718_CONTROL,
