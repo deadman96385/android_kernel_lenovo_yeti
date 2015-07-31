@@ -5858,7 +5858,10 @@ static void i9xx_crtc_disable(struct drm_crtc *crtc)
 	mutex_lock(&dev->struct_mutex);
 	intel_update_fbc(dev);
 	intel_restart_idleness_drrs(intel_crtc);
-	intel_edp_psr_update(dev, false);
+	if (IS_VALLEYVIEW(dev))
+		intel_vlv_edp_psr_reset(dev);
+	else
+		intel_edp_psr_update(dev, false);
 	mutex_unlock(&dev->struct_mutex);
 
 	all_pipe_disabled = true;
