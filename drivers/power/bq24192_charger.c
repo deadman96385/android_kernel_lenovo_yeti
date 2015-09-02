@@ -1778,6 +1778,15 @@ static void bq24192_irq_worker(struct work_struct *work)
 						    struct bq24192_chip,
 						    irq_wrkr.work);
 
+	/*
+	 * VBUS status updation in the Status Register of BQ24297 chip
+	 * is bit delayed, which is causing a wrong VBUS status
+	 * notification to USB and power_supply. So a delay of 10 milli
+	 * seconds is added before reading Status Register.
+	 */
+	if (chip->chip_type == BQ24297)
+		msleep(10);
+
 	/**
 	 * check the bq24192 status/fault registers to see what is the
 	 * source of the interrupt
