@@ -717,6 +717,9 @@ struct intel_dp {
 
 	struct edp_drrs_platform_ops *drrs_ops;
 	int notify_had;
+
+	/* Displayport compliance testing */
+	unsigned long compliance_test_type;
 };
 
 struct intel_digital_port {
