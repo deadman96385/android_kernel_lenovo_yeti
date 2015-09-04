@@ -2734,7 +2734,7 @@ static void queue_retire_work(struct drm_i915_private *dev_priv,
 	 */
 	unsigned long time = min(delay, DRM_I915_HANGCHECK_JIFFIES);
 
-	if (queue_delayed_work(dev_priv->wq,
+	if (queue_delayed_work(dev_priv->retire_work_wq,
 			   &dev_priv->mm.retire_work,
 			   time)) {
 		/*
