@@ -2300,15 +2300,13 @@ static int bq24192_probe(struct i2c_client *client,
 	} else {
 #ifdef CONFIG_ACPI
 		if (!ACPI_HANDLE(dev)) {
-			i2c_set_clientdata(client, NULL);
-			kfree(chip);
-			return -ENODEV;
+			ret = -ENODEV;
+			goto error;
 		}
 		acpi_id = acpi_match_device(dev->driver->acpi_match_table, dev);
 		if (!acpi_id) {
-			i2c_set_clientdata(client, NULL);
-			kfree(chip);
-			return -ENODEV;
+			ret = -ENODEV;
+			goto error;
 		}
 
 		chip->pdata = (struct bq24192_platform_data *)
@@ -2319,8 +2317,8 @@ static int bq24192_probe(struct i2c_client *client,
 	}
 	if (!chip->pdata) {
 		dev_err(&client->dev, "pdata NULL!!\n");
-		kfree(chip);
-		return -EINVAL;
+		ret = -EINVAL;
+		goto error;
 	}
 	chip->pdata->chg_profile = (struct ps_batt_chg_prof *)
 				platform_byt_get_batt_charge_profile();
@@ -2351,9 +2349,8 @@ static int bq24192_probe(struct i2c_client *client,
 	ret = bq24192_get_chip_version(chip);
 	if (ret < 0) {
 		dev_err(&client->dev, "i2c read err:%d\n", ret);
-		i2c_set_clientdata(client, NULL);
-		kfree(chip);
-		return -EIO;
+		ret = -EIO;
+		goto error;
 	}
 
 	/*
@@ -2380,9 +2377,8 @@ static int bq24192_probe(struct i2c_client *client,
 		gpio = devm_gpiod_get_index(dev, "bq24192_int", 0);
 		if (IS_ERR(gpio)) {
 			dev_err(dev, "acpi gpio get index failed\n");
-			i2c_set_clientdata(client, NULL);
-			kfree(chip);
-			return PTR_ERR(gpio);
+			ret = PTR_ERR(gpio);
+			goto error;
 		} else {
 			ret = gpiod_direction_input(gpio);
 			if (ret < 0)
@@ -2462,9 +2458,7 @@ static int bq24192_probe(struct i2c_client *client,
 		ret = power_supply_register(&client->dev, &chip->usb);
 		if (ret) {
 			dev_err(&client->dev, "failed:power supply register\n");
-			i2c_set_clientdata(client, NULL);
-			kfree(chip);
-			return ret;
+			goto error;
 		}
 	}
 	/* Init Runtime PM State */
@@ -2476,9 +2470,7 @@ static int bq24192_probe(struct i2c_client *client,
 	if (ret < 0) {
 		dev_err(&client->dev, "debugfs create failed\n");
 		power_supply_unregister(&chip->usb);
-		i2c_set_clientdata(client, NULL);
-		kfree(chip);
-		return ret;
+		goto error;
 	}
 
 	/*
@@ -2517,6 +2509,11 @@ static int bq24192_probe(struct i2c_client *client,
 	}
 
 	return 0;
+error:
+	i2c_set_clientdata(client, NULL);
+	kfree(chip);
+	bq24192_client = NULL;
+	return ret;
 }
 
 static int bq24192_remove(struct i2c_client *client)
