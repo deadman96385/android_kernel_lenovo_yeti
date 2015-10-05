@@ -169,6 +169,8 @@ struct devpolicy_mgr {
 	struct work_struct cable_notify_work;
 	struct mutex cable_notify_lock;
 	struct list_head cable_notify_list;
+	struct power_supply *charger_psy;
+	struct power_supply *battery_psy;
 };
 
 struct dpm_interface {
@@ -193,8 +195,8 @@ struct dpm_interface {
 					enum pwr_role prole);
 	int (*set_charger_mode)(struct devpolicy_mgr *dpm,
 					enum charger_mode mode);
-	int (*update_current_lim)(struct devpolicy_mgr *dpm,
-					int ilim);
+	int (*update_charger)(struct devpolicy_mgr *dpm,
+					int ilim, int query);
 	int (*get_min_current)(struct devpolicy_mgr *dpm,
 					int *ma);
 	int (*is_pr_swapped)(struct devpolicy_mgr *dpm,
@@ -259,11 +261,11 @@ static inline int devpolicy_set_charger_mode(struct devpolicy_mgr *dpm,
 	return -ENODEV;
 }
 
-static inline int devpolicy_update_current_limit(struct devpolicy_mgr *dpm,
-							int ilim)
+static inline int devpolicy_update_charger(struct devpolicy_mgr *dpm,
+							int ilim, int query)
 {
-	if (dpm && dpm->interface && dpm->interface->update_current_lim)
-		return dpm->interface->update_current_lim(dpm, ilim);
+	if (dpm && dpm->interface && dpm->interface->update_charger)
+		return dpm->interface->update_charger(dpm, ilim, query);
 
 	return -ENODEV;
 }
