@@ -50,6 +50,7 @@
 #define USB_WAKE_LOCK_TIMEOUT	(5 * HZ)
 
 #define USBINPUTICC100VAL	100
+#define ACINPUTICC1500VAL	1500
 #define CDP_INPUT_CURRENT_LIMIT 1500
 #define HIGH_POWER_CHRG_CURRENT 2000
 #define LOW_POWER_CHRG_CURRENT 500
@@ -940,7 +941,13 @@ static void handle_internal_usbphy_notifications(int mask)
 	case POWER_SUPPLY_CHARGER_TYPE_USB_DCP:
 	case POWER_SUPPLY_CHARGER_TYPE_SE1:
 	case POWER_SUPPLY_CHARGER_TYPE_USB_ACA:
-		cap.ma = HIGH_POWER_CHRG_CURRENT;
+		/* set inlimit to 1500 only if
+		 * platform is USB compliant
+		 */
+		if (chc.pdata->usb_compliance)
+			cap.ma = ACINPUTICC1500VAL;
+		else
+			cap.ma = HIGH_POWER_CHRG_CURRENT;
 		break;
 	case POWER_SUPPLY_CHARGER_TYPE_ACA_DOCK:
 	case POWER_SUPPLY_CHARGER_TYPE_ACA_A:
