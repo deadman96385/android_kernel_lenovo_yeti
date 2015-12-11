@@ -867,7 +867,7 @@ static int get_charger_type(void)
 		}
 	} while (i < USBSRCDET_RETRY_CNT);
 
-	if ((val & USBSRCDET_SUSBHWDET_DETSUCC) !=
+	if ((val & USBSRCDET_SUSBHWDET) !=
 			USBSRCDET_SUSBHWDET_DETSUCC) {
 		dev_err(chc.dev, "Charger detection unsuccessful after %dms\n",
 			i * USBSRCDET_SLEEP_MIN_TIME);
