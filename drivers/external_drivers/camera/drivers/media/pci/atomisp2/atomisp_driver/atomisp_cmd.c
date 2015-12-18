@@ -1507,6 +1507,11 @@ void atomisp_wdt_work(struct work_struct *work)
 	bool css_recover = true;
 
 	rt_mutex_lock(&isp->mutex);
+	if (!atomic_read(&isp->wdt_work_queued)) {
+		rt_mutex_unlock(&isp->mutex);
+		return;
+	}
+
 	if (!atomisp_streaming_count(isp)) {
 		atomic_set(&isp->wdt_work_queued, 0);
 		rt_mutex_unlock(&isp->mutex);
@@ -1759,7 +1764,7 @@ void atomisp_wdt_stop_pipe(struct atomisp_video_pipe *pipe, bool sync)
 
 	if (sync) {
 		del_timer_sync(&pipe->wdt);
-		cancel_work_sync(&pipe->asd->isp->wdt_work);
+		atomic_set(&pipe->asd->isp->wdt_work_queued, 0);
 	} else {
 		del_timer(&pipe->wdt);
 	}
