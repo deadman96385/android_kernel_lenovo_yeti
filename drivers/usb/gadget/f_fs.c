@@ -587,7 +587,8 @@ static ssize_t ffs_epfile_io(struct file *file,
 	struct ffs_epfile *epfile = file->private_data;
 	struct ffs_ep *ep;
 	char *data = NULL;
-	ssize_t ret, data_len;
+	ssize_t ret, data_len = 0;
+	bool interrupted = false;
 	int halt;
 
 	/* Are we still active? */
@@ -673,42 +674,39 @@ static ssize_t ffs_epfile_io(struct file *file,
 
 		spin_unlock_irq(&epfile->ffs->eps_lock);
 
-		if (unlikely(ret < 0)) {
-			/* nop */
-		} else {
-			ret = wait_for_completion_interruptible(&done);
-			if (ret) {
-				/*
-				 * Hardware can't process END command
-				 * clearly if req has been START. We
-				 * can't force End command.
-				 */
-				ret = usb_ep_dequeue_forced(ep->ep, req, 0);
-				if (ret < 0) {
-					wait_for_completion(&done);
-					ret = 0;
-				} else
-					ret = -EINTR;
-			}
+		if (unlikely(ret < 0))
+			goto out;
 
-			if (!ret) {
-				/*
-				 * XXX We may end up silently droping data
-				 * here. Since data_len (i.e. req->length)
-				 * may be bigger than len (after being
-				 * rounded up to maxpacketsize), we may end
-				 * up with more data then user space has
-				 * space for.
-				 */
-				ret = ep->status;
-				if (read && ret > 0 &&
-					unlikely(copy_to_user(buf, data,
-						min_t(size_t, ret, len))))
-					ret = -EFAULT;
-			}
+		if (unlikely(wait_for_completion_interruptible(&done))) {
+			/*
+			 * To avoid race condition with ffs_epfile_io_complete,
+			 * dequeue the request first, then check status.
+			 * usb_ep_dequeue API should guarantee no race condition
+			 * with req->complete callback.
+			 */
+
+			usb_ep_dequeue(ep->ep, req);
+			interrupted = true;
+		}
+		/*
+		 * XXX We may end up silently droping data here.
+		 * Since data_len (i.e. req->length) may be bigger
+		 * than len (after being rounded up to maxpacketsize),
+		 * we may end up with more data then user space has
+		 * space for.
+		 */
+		ret = ep->status < 0 && interrupted ? -EINTR : ep->status;
+		if (read && ret > 0) {
+			if (ret > len) {
+				pr_err("%s read overflow\n", __func__);
+				ret = -EOVERFLOW;
+			} else if (unlikely(copy_to_user(buf, data,
+					  min_t(size_t, ret, len))))
+				ret = -EFAULT;
 		}
 	}
 
+out:
 	mutex_unlock(&epfile->mutex);
 error:
 	kfree(data);
