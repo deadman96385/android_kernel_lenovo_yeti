@@ -778,6 +778,11 @@ int intel_parse_bios(struct drm_device *dev);
 
 #define MIPI_DSI_UNDEFINED_PANEL_ID	0
 #define MIPI_DSI_GENERIC_PANEL_ID	1
+#define MIPI_DSI_NT35523_PANEL_ID	2
+#define MIPI_DSI_TI_DPP3430_PANEL_ID	3
+#define MIPI_DSI_INX_NT51021_PANEL_ID	0x10
+#define MIPI_DSI_AUO_NT51021_PANEL_ID 0x11
+
 
 struct mipi_config {
 	u16 panel_id;

@@ -105,3 +105,17 @@ config SUPPORT_LPDMA_HDMI_AUDIO
 	default y
 	help
 	Choose this option for enabling HDMI audio.
+
+config PANEL_NT51021_INX
+       bool "Enable panel nt51021 inx."
+       depends on DRM_I915
+       default n
+       help
+       Choose this option for enabling panel nt51021 inx.
+
+config PANEL_NT51021_AUO
+       bool "Enable panel nt51021 auo."
+       depends on DRM_I915
+       default n
+       help
+       Choose this option for enabling panel nt51021 auo.

@@ -628,6 +628,31 @@ static void vlv_set_mipi_backlight(struct intel_connector *connector, u32 level)
 {
 	struct drm_device *dev = connector->base.dev;
 	struct drm_i915_private *dev_priv = dev->dev_private;
+
+	/* backlight control for BladeIII 10A */
+	struct intel_dsi *intel_dsi = NULL;
+	struct drm_crtc *crtc = NULL;
+	struct intel_encoder *encoder = NULL;
+	struct intel_dsi_device *dsi = NULL;
+	struct intel_panel *panel = &connector->panel;
+
+	if(panel->backlight.enabled == false) {
+		DRM_INFO("backlight has been disabled.\n");
+		return;
+	}
+
+	list_for_each_entry(crtc, &dev->mode_config.crtc_list, head) {
+		for_each_encoder_on_crtc(dev, crtc, encoder) {
+			if (encoder->type == INTEL_OUTPUT_DSI){
+				intel_dsi = enc_to_intel_dsi(&encoder->base);
+				dsi = &(intel_dsi->dev);
+			}
+		}
+	}
+
+	if (intel_dsi->dev.dev_ops->set_brightness)
+		intel_dsi->dev.dev_ops->set_brightness(&intel_dsi->dev,level);
+
 	if (dev_priv->vbt.dsi.config->pmic_soc_blc) {
 		/* FixMe: if level is zero still a pulse is observed consuming
 		 * power. To fix this issue if requested level is zero then

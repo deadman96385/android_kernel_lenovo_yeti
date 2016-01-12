@@ -238,6 +238,26 @@ static struct gpio_table gtable[] = {
 	{USB_ULPI_0_REFCLK_GPIOS_43_PCONF0, USB_ULPI_0_REFCLK_GPIOS_43_PAD, 0}
 };
 
+extern struct intel_dsi_dev_ops inx_nt51021_dsi_display_ops;
+extern struct intel_dsi_dev_ops auo_nt51021_dsi_display_ops;
+
+static struct intel_dsi_device intel_dsi_sub_devices[] = {
+	{
+		.sub_panel_id = MIPI_DSI_INX_NT51021_PANEL_ID,
+		.sub_dev_ops = &inx_nt51021_dsi_display_ops,
+	},
+	{
+		.sub_panel_id = MIPI_DSI_AUO_NT51021_PANEL_ID,
+		.sub_dev_ops = &auo_nt51021_dsi_display_ops,
+	},
+
+};
+
+int chv_get_lcd_id(void)
+{
+	return 0;
+}
+
 static u8 *mipi_exec_send_packet(struct intel_dsi *intel_dsi, u8 *data)
 {
 	struct drm_device *dev = intel_dsi->base.base.dev;
@@ -663,17 +683,35 @@ static void generic_exec_sequence(struct intel_dsi *intel_dsi, char *sequence)
 static void generic_get_panel_info(int pipe, struct drm_connector *connector)
 {
 	struct intel_connector *intel_connector = to_intel_connector(connector);
-	DRM_DEBUG_KMS("\n");
+	unsigned int panel_id = MIPI_DSI_INX_NT51021_PANEL_ID; //should read from id pin
+	int lcd_id = 0;
+
+	lcd_id = chv_get_lcd_id();
+	if(lcd_id) {
+		panel_id = MIPI_DSI_INX_NT51021_PANEL_ID;
+	} else {
+		panel_id = MIPI_DSI_AUO_NT51021_PANEL_ID;
+	}
+
+	DRM_DEBUG_KMS("pipe:%d\n",pipe);
 	if (!connector)
 		return;
 
 	if (pipe == 0) {
-		connector->display_info.width_mm =
-			intel_connector->panel.fixed_mode->width_mm;
-		connector->display_info.height_mm =
-			intel_connector->panel.fixed_mode->height_mm;
+		switch (panel_id) {
+			case MIPI_DSI_INX_NT51021_PANEL_ID:
+			case MIPI_DSI_AUO_NT51021_PANEL_ID:
+				connector->display_info.width_mm = 135;
+				connector->display_info.height_mm = 216;
+				break;
+			default:
+				connector->display_info.width_mm =
+					intel_connector->panel.fixed_mode->width_mm;
+				connector->display_info.height_mm =
+					intel_connector->panel.fixed_mode->height_mm;
+				break;
+			}
 	}
-
 	return;
 }
 
@@ -683,9 +721,15 @@ void generic_tear_on(struct intel_dsi_device *dsi)
 	struct drm_device *dev = intel_dsi->base.base.dev;
 	struct drm_i915_private *dev_priv = dev->dev_private;
 
-	char *sequence = dev_priv->vbt.dsi.sequence[MIPI_SEQ_TEAR_ON];
+	if (dsi->sub_panel_id != MIPI_DSI_UNDEFINED_PANEL_ID) {
+		if (dsi->sub_dev_ops->tear_on)
+			dsi->sub_dev_ops->tear_on(dsi);
+	}
+	else {
+		char *sequence = dev_priv->vbt.dsi.sequence[MIPI_SEQ_TEAR_ON];
 
-	generic_exec_sequence(intel_dsi, sequence);
+		generic_exec_sequence(intel_dsi, sequence);
+	}
 }
 
 static bool generic_init(struct intel_dsi_device *dsi)
@@ -705,9 +749,30 @@ static bool generic_init(struct intel_dsi_device *dsi)
 	u32 lp_to_hs_switch, hs_to_lp_switch;
 	u32 computed_ddr;
 	u16 burst_mode_ratio;
+	int lcd_id;
+	int i;
+	/* get the panel id from hardware */
+	//unsigned int panel_id = MIPI_DSI_NT35523_PANEL_ID;
+	//unsigned int panel_id = MIPI_DSI_UNDEFINED_PANEL_ID;
+	unsigned int panel_id = MIPI_DSI_INX_NT51021_PANEL_ID;	//for Yeti PO backup
 
 	DRM_DEBUG_KMS("\n");
 
+	lcd_id = chv_get_lcd_id();
+	if(lcd_id) {
+		panel_id = MIPI_DSI_INX_NT51021_PANEL_ID;
+	} else {
+		panel_id = MIPI_DSI_AUO_NT51021_PANEL_ID;
+	}
+	DRM_INFO("LCD panel ID %d\n", lcd_id);
+
+	for (i = 0; i < ARRAY_SIZE(intel_dsi_sub_devices); i++) {
+		if (panel_id == intel_dsi_sub_devices[i].sub_panel_id) {
+			dsi->sub_dev_ops = intel_dsi_sub_devices[i].sub_dev_ops;
+			dsi->sub_panel_id = intel_dsi_sub_devices[i].sub_panel_id;
+			break;
+		}
+	}
 	intel_dsi->eotp_pkt = mipi_config->eot_pkt_disabled ? 0 : 1;
 	intel_dsi->clock_stop = mipi_config->enable_clk_stop ? 1 : 0;
 	intel_dsi->lane_count = mipi_config->lane_cnt + 1;
@@ -715,6 +780,13 @@ static bool generic_init(struct intel_dsi_device *dsi)
 	intel_dsi->dual_link = mipi_config->dual_link;
 	intel_dsi->pixel_overlap = mipi_config->pixel_overlap;
 	intel_dsi->port = 0;
+	
+	if (dsi->sub_panel_id != MIPI_DSI_UNDEFINED_PANEL_ID) {
+		if (dsi->sub_dev_ops->init)
+			dsi->sub_dev_ops->init(dsi);
+		if (dsi->sub_dev_ops->get_modes)
+			dsi->sub_dev_ops->get_modes(dsi);
+	}
 
 	if (intel_dsi->pixel_format == VID_MODE_FORMAT_RGB666)
 		bits_per_pixel = 18;
@@ -1012,6 +1084,13 @@ static void generic_panel_reset(struct intel_dsi_device *dsi)
 
 	char *sequence = dev_priv->vbt.dsi.sequence[MIPI_SEQ_ASSERT_RESET];
 
+	DRM_DEBUG_KMS("%s In\n", __func__);
+
+	if(dsi->sub_panel_id != MIPI_DSI_UNDEFINED_PANEL_ID){
+		if(dsi->sub_dev_ops->panel_reset)
+			dsi->sub_dev_ops->panel_reset(dsi);
+	}
+
 	generic_exec_sequence(intel_dsi, sequence);
 
 	if (is_cmd_mode(intel_dsi) && IS_CHERRYVIEW(dev)) {
@@ -1042,9 +1121,13 @@ static void generic_disable_panel_power(struct intel_dsi_device *dsi)
 	struct drm_device *dev = intel_dsi->base.base.dev;
 	struct drm_i915_private *dev_priv = dev->dev_private;
 
-	char *sequence = dev_priv->vbt.dsi.sequence[MIPI_SEQ_DEASSERT_RESET];
-
-	generic_exec_sequence(intel_dsi, sequence);
+	if (dsi->sub_panel_id != MIPI_DSI_UNDEFINED_PANEL_ID) {
+		if (dsi->sub_dev_ops->disable_panel_power)
+			dsi->sub_dev_ops->disable_panel_power(dsi);
+	} else {
+		char *sequence = dev_priv->vbt.dsi.sequence[MIPI_SEQ_DEASSERT_RESET];
+		generic_exec_sequence(intel_dsi, sequence);
+	}
 }
 
 static void generic_send_otp_cmds(struct intel_dsi_device *dsi)
@@ -1053,9 +1136,13 @@ static void generic_send_otp_cmds(struct intel_dsi_device *dsi)
 	struct drm_device *dev = intel_dsi->base.base.dev;
 	struct drm_i915_private *dev_priv = dev->dev_private;
 
-	char *sequence = dev_priv->vbt.dsi.sequence[MIPI_SEQ_INIT_OTP];
-
-	generic_exec_sequence(intel_dsi, sequence);
+	if (dsi->sub_panel_id != MIPI_DSI_UNDEFINED_PANEL_ID) {
+		if (dsi->sub_dev_ops->send_otp_cmds)
+			dsi->sub_dev_ops->send_otp_cmds(dsi);
+	} else {
+		char *sequence = dev_priv->vbt.dsi.sequence[MIPI_SEQ_INIT_OTP];
+		generic_exec_sequence(intel_dsi, sequence);
+	}
 }
 
 static void generic_enable(struct intel_dsi_device *dsi)
@@ -1064,9 +1151,14 @@ static void generic_enable(struct intel_dsi_device *dsi)
 	struct drm_device *dev = intel_dsi->base.base.dev;
 	struct drm_i915_private *dev_priv = dev->dev_private;
 
-	char *sequence = dev_priv->vbt.dsi.sequence[MIPI_SEQ_DISPLAY_ON];
+	if (dsi->sub_panel_id != MIPI_DSI_UNDEFINED_PANEL_ID) {
+		if (dsi->sub_dev_ops->enable)
+			dsi->sub_dev_ops->enable(dsi);
+	} else {
+		char *sequence = dev_priv->vbt.dsi.sequence[MIPI_SEQ_DISPLAY_ON];
+		generic_exec_sequence(intel_dsi, sequence);
+	}
 
-	generic_exec_sequence(intel_dsi, sequence);
 }
 
 static void generic_disable(struct intel_dsi_device *dsi)
@@ -1075,9 +1167,13 @@ static void generic_disable(struct intel_dsi_device *dsi)
 	struct drm_device *dev = intel_dsi->base.base.dev;
 	struct drm_i915_private *dev_priv = dev->dev_private;
 
-	char *sequence = dev_priv->vbt.dsi.sequence[MIPI_SEQ_DISPLAY_OFF];
-
-	generic_exec_sequence(intel_dsi, sequence);
+	if (dsi->sub_panel_id != MIPI_DSI_UNDEFINED_PANEL_ID) {
+		if (dsi->sub_dev_ops->disable)
+			dsi->sub_dev_ops->disable(dsi);
+	} else {
+		char *sequence = dev_priv->vbt.dsi.sequence[MIPI_SEQ_DISPLAY_OFF];
+		generic_exec_sequence(intel_dsi, sequence);
+	}
 }
 
 void generic_enable_bklt(struct intel_dsi_device *dsi)
@@ -1086,8 +1182,13 @@ void generic_enable_bklt(struct intel_dsi_device *dsi)
 	struct drm_device *dev = intel_dsi->base.base.dev;
 	struct drm_i915_private *dev_priv = dev->dev_private;
 
-	char *sequence = dev_priv->vbt.dsi.sequence[MIPI_SEQ_BACKLIGHT_ON];
-	generic_exec_sequence(intel_dsi, sequence);
+	if (dsi->sub_panel_id != MIPI_DSI_UNDEFINED_PANEL_ID) {
+		if (dsi->sub_dev_ops->enable_backlight)
+			dsi->sub_dev_ops->enable_backlight(dsi);
+	} else {
+		char *sequence = dev_priv->vbt.dsi.sequence[MIPI_SEQ_BACKLIGHT_ON];
+		generic_exec_sequence(intel_dsi, sequence);
+	}
 }
 
 void generic_disable_bklt(struct intel_dsi_device *dsi)
@@ -1096,8 +1197,13 @@ void generic_disable_bklt(struct intel_dsi_device *dsi)
 	struct drm_device *dev = intel_dsi->base.base.dev;
 	struct drm_i915_private *dev_priv = dev->dev_private;
 
-	char *sequence = dev_priv->vbt.dsi.sequence[MIPI_SEQ_BACKLIGHT_OFF];
-	generic_exec_sequence(intel_dsi, sequence);
+	if (dsi->sub_panel_id != MIPI_DSI_UNDEFINED_PANEL_ID) {
+		if (dsi->sub_dev_ops->disable_backlight)
+			dsi->sub_dev_ops->disable_backlight(dsi);
+	} else {
+		char *sequence = dev_priv->vbt.dsi.sequence[MIPI_SEQ_BACKLIGHT_OFF];
+		generic_exec_sequence(intel_dsi, sequence);
+	}
 }
 
 static enum drm_connector_status generic_detect(struct intel_dsi_device *dsi)
@@ -1126,8 +1232,14 @@ void generic_power_on(struct intel_dsi_device *dsi)
 	struct drm_device *dev = intel_dsi->base.base.dev;
 	struct drm_i915_private *dev_priv = dev->dev_private;
 
-	char *sequence = dev_priv->vbt.dsi.sequence[MIPI_POWER_ON];
-	generic_exec_sequence(intel_dsi, sequence);
+	DRM_DEBUG_KMS("\n");
+	if (dsi->sub_panel_id != MIPI_DSI_UNDEFINED_PANEL_ID) {
+		if (dsi->sub_dev_ops->power_on)
+			dsi->sub_dev_ops->power_on(dsi);
+	} else {
+		char *sequence = dev_priv->vbt.dsi.sequence[MIPI_POWER_ON];
+		generic_exec_sequence(intel_dsi, sequence);
+	}
 }
 
 void generic_power_off(struct intel_dsi_device *dsi)
@@ -1136,8 +1248,21 @@ void generic_power_off(struct intel_dsi_device *dsi)
 	struct drm_device *dev = intel_dsi->base.base.dev;
 	struct drm_i915_private *dev_priv = dev->dev_private;
 
-	char *sequence = dev_priv->vbt.dsi.sequence[MIPI_POWER_OFF];
-	generic_exec_sequence(intel_dsi, sequence);
+	if (dsi->sub_panel_id != MIPI_DSI_UNDEFINED_PANEL_ID) {
+		if (dsi->sub_dev_ops->power_off)
+			dsi->sub_dev_ops->power_off(dsi);
+	} else {
+		char *sequence = dev_priv->vbt.dsi.sequence[MIPI_POWER_OFF];
+		generic_exec_sequence(intel_dsi, sequence);
+	}
+}
+
+void generic_set_brightness(struct intel_dsi_device *dsi,u32 level)
+{
+	if (dsi->sub_panel_id != MIPI_DSI_UNDEFINED_PANEL_ID) {
+		if (dsi->sub_dev_ops->set_brightness)
+			dsi->sub_dev_ops->set_brightness(dsi,level);
+	}
 }
 
 static void generic_destroy(struct intel_dsi_device *dsi) { }
@@ -1162,5 +1287,5 @@ struct intel_dsi_dev_ops vbt_generic_dsi_display_ops = {
 	.destroy = generic_destroy,
 	.power_on = generic_power_on,
 	.power_off = generic_power_off,
-
+	.set_brightness = generic_set_brightness,
 };

@@ -410,6 +410,9 @@ struct intel_dsi_device {
 	const char *name;
 	struct intel_dsi_dev_ops *dev_ops;
 	void *dev_priv;
+	unsigned int sub_panel_id;
+	struct intel_dsi_dev_ops *sub_dev_ops;
+
 };
 
 struct intel_dsi_dev_ops {
@@ -456,6 +459,7 @@ struct intel_dsi_dev_ops {
 	void (*destroy) (struct intel_dsi_device *dsi);
 	void (*power_on)(struct intel_dsi_device *dsi);
 	void (*power_off)(struct intel_dsi_device *dsi);
+	void (*set_brightness)(struct intel_dsi_device *dsi,u32 level);
 };
 
 struct intel_dsi {
@@ -518,7 +522,7 @@ struct intel_dsi {
 
 	u8 dual_link;
 	u8 pixel_overlap;
-
+	enum pipe pipe;
 	/* cht hw issue that MIPI port C reg cannot be read */
 	u32 port_ctrl_reg_val;
 
