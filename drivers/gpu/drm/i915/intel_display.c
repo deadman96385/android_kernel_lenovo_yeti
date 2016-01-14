@@ -9622,9 +9622,19 @@ static int intel_crtc_cursor_move(struct drm_crtc *crtc, int x, int y)
 static void intel_crtc_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green,
 				 u16 *blue, uint32_t start, uint32_t size)
 {
-	int end = (start + size > 256) ? 256 : start + size, i;
+	struct drm_device *dev = crtc->dev;
+	struct drm_i915_private *dev_priv = dev->dev_private;
 	struct intel_crtc *intel_crtc = to_intel_crtc(crtc);
 
+	int end = (start + size > 256) ? 256 : start + size, i;
+	
+	mutex_lock(&dev_priv->bk_status_lock);
+	if (!(&dev_priv->bk_status) ){
+		mutex_unlock(&dev_priv->bk_status_lock);	
+		return;
+	}
+	mutex_unlock(&dev_priv->bk_status_lock);
+	
 	for (i = start; i < end; i++) {
 		intel_crtc->lut_r[i] = red[i] >> 8;
 		intel_crtc->lut_g[i] = green[i] >> 8;

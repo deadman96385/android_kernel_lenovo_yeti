@@ -166,7 +166,7 @@ static int dsi_vc_send_short(struct intel_dsi *intel_dsi, int channel,
 	return 0;
 }
 
-static int dsi_vc_send_long(struct intel_dsi *intel_dsi, int channel,
+int dsi_vc_send_long(struct intel_dsi *intel_dsi, int channel,
 			    u8 data_type, const u8 *data, int len)
 {
 	struct drm_encoder *encoder = &intel_dsi->base.base;

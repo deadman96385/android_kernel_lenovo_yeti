@@ -253,10 +253,7 @@ static struct intel_dsi_device intel_dsi_sub_devices[] = {
 
 };
 
-int chv_get_lcd_id(void)
-{
-	return 0;
-}
+extern int chv_get_lcd_id(void);
 
 static u8 *mipi_exec_send_packet(struct intel_dsi *intel_dsi, u8 *data)
 {

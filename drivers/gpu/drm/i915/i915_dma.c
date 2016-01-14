@@ -1712,7 +1712,8 @@ int i915_driver_load(struct drm_device *dev, unsigned long flags)
 	dev->dev_private = (void *)dev_priv;
 	dev_priv->dev = dev;
 	dev_priv->shutdown_in_progress = false;
-
+	dev_priv->bk_status= false;
+	
 	dev_priv->quick_modeset = true;
 
 	/* copy initial configuration to dev_priv->info */
@@ -1731,6 +1732,7 @@ int i915_driver_load(struct drm_device *dev, unsigned long flags)
 	mutex_init(&dev_priv->dpst.ioctl_lock);
 	mutex_init(&dev_priv->perfmon.config.lock);
 	mutex_init(&dev_priv->rc6_wa_bb.lock);
+	mutex_init(&dev_priv->bk_status_lock);
 
 	intel_pm_setup(dev);
 

@@ -30,7 +30,7 @@
 #include <drm/drm.h>
 #include <drm/drm_crtc.h>
 #include "intel_drv.h"
-#if 0
+#if 1
 #include "lenovo_lcd_panel.h"
 
 #define DELAY_TYPE		0xff

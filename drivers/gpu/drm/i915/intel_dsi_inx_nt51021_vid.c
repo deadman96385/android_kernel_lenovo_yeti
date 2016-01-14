@@ -39,7 +39,6 @@
 #include "intel_dsi_inx_nt51021_vid.h"
 
 #ifdef  CONFIG_LENOVO_DISPLAY_FEATURE
-extern bool bk_status;
 static int gcabc_ce_register;
 
 extern int dsi_vc_send_long(struct intel_dsi *intel_dsi, int channel,
@@ -502,7 +501,9 @@ void inx_nt51021_power_on(struct intel_dsi_device *dsi)
 
 #ifdef  CONFIG_LENOVO_DISPLAY_FEATURE
 	inx_nt51021__panel_device.status = ON;
-	bk_status = true;
+	mutex_lock(&dev_priv->bk_status_lock);
+	dev_priv->bk_status = true;
+	mutex_unlock(&dev_priv->bk_status_lock);	
 	DRM_INFO("%s--ON\n", __func__);
 #endif
 	return;
@@ -517,7 +518,9 @@ void inx_nt51021_power_off(struct intel_dsi_device *dsi)
 
 #ifdef  CONFIG_LENOVO_DISPLAY_FEATURE
 	inx_nt51021__panel_device.status = OFF;
-	bk_status = false;
+	mutex_lock(&dev_priv->bk_status_lock);
+	dev_priv->bk_status = false;
+	mutex_unlock(&dev_priv->bk_status_lock);	
 	DRM_INFO("%s--OFF\n", __func__);
 #endif
 	DRM_DEBUG_KMS("\n");

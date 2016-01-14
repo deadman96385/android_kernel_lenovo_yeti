@@ -38,8 +38,6 @@
 #include "intel_dsi_cmd.h"
 #include "intel_dsi_auo_nt51021_vid.h"
 
-extern bool bk_status ;
-
 #ifdef  CONFIG_LENOVO_DISPLAY_FEATURE
 extern int dsi_vc_send_long(struct intel_dsi *intel_dsi, int channel,
 			    u8 data_type, const u8 *data, int len);
@@ -424,7 +422,10 @@ void auo_nt51021_power_on(struct intel_dsi_device *dsi)
 	
 #ifdef  CONFIG_LENOVO_DISPLAY_FEATURE
 		auo_nt51021__panel_device.status = ON;
-		   bk_status=true; 
+		mutex_lock(&dev_priv->bk_status_lock);
+		dev_priv->bk_status = true;
+		mutex_unlock(&dev_priv->bk_status_lock);	
+
 		  printk("%s--ON\n",__func__);
 #endif
 		return;
@@ -437,7 +438,9 @@ void auo_nt51021_power_off(struct intel_dsi_device *dsi)
 		struct drm_i915_private *dev_priv = dev->dev_private;
 #ifdef  CONFIG_LENOVO_DISPLAY_FEATURE
 		auo_nt51021__panel_device.status = OFF;
-		   bk_status=false; 
+		 mutex_lock(&dev_priv->bk_status_lock);
+		dev_priv->bk_status = false;
+		mutex_unlock(&dev_priv->bk_status_lock);	
 		  printk("%s--OFF\n",__func__);
 #endif
 		DRM_DEBUG_KMS("\n");

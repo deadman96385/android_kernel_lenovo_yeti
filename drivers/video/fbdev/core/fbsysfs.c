@@ -501,6 +501,17 @@ static ssize_t show_bl_curve(struct device *device,
 }
 #endif
 
+#ifdef  CONFIG_LENOVO_DISPLAY_FEATURE
+extern ssize_t lenovo_lcd_get_name(struct device *dev, struct device_attribute *attr, char *buf);
+extern ssize_t lenovo_lcd_get_cabc(struct device *dev, struct device_attribute *attr, char *buf);
+extern ssize_t lenovo_lcd_set_cabc(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
+extern ssize_t lenovo_lcd_get_ce(struct device *dev, struct device_attribute *attr, char *buf);
+extern ssize_t lenovo_lcd_set_ce(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
+//extern ssize_t lenovo_lcd_set_dpst(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
+//extern ssize_t lenovo_lcd_get_dpst(struct device *dev, struct device_attribute *attr, char *buf);
+#endif
+
+
 /* When cmap is added back in it should be a binary attribute
  * not a text one. Consideration should also be given to converting
  * fbdev to use configfs instead of sysfs */
@@ -520,6 +531,13 @@ static struct device_attribute device_attrs[] = {
 #ifdef CONFIG_FB_BACKLIGHT
 	__ATTR(bl_curve, S_IRUGO|S_IWUSR, show_bl_curve, store_bl_curve),
 #endif
+#ifdef  CONFIG_LENOVO_DISPLAY_FEATURE
+   __ATTR(lcd_name, S_IRUGO, lenovo_lcd_get_name, NULL),
+   __ATTR(cabc_onoff, S_IRUGO|S_IWUSR, lenovo_lcd_get_cabc,lenovo_lcd_set_cabc),
+   __ATTR(ce_onoff, S_IRUGO|S_IWUSR, lenovo_lcd_get_ce,lenovo_lcd_set_ce),
+//   __ATTR(dpst_onoff, S_IRUGO|S_IWUSR, lenovo_lcd_get_dpst,lenovo_lcd_set_dpst),
+#endif
+
 };
 
 int fb_init_device(struct fb_info *fb_info)

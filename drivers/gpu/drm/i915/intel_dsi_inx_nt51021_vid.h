@@ -30,7 +30,7 @@
 #include <drm/drm.h>
 #include <drm/drm_crtc.h>
 #include "intel_drv.h"
-//#include "lenovo_lcd_panel.h"
+#include "lenovo_lcd_panel.h"
 
 #define DELAY_TYPE		0xff
 
@@ -39,7 +39,7 @@
 
 extern int dsi_vc_send_long(struct intel_dsi *intel_dsi, int channel,
 			    u8 data_type, const u8 *data, int len);
-#if 0
+#if 1
 static struct lcd_cmd cabcoff_cmds[] = {
 	{{0x83, 0xbb}, 2},
 	{{0x84, 0x22}, 2},

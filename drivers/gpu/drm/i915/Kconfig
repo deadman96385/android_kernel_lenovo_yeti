@@ -119,3 +119,10 @@ config PANEL_NT51021_AUO
        default n
        help
        Choose this option for enabling panel nt51021 auo.
+
+config LENOVO_DISPLAY_FEATURE
+       bool "Enable LENOVO display feature, such as CABC/CE etc."
+       depends on DRM_I915
+       default n
+       help
+       Choose this option for enabling LENOVO display feature.

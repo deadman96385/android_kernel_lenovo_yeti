@@ -2039,6 +2039,9 @@ struct drm_i915_private {
 
 	bool shutdown_in_progress;
 
+	bool bk_status;
+	struct mutex bk_status_lock;
+
 #ifdef CONFIG_MIGRATION
 	struct shmem_migrate_info migrate_info;
 #endif
