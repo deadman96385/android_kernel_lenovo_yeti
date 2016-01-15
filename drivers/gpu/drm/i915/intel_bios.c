@@ -566,6 +566,7 @@ parse_driver_features(struct drm_i915_private *dev_priv,
 	if (driver->dual_frequency)
 		dev_priv->render_reclock_avail = true;
 
+	 driver->drrs_enabled = 0;
 	DRM_DEBUG_KMS("DRRS State Enabled:%d\n", driver->drrs_enabled);
 	/*
 	 * If DRRS is not supported, drrs_type has to be set to 0.
