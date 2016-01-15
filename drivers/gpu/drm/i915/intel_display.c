@@ -5550,7 +5550,8 @@ static void valleyview_crtc_enable(struct drm_crtc *crtc)
 	int pipe = intel_crtc->pipe;
 	int plane = intel_crtc->plane;
 	bool is_dsi;
-
+	u32 dspcntr;
+	
 	WARN_ON(!crtc->enabled);
 
 	if (intel_crtc->active)
@@ -5659,6 +5660,13 @@ static void valleyview_crtc_enable(struct drm_crtc *crtc)
 	for_each_encoder_on_crtc(dev, crtc, encoder)
 		if (encoder->type != INTEL_OUTPUT_DSI)
 			encoder->enable(encoder);
+
+	/* hardcode to enable gamma for paperlooking */
+       	/* Set up the display plane register */
+       	dspcntr = I915_READ(DSPCNTR(plane));
+       	dspcntr |= DISPPLANE_GAMMA_ENABLE;
+       	I915_WRITE(DSPCNTR(plane), dspcntr);
+       	POSTING_READ(DSPCNTR(plane));
 
 	/* If Intel DSI and CMd mode create buffer for cursor plane */
 	for_each_encoder_on_crtc(dev, crtc, encoder) {
@@ -9627,6 +9635,9 @@ static void intel_crtc_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green,
 	struct drm_device *dev = crtc->dev;
 	struct drm_i915_private *dev_priv = dev->dev_private;
 	struct intel_crtc *intel_crtc = to_intel_crtc(crtc);
+	u32 pipe_dsl = PIPEDSL(intel_crtc->pipe), dsl = 0, last_dsl = 0;
+       	u32 vdisplay = VTOTAL(intel_crtc->pipe), vdisplay_val = 0;
+       	u32 loop_cnt = 0;
 
 	int end = (start + size > 256) ? 256 : start + size, i;
 	
@@ -9642,6 +9653,22 @@ static void intel_crtc_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green,
 		intel_crtc->lut_g[i] = green[i] >> 8;
 		intel_crtc->lut_b[i] = blue[i] >> 8;
 	}
+
+	vdisplay_val = I915_READ(vdisplay) & 0xfff;
+       do {
+               dsl = (I915_READ(pipe_dsl) & DSL_LINEMASK_GEN3);
+               if (dsl == last_dsl) {
+                       loop_cnt++;
+                       if (loop_cnt > 50) {
+                               DRM_INFO("%s: loop timeout. dsl [%u], loop_cnt [%u].\n", __func__, dsl, loop_cnt);
+                               break;
+                       }
+               } else {
+                       last_dsl = dsl;
+                       loop_cnt = 0;
+               }
+               usleep_range(4, 5);
+       } while (dsl <= (vdisplay_val+1));
 
 	intel_crtc_load_lut(crtc);
 }
