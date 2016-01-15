@@ -121,6 +121,148 @@ static inline const char *get_global_flag(struct drm_i915_gem_object *obj)
 	return obj->has_global_gtt_mapping ? "g" : " ";
 }
 
+ssize_t i915_display_register_read(struct file *filp,
+		 char __user *ubuf,
+		 size_t max,
+		 loff_t *ppos)
+{
+	int len = 0;
+	char buf[] = "====>Version 0.4.<====\n"
+					"CMD format: [r/a] [reg_addr] [num/end_addr]\n"
+					"Display register list:\n"
+					"\t0x05000 to 0x05FFF\tGMBUS and I/O Control\n"
+					"\t0x06000 to 0x062FF\tDisplay Clocks and Clock Gating\n"
+					"\t0x0A000 to 0x0B7FF\tDisplay Palette A/B/C Registers\n"
+					"\t0x50500 to 0x51004\tWIDI Inbound messages\n"
+					"\t0x60000 to 0x600FF\tDisplay Pipeline A\n"
+					"\t0x61000 to 0x610FF\tDisplay Pipeline B\n"
+					"\t0x63000 to 0x630FF\tDisplay Pipeline C\n"
+					"\t0x61100 to 0x611FF\tDisplay Port Control Registers\n"
+					"\t0x61200 to 0x613FF\tPanel Fitting/Power Sequencing/LVDS Control\n"
+					"\t0x62000 to 0x62FFF\tHD Audio Control\n"
+					"\t0x64000 to 0x64FFF\tDisplayPort Registers\n"
+					"\t0x65000 to 0x65FFF\tLPE Audio Registers\n"
+					"\t0x70000 to 0x7FFFF\tDisplay Pipeline, Display Planes, Cursor Planes, and VGA Control Registers\n";
+
+	len = sizeof(buf);
+	return simple_read_from_buffer(ubuf, max, ppos,
+		(const void *) buf, len);
+}
+
+/*
+* use to read display register.
+*/
+ssize_t i915_display_register_write(struct file *filp,
+		  const char __user *ubuf,
+		  size_t count,
+		  loff_t *ppos)
+{
+	int ret = 0;
+	struct drm_device *dev = filp->private_data;
+	struct drm_i915_private *dev_priv = dev->dev_private;
+	char *buf = NULL;
+	char op = '0';
+	int  reg = 0, num = 0, start = 0, end = 0;
+	unsigned int  val = 0, reg_val = 0;
+
+	/* Validate input */
+	if (!count) {
+		DRM_ERROR("Display register: insufficient data\n");
+		return -EINVAL;
+	}
+
+	buf = kzalloc((count + 1), GFP_KERNEL);
+	if (!buf) {
+		DRM_ERROR("Display register: Out of mem\n");
+		ret = -ENOMEM;
+		goto EXIT;
+	}
+
+	/* Get the data */
+	if (copy_from_user(buf, ubuf, count)) {
+		DRM_ERROR("Display register: copy failed\n");
+		ret = -EINVAL;
+		goto EXIT;
+	}
+	buf[count] = '\0';
+
+	sscanf(buf, "%c %x %x", &op, &reg, &val);
+
+	if (op != 'r' && op != 'a') {
+		DRM_ERROR("The input format is not right!\n");
+		DRM_ERROR("[r/a] [reg_addr] [num/end_addr]\n");
+		DRM_ERROR("for exampe: r 70184		(read register 70184.)\n");
+		DRM_ERROR("for exmape: a 60000 60010(read all registers start at 60000 and end at 60010.\n)");
+		ret = -EINVAL;
+		goto EXIT;
+	}
+
+	if ((reg % 0x4) != 0) {
+		DRM_ERROR("the register address should aligned to 4 byte.please refrence display controller specification.\n");
+		ret = -EINVAL;
+		goto EXIT;
+	}
+
+	if (op == 'r') {
+		do {
+			reg_val = I915_READ(dev_priv->info.display_mmio_offset + reg);
+			DRM_INFO("Read: reg=0x%08x , \tval=0x%08x .\n", reg, reg_val);
+			num++;
+			reg += 4;
+		} while (num < val);
+	}
+	if (op == 'a') {
+		start = reg;
+		end = val;
+		if (start >= end) {
+			DRM_ERROR("The end address is smaller than the start address.\n");
+			ret = -EINVAL;
+			goto EXIT;
+		}
+		reg += dev_priv->info.display_mmio_offset;
+		DRM_INFO("START ADDR: 0x%08x, END ADDR: 0x%08x.\n", start, end);
+		num = (end - start)/16;
+		while (num > 0) {
+			DRM_INFO("0x%08x: 0x%08x 0x%08x 0x%08x 0x%08x\n",
+				(reg - dev_priv->info.display_mmio_offset), I915_READ(reg), I915_READ(reg + 0x4), I915_READ(reg + 0x8), I915_READ(reg + 0xc));
+			reg += 0x10;
+			num--;
+		}
+		num = (end - start)%16;
+		if (num >= 0xc) {
+			DRM_INFO("0x%08x: 0x%08x 0x%08x 0x%08x 0x%08x\n",
+				(reg - dev_priv->info.display_mmio_offset), I915_READ(reg), I915_READ(reg + 0x4), I915_READ(reg + 0x8), I915_READ(reg + 0xc));
+		} else if (num >= 0x8) {
+			DRM_INFO("0x%08x: 0x%08x 0x%08x 0x%08x\n",
+				(reg - dev_priv->info.display_mmio_offset), I915_READ(reg), I915_READ(reg + 0x4), I915_READ(reg + 0x8));
+		} else if (num >= 0x4) {
+			DRM_INFO("0x%08x: 0x%08x 0x%08x\n",
+				(reg - dev_priv->info.display_mmio_offset), I915_READ(reg), I915_READ(reg + 0x4));
+		} else if (num > 0) {
+			DRM_INFO("0x%08x: 0x%08x\n",
+				(reg - dev_priv->info.display_mmio_offset), I915_READ(reg));
+		}
+	}
+
+	ret = count;
+
+EXIT:
+	if (buf)
+		kfree(buf);
+
+	return ret;
+}
+
+const struct file_operations i915_display_register_fops = {
+	.owner = THIS_MODULE,
+	.open = simple_open,
+	.read = i915_display_register_read,
+	.write = i915_display_register_write,
+	.llseek = default_llseek,
+};
+
+
+
 static void
 describe_obj(struct seq_file *m, struct drm_i915_gem_object *obj)
 {
@@ -5275,6 +5417,12 @@ int i915_debugfs_init(struct drm_minor *minor)
 			return ret;
 	}
 
+
+	ret = i915_debugfs_create(minor->debugfs_root, minor,
+					"display_reg",
+					&i915_display_register_fops);
+	if (ret)
+		return ret;
 
 	return drm_debugfs_create_files(i915_debugfs_list,
 					I915_DEBUGFS_ENTRIES,
