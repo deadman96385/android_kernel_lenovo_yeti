@@ -109,11 +109,8 @@ static inline u32 __attribute_const__ read_cpuid_cachetype(void)
 	return read_cpuid(CTR_EL0);
 }
 
-static inline bool id_aa64mmfr0_mixed_endian_el0(u64 mmfr0)
-{
-	return (ID_AA64MMFR0_BIGEND(mmfr0) == 0x1) ||
-		(ID_AA64MMFR0_BIGENDEL0(mmfr0) == 0x1);
-}
+void cpuinfo_store_cpu(void);
+
 #endif /* __ASSEMBLY__ */
 
 #endif
