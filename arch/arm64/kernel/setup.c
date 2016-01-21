@@ -43,7 +43,6 @@
 #include <linux/of_platform.h>
 #include <linux/personality.h>
 
-#include <asm/cpu.h>
 #include <asm/cputype.h>
 #include <asm/elf.h>
 #include <asm/cputable.h>
@@ -200,8 +199,6 @@ struct cpuinfo_arm64 {
 	u32		reg_midr;
 };
 
-static DEFINE_PER_CPU(struct cpuinfo_arm64, cpu_data);
-
 void cpuinfo_store_cpu(void)
 {
 	struct cpuinfo_arm64 *info = this_cpu_ptr(&cpu_data);
@@ -229,8 +226,6 @@ static void __init setup_processor(void)
 	elf_hwcap = 0;
 
 	cpuinfo_store_cpu();
-
-	cpuinfo_store_boot_cpu();
 
 	/*
 	 * ID_AA64ISAR0_EL1 contains 4-bit wide signed feature blocks.
@@ -463,6 +458,15 @@ static const char *compat_hwcap_str[] = {
 	"lpae",
 	"evtstrm"
 };
+
+static const char *compat_hwcap2_str[] = {
+	"aes",
+	"pmull",
+	"sha1",
+	"sha2",
+	"crc32",
+	NULL
+};
 #endif /* CONFIG_COMPAT */
 
 static int c_show(struct seq_file *m, void *v)
@@ -494,6 +498,10 @@ static int c_show(struct seq_file *m, void *v)
 			for (j = 0; compat_hwcap_str[j]; j++)
 				if (compat_elf_hwcap & (1 << j))
 					seq_printf(m, " %s", compat_hwcap_str[j]);
+
+			for (j = 0; compat_hwcap2_str[j]; j++)
+				if (compat_elf_hwcap2 & (1 << j))
+					seq_printf(m, " %s", compat_hwcap2_str[j]);
 #endif /* CONFIG_COMPAT */
 		} else {
 			for (j = 0; hwcap_str[j]; j++)
@@ -502,11 +510,12 @@ static int c_show(struct seq_file *m, void *v)
 		}
 		seq_puts(m, "\n");
 
-		seq_printf(m, "CPU implementer\t: 0x%02x\n", (midr >> 24));
+		seq_printf(m, "CPU implementer\t: 0x%02x\n",
+			   MIDR_IMPLEMENTOR(midr));
 		seq_printf(m, "CPU architecture: 8\n");
-		seq_printf(m, "CPU variant\t: 0x%x\n", ((midr >> 20) & 0xf));
-		seq_printf(m, "CPU part\t: 0x%03x\n", ((midr >> 4) & 0xfff));
-		seq_printf(m, "CPU revision\t: %d\n\n", (midr & 0xf));
+		seq_printf(m, "CPU variant\t: 0x%x\n", MIDR_VARIANT(midr));
+		seq_printf(m, "CPU part\t: 0x%03x\n", MIDR_PARTNUM(midr));
+		seq_printf(m, "CPU revision\t: %d\n\n", MIDR_REVISION(midr));
 	}
 
 	return 0;
