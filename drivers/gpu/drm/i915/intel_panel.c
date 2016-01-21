@@ -36,6 +36,122 @@
 #include "intel_drv.h"
 #include "intel_dsi.h"
 #include "i915_drv.h"
+#include <linux/platform_data/lp855x.h>
+#include "intel_dsi_cmd.h"
+extern int i915_boot_mode;
+
+#define BL_IC_I2C_BUS		3
+#define BL_IC_I2C_ADDR		0x2c
+
+/* LP8555/7 Registers */
+#define LP8557_BL_CMD				0x00
+#define LP8557_BRIGHTNESS_CTRL		0x04
+#define LP8557_CONFIG				0x10
+#define LP8557_CURRENT_CONFIG		0x11
+
+#define LP8557_BL_MASK				0x01
+#define LP8557_BL_ON				0x01
+#define LP8557_BL_OFF				0x00
+
+#define LP8557_CURRENT_MAX			0x5
+
+#define	BLADE_BACKLIGHT_CONTROL_BY_I2C		1
+
+#define BLADEIII_10A_INIT_BL_LEVEL			102
+#define BLADEIII_10A_LOW_BATTERY_BL_LEVEL		5
+
+/* Backlight control type */
+#define BL_CTRL_BY_PANEL	1
+#define BL_CTRL_BY_I2C		2
+
+//extern int read_rsoc(int m); //liulc1
+#if 0
+inline int read_rsoc(int m)
+{
+	return 50;
+}
+#endif
+//extern int chv_get_lcd_id(void);
+
+static int
+chv_exec_i2c(u8 bus_number, struct i2c_msg *msg, u8 msg_cnt)
+{
+	int ret = 0;
+	struct i2c_adapter *adapter;
+	u8 retries = 5;
+
+	DRM_DEBUG_DRIVER("%s: bus_number = %u, slave_add = 0x%x, msg_flags = 0x%x, reg_offset = 0x%x\n",
+		__func__, bus_number, msg->addr, msg->flags, msg->buf[0]);
+
+	adapter = i2c_get_adapter(bus_number);
+	if (!adapter) {
+		DRM_ERROR("i2c_get_adapter(%u) failed.\n",
+				(bus_number + 1));
+		ret = -EPERM;
+		goto out;
+	}
+
+	do {
+		ret =  i2c_transfer(adapter, msg, msg_cnt);
+		if (ret == msg_cnt) {
+			DRM_DEBUG_DRIVER("%s: i2c transfer succeed.\n", __func__);
+			break;
+		} else if (ret == -EAGAIN)
+			usleep_range(1000, 2500);
+		else if (ret != 1) {
+			DRM_ERROR("i2c transfer failed %d\n", ret);
+			break;
+		}
+	} while (--retries);
+
+	if (retries == 0)
+		DRM_ERROR("i2c transfer failed");
+
+out:
+	DRM_DEBUG_DRIVER("%s return %d.\n", __func__, ret);
+	return ret;
+}
+
+static unsigned char chv_read_reg(unsigned char reg )
+{
+	struct i2c_msg msg[2];
+	unsigned char data[2];
+	int ret;
+
+	msg[0].addr =BL_IC_I2C_ADDR;
+	msg[0].flags = 0;
+	msg[0].buf = &reg;
+	msg[0].len = sizeof(reg);
+	msg[1].addr =BL_IC_I2C_ADDR;
+	msg[1].flags = I2C_M_RD;
+	msg[1].buf = data;
+	msg[1].len = 1;
+
+	ret = chv_exec_i2c(BL_IC_I2C_BUS, msg, 2);
+	if(ret == 2) {
+		DRM_DEBUG_DRIVER("read reg = %x data ok, data[0] = %d\n", reg, data[0]);
+	}
+
+	return data[0];
+}
+
+extern int read_backlight_id(void);
+int read_backlight_id(void)
+{
+	if (chv_read_reg(0x1) != 0)
+		return -1;
+	else
+		return 0;
+}
+
+static int inline get_backlight_controllor_type(void)
+{
+//	if(chv_get_lcd_id() == 1)
+//		return BL_CTRL_BY_I2C;
+
+	return BL_CTRL_BY_I2C;
+	//return BL_CTRL_BY_PANEL;
+}
 
 void
 intel_fixed_panel_mode(const struct drm_display_mode *fixed_mode,
@@ -501,11 +617,19 @@ static u32 vlv_get_mipi_backlight(struct intel_connector *connector)
 {
 	struct drm_device *dev = connector->base.dev;
 	struct drm_i915_private *dev_priv = dev->dev_private;
+	int ret = 0;
 
 	if (dev_priv->vbt.dsi.config->pmic_soc_blc)
-		return (~lpio_bl_read(0, LPIO_PWM_CTRL)) & 0xff;
+		ret = (~lpio_bl_read(0, LPIO_PWM_CTRL)) & 0xff;
 	else
-		return dsi_soc_pmic_readb(PMIC_PWM_LEVEL);
+		ret = intel_soc_pmic_readb(PMIC_PWM_LEVEL);
+
+	if ((ret < 0) || (ret > 255)) {
+		DRM_ERROR("get backlight out of range. ret = %d\n", ret);
+		ret = 153;
+	}
+
+	return ret;
 }
 
 static u32 _vlv_get_backlight(struct drm_device *dev, enum pipe pipe)
@@ -664,6 +788,25 @@ static void vlv_set_mipi_backlight(struct intel_connector *connector, u32 level)
 		dsi_soc_pmic_writeb(PMIC_PWM_LEVEL, level);
 }
 
+#ifdef BLADE_BACKLIGHT_CONTROL_BY_I2C
+static void vlv_set_backlight_to_ic(struct intel_connector *connector, u32 level)
+{
+	u8 transmit_buffer[4] = {0};
+	struct i2c_msg msg;
+
+	DRM_DEBUG_KMS("%s: set backlight to %u by I2C.\n", __func__, level);
+
+	msg.addr = BL_IC_I2C_ADDR;
+	msg.flags = 0;
+	msg.len = 2;
+	msg.buf = transmit_buffer;
+
+	transmit_buffer[0] = LP8557_BRIGHTNESS_CTRL;
+	transmit_buffer[1] = (level & 0xff);
+	chv_exec_i2c(BL_IC_I2C_BUS, &msg, 1);
+}
+#endif
+
 void
 intel_panel_actually_set_backlight(struct intel_connector *connector, u32 level)
 {
@@ -674,6 +817,12 @@ intel_panel_actually_set_backlight(struct intel_connector *connector, u32 level)
 
 	level = intel_panel_compute_brightness(connector, level);
 	dev_priv->display.set_backlight(connector, level);
+
+#ifdef BLADE_BACKLIGHT_CONTROL_BY_I2C
+	if(get_backlight_controllor_type() == BL_CTRL_BY_I2C)
+		vlv_set_backlight_to_ic(connector, level);
+#endif
+
 }
 
 /* set backlight brightness to level in range [0..max] */
@@ -701,6 +850,7 @@ void intel_panel_set_backlight(struct intel_connector *connector, u32 level,
 	level = n;
 
 	panel->backlight.level = level;
+	DRM_DEBUG_KMS("level = %d\n", level);
 	if (panel->backlight.device)
 		panel->backlight.device->props.brightness = level;
 
@@ -780,6 +930,25 @@ static void vlv_disable_backlight_dis_ddi(struct intel_connector *connector)
 	I915_WRITE(VLV_BLC_PWM_CTL2(pipe), tmp & ~BLM_PWM_ENABLE);
 }
 
+#ifdef BLADE_BACKLIGHT_CONTROL_BY_I2C
+static void vlv_disable_backlight_ic(struct intel_connector *connector)
+{
+	u8 transmit_buffer[4] = {0};
+	struct i2c_msg msg;
+
+	DRM_INFO("%s: disable backlight IC by I2C command.\n", __func__);
+	msg.addr = BL_IC_I2C_ADDR;
+	msg.flags = 0;
+	msg.len = 2;
+	msg.buf = transmit_buffer;
+
+	transmit_buffer[0] = LP8557_BL_CMD;
+	transmit_buffer[1] = LP8557_BL_OFF;
+	chv_exec_i2c(BL_IC_I2C_BUS, &msg, 1);
+	mdelay(10);
+}
+#endif
+
 static void vlv_disable_mipi_backlight(struct intel_connector *connector)
 {
 	struct drm_device *dev = connector->base.dev;
@@ -787,6 +956,7 @@ static void vlv_disable_mipi_backlight(struct intel_connector *connector)
 	struct intel_dsi *intel_dsi = NULL;
 	struct drm_crtc *crtc = NULL;
 	struct intel_encoder *encoder = NULL;
+	struct intel_panel *panel = &connector->panel;
 
 	list_for_each_entry(crtc, &dev->mode_config.crtc_list, head) {
 		for_each_encoder_on_crtc(dev, crtc, encoder) {
@@ -797,12 +967,23 @@ static void vlv_disable_mipi_backlight(struct intel_connector *connector)
 
 	intel_panel_actually_set_backlight(connector, 0);
 
+#ifdef BLADE_BACKLIGHT_CONTROL_BY_I2C
+	if(get_backlight_controllor_type() == BL_CTRL_BY_I2C)
+		vlv_disable_backlight_ic(connector);
+	else {
+		if (intel_dsi != NULL && intel_dsi->dev.dev_ops->disable_backlight)
+			intel_dsi->dev.dev_ops->disable_backlight(&intel_dsi->dev);
+	}
+#else
 	if (intel_dsi != NULL && intel_dsi->dev.dev_ops->disable_backlight)
 		intel_dsi->dev.dev_ops->disable_backlight(&intel_dsi->dev);
+#endif
 
 	if (dev_priv->vbt.dsi.config->pmic_soc_blc) {
 		lpio_bl_write_bits(0, LPIO_PWM_CTRL, 0x00, 0x80000000);
 	}
+
+	panel->backlight.enabled = false;
 }
 
 void intel_panel_disable_backlight(struct intel_connector *connector)
@@ -910,15 +1091,19 @@ static uint32_t compute_pwm_base(uint16_t freq)
 
 static void lpio_enable_backlight(struct drm_device *dev)
 {
-	uint32_t val;
+	
 	uint32_t pwm_base;
 	struct drm_i915_private *dev_priv = dev->dev_private;
+
+#if 0	/* don't need it for BladeIII 10A */
+	uint32_t val;
 
 	/* GPIOC_94 config to PWM0 function */
 	val = vlv_gps_core_read(dev_priv, GP_CAMERASB07_GPIONC_22_PCONF0);
 	vlv_gps_core_write(dev_priv, GP_CAMERASB07_GPIONC_22_PCONF0,
 				0x2000CC01);
 	vlv_gps_core_write(dev_priv, GP_CAMERASB07_GPIONC_22_PAD, 0x5);
+#endif
 
 	/* PWM enable
 	 * Assuming only 1 LFP
@@ -1098,9 +1283,27 @@ static void vlv_enable_backlight_dis_ddi(struct intel_connector *connector)
 	I915_WRITE(VLV_BLC_PWM_CTL2(pipe), ctl2 | BLM_PWM_ENABLE);
 }
 
+#ifdef BLADE_BACKLIGHT_CONTROL_BY_I2C
+static void vlv_enable_backlight_ic(struct intel_connector *connector)
+{
+	u8 transmit_buffer[4] = {0};
+	struct i2c_msg msg;
 
+	DRM_INFO("%s: enable backlight IC by I2C command.\n", __func__);
 
+	msg.addr = BL_IC_I2C_ADDR;
+	msg.flags = 0;
+	msg.len = 2;
+	msg.buf = transmit_buffer;
 
+	transmit_buffer[0] = LP8557_BL_CMD;
+	transmit_buffer[1] = LP8557_BL_ON;
+	chv_exec_i2c(BL_IC_I2C_BUS, &msg, 1);
+	mdelay(10);
+}
+#endif
+
+static int vlv_setup_backlight_ic(struct intel_connector *connector);
 static void vlv_enable_mipi_backlight(struct intel_connector *connector)
 {
 	struct intel_panel *panel = &connector->panel;
@@ -1110,6 +1313,7 @@ static void vlv_enable_mipi_backlight(struct intel_connector *connector)
 	struct intel_dsi *intel_dsi = NULL;
 	struct drm_crtc *crtc = NULL;
 	struct intel_encoder *encoder = NULL;
+	static bool bBacklight_Mode_seted = false;
 
 	list_for_each_entry(crtc, &dev->mode_config.crtc_list, head) {
 		for_each_encoder_on_crtc(dev, crtc, encoder) {
@@ -1118,11 +1322,29 @@ static void vlv_enable_mipi_backlight(struct intel_connector *connector)
 		}
 	}
 
+	if (bBacklight_Mode_seted == false) {
+		/* setup backlight IC working mode */
+		vlv_setup_backlight_ic(connector);
+		bBacklight_Mode_seted = true;
+	}
+
+
 	if (dev_priv->vbt.dsi.config->pmic_soc_blc)
 		lpio_enable_backlight(dev);
 
+#ifdef BLADE_BACKLIGHT_CONTROL_BY_I2C
+	if(get_backlight_controllor_type() == BL_CTRL_BY_I2C)
+		vlv_enable_backlight_ic(connector);
+	else {
+		if (intel_dsi != NULL && intel_dsi->dev.dev_ops->enable_backlight)
+			intel_dsi->dev.dev_ops->enable_backlight(&intel_dsi->dev);
+	}
+#else
 	if (intel_dsi != NULL && intel_dsi->dev.dev_ops->enable_backlight)
 		intel_dsi->dev.dev_ops->enable_backlight(&intel_dsi->dev);
+#endif
+
+	panel->backlight.enabled = true;
 
 	intel_panel_actually_set_backlight(connector, panel->backlight.level);
 }
@@ -1455,6 +1677,70 @@ static int vlv_setup_mipi_backlight(struct intel_connector *connector)
 	return 0;
 }
 
+static int vlv_setup_backlight_ic(struct intel_connector *connector)
+{
+#ifdef BLADE_BACKLIGHT_CONTROL_BY_I2C
+	struct intel_panel *panel = &connector->panel;
+#endif
+	u8 transmit_buffer[4] = {0};
+	struct i2c_msg msg;
+
+	DRM_INFO("%s: setup backlight IC with I2C command.\n", __func__);
+
+	/* FIXME: need to add judgement for different panel/board */
+	msg.addr = BL_IC_I2C_ADDR;
+	msg.flags = 0;
+	msg.len = 2;
+	msg.buf = transmit_buffer;
+
+	read_backlight_id();
+
+	transmit_buffer[0] = LP8557_BL_CMD;
+	transmit_buffer[1] = LP8557_BL_OFF;
+	chv_exec_i2c(BL_IC_I2C_BUS, &msg, 1);
+	msleep(10);
+
+#ifdef BLADE_BACKLIGHT_CONTROL_BY_I2C
+	if(get_backlight_controllor_type() == BL_CTRL_BY_I2C) {
+		DRM_INFO("%s: setup backlight to %u.\n", __func__, panel->backlight.level);
+		transmit_buffer[0] = LP8557_BRIGHTNESS_CTRL;
+		transmit_buffer[1] = panel->backlight.level;
+		chv_exec_i2c(BL_IC_I2C_BUS, &msg, 1);
+
+		DRM_INFO("%s: setup backlight IC control to I2C mode.\n", __func__);
+		transmit_buffer[0] = LP8557_CONFIG;
+		transmit_buffer[1] = 0x87;
+		chv_exec_i2c(BL_IC_I2C_BUS, &msg, 1);
+		msleep(10);
+	} else {
+		DRM_INFO("%s: setup backlight IC control to PWM mode.\n", __func__);
+		transmit_buffer[0] = LP8557_CONFIG;
+		transmit_buffer[1] = 0x84;
+		chv_exec_i2c(BL_IC_I2C_BUS, &msg, 1);
+		msleep(10);
+	}
+#else
+	DRM_INFO("%s: setup backlight IC control to PWM mode.\n", __func__);
+	transmit_buffer[0] = LP8557_CONFIG;
+	transmit_buffer[1] = 0x84;
+	chv_exec_i2c(BL_IC_I2C_BUS, &msg, 1);
+	msleep(10);
+#endif
+
+	/* set backlight current */
+	transmit_buffer[0] = LP8557_CURRENT_CONFIG;
+	transmit_buffer[1] = LP8557_CURRENT_MAX;
+	chv_exec_i2c(BL_IC_I2C_BUS, &msg, 1);
+	mdelay(10);
+
+	transmit_buffer[0] = LP8557_BL_CMD;
+	transmit_buffer[1] = LP8557_BL_ON;
+	chv_exec_i2c(BL_IC_I2C_BUS, &msg, 1);
+	msleep(10);
+
+	return 0;
+}
+
 int intel_panel_setup_backlight(struct drm_connector *connector)
 {
 	struct drm_device *dev = connector->dev;
@@ -1487,7 +1773,7 @@ int intel_panel_setup_backlight(struct drm_connector *connector)
 
 	panel->backlight.present = true;
 
-	DRM_DEBUG_KMS("backlight initialized, %s, brightness %u/%u, "
+	DRM_INFO("backlight initialized, %s, brightness %u/%u, "
 		      "sysfs interface %sregistered\n",
 		      panel->backlight.enabled ? "enabled" : "disabled",
 		      panel->backlight.level, panel->backlight.max,

@@ -335,7 +335,7 @@ static void intel_dsi_send_enable_cmds(struct intel_encoder *encoder)
 
 	wait_for_dsi_fifo_empty(intel_dsi);
 }
-
+#if 0
 static void intel_dsi_soc_power_on(struct intel_dsi_device *dsi)
 {
 	struct intel_dsi *intel_dsi = container_of(dsi, struct intel_dsi, dev);
@@ -361,7 +361,7 @@ static void intel_dsi_pmic_power_on(struct intel_dsi_device *dsi)
 {
 	dsi_soc_pmic_writeb(PMIC_PANEL_EN, 0x01);
 }
-
+#endif
 static void intel_dsi_pre_enable(struct intel_encoder *encoder)
 {
 	struct drm_device *dev = encoder->base.dev;
@@ -393,8 +393,10 @@ static void intel_dsi_pre_enable(struct intel_encoder *encoder)
 			goto err_unref;
 
 		ret = i915_gem_obj_ggtt_pin(intel_dsi->gem_obj, 4096, 0);
-		if (ret)
+		if (ret){
+			DRM_ERROR("MIPI command buffer GTT pin failed");
 			goto err_unref;
+			}
 
 		intel_dsi->cmd_buff =
 				kmap(sg_page(intel_dsi->gem_obj->pages->sgl));
@@ -789,7 +791,7 @@ static void intel_dsi_clear_device_ready(struct intel_encoder *encoder)
 
 	vlv_disable_dsi_pll(encoder);
 }
-
+#if 0
 static void intel_dsi_soc_power_off(struct intel_dsi_device *dsi)
 {
 	struct intel_dsi *intel_dsi = container_of(dsi, struct intel_dsi, dev);
@@ -807,7 +809,7 @@ static void intel_dsi_pmic_power_off(struct intel_dsi_device *dsi)
 {
 	dsi_soc_pmic_writeb(PMIC_PANEL_EN, 0x00);
 }
-
+#endif
 static void intel_dsi_post_disable(struct intel_encoder *encoder)
 {
 	struct drm_i915_private *dev_priv = encoder->base.dev->dev_private;
@@ -1036,6 +1038,12 @@ static void set_dsi_timings(struct drm_encoder *encoder,
 	vfp = mode->vsync_start - mode->vdisplay;
 	vsync = mode->vsync_end - mode->vsync_start;
 	vbp = mode->vtotal - mode->vsync_end;
+
+	DRM_INFO("%s: lane_count = %u\n", __func__, lane_count);
+	DRM_INFO("%s: hactive = %u, hfp = %u, hsync = %u, hbp = %u\n",
+		__func__, hactive, hfp, hsync, hbp);
+	DRM_INFO("%s: mode->vdisplay = %u, vfp = %u, vsync = %u, vbp = %u\n",
+		__func__, mode->vdisplay, vfp, vsync, vbp);
 
 	/* horizontal values are in terms of high speed byte clock */
 	hactive = txbyteclkhs(hactive, bpp, lane_count,
@@ -1544,6 +1552,14 @@ bool intel_dsi_init(struct drm_device *dev)
 		goto err;
 	}
 
+#if 1
+	/* we don't use PMIC or SOC to control backlight for BladeIII 10A */
+	DRM_INFO("don't use PMIC or SOC to control backlight for BladeIII 10A");
+	if (dev_priv->vbt.dsi.config->pmic_soc_blc == 0) {
+		//DRM_ERROR("VBT backlight PWM source error.");
+		dev_priv->vbt.dsi.config->pmic_soc_blc = 1;
+	}
+#else
 	if (dev_priv->vbt.dsi.seq_version < 3) {
 		if (dev_priv->vbt.dsi.config->pmic_soc_blc) {
 			intel_dsi->dev.dev_ops->power_on =
@@ -1566,7 +1582,7 @@ bool intel_dsi_init(struct drm_device *dev)
 						intel_dsi_pmic_backlight_off;
 		}
 	}
-
+#endif
 	fixed_mode->type |= DRM_MODE_TYPE_PREFERRED;
 	intel_panel_init(&intel_connector->panel, fixed_mode, NULL);
 	intel_connector->panel.fitting_mode = 0;
