@@ -32,6 +32,7 @@
 #include "intel_drv.h"
 #include "intel_dsi.h"
 #include "intel_dsi_cmd.h"
+#include "intel_esd_handler.h"
 
 /* the sub-encoders aka panel drivers */
 static struct intel_dsi_device intel_dsi_devices[] = {
@@ -588,6 +589,7 @@ static void intel_dsi_enable(struct intel_encoder *encoder)
 	struct drm_i915_private *dev_priv = dev->dev_private;
 	struct intel_dsi *intel_dsi = enc_to_intel_dsi(&encoder->base);
 	struct intel_connector *intel_connector = intel_dsi->attached_connector;
+	struct drm_connector *connector = &intel_connector->base;
 
 	DRM_DEBUG_KMS("\n");
 
@@ -601,6 +603,8 @@ static void intel_dsi_enable(struct intel_encoder *encoder)
 
 	if (dev_priv->display.enable_backlight)
 		dev_priv->display.enable_backlight(intel_connector);
+
+	intel_dsi_esd_init(connector);
 }
 
 static void intel_dsi_pre_disable(struct intel_encoder *encoder)
@@ -1297,6 +1301,8 @@ static void intel_dsi_destroy(struct drm_connector *connector)
 	intel_panel_fini(&intel_connector->panel);
 	drm_connector_cleanup(connector);
 	kfree(connector);
+	/*free ESD resource when driver unload*/
+	intel_dsi_esd_destroy(connector);
 }
 
 static int intel_dsi_set_property(struct drm_connector *connector,
@@ -1352,6 +1358,14 @@ done:
 	return 0;
 }
 
+static void intel_dsi_connector_dpms(struct drm_connector *connector, int mode)
+{
+	intel_connector_dpms(connector, mode);
+	intel_dsi_esd_post_dpms_handler(connector, mode);
+
+	return;
+}
+
 static const struct drm_encoder_funcs intel_dsi_funcs = {
 	.destroy = intel_encoder_destroy,
 };
@@ -1364,7 +1378,7 @@ static const struct drm_connector_helper_funcs
 };
 
 static const struct drm_connector_funcs intel_dsi_connector_funcs = {
-	.dpms = intel_connector_dpms,
+	.dpms = intel_dsi_connector_dpms,
 	.detect = intel_dsi_detect,
 	.destroy = intel_dsi_destroy,
 	.fill_modes = drm_helper_probe_single_connector_modes,

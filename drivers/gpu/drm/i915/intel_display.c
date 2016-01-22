@@ -41,6 +41,8 @@
 #include <drm/drm_crtc_helper.h>
 #include <linux/dma_remapping.h>
 #include <linux/bitops.h>
+#include "intel_esd_handler.h"
+
 #include "intel_clrmgr.h"
 #include "intel_dsi.h"
 #include "i915_scheduler.h"
@@ -15439,7 +15441,9 @@ int intel_connector_reset(struct drm_connector *connector)
 	int mode_vrefresh = 60;
 	char *uevp[3];
 	unsigned long flags;
-
+#ifndef FEATURE_ESD_RESET
+        return -EINVAL;
+#endif
 	if (connector == NULL)
 		return -EINVAL;
 	if (connector->encoder == NULL)
@@ -15452,6 +15456,7 @@ int intel_connector_reset(struct drm_connector *connector)
 		return -EINVAL;
 	}
 
+	DRM_DEBUG_DRIVER("esd recovery running\n");
 	dev = connector->dev;
 	/*
 	 * According connector type, send reset message to HWC

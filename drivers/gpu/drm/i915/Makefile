@@ -97,6 +97,9 @@ i915-y += i915_ext_ioctl.o
 i915-y += i915_gem_userdata.o
 i915-$(CONFIG_DRM_I915_SYNC)  += intel_sync.o
 
+# Add  ESD detect interface
+i915-y += intel_esd_handler.o
+
 obj-$(CONFIG_DRM_I915)  += i915.o
 
 

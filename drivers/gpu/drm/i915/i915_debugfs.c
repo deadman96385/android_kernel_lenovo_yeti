@@ -41,6 +41,8 @@
 #include "i915_drv.h"
 #include "intel_clrmgr.h"
 #include "i915_scheduler.h"
+#include "intel_esd_handler.h"
+//extern struct esd_private i915_esd;
 
 enum {
 	ACTIVE_LIST,
@@ -5199,6 +5201,9 @@ static ssize_t i915_connector_reset_read(struct file *filp, char __user *ubuf,
 			connector->encoder->connectors_active);
 		break;
 	    default:
+		DRM_DEBUG_DRIVER("Unsupported Type.ID=%d;Type=Unknow[%d]\n",
+			connector->base.base.id,
+			connector->encoder->type);
 		break;
 	    }
 	    ret_count = strlen(tmpbuf);
@@ -5235,11 +5240,18 @@ static ssize_t i915_connector_reset_write(struct file *filp,
 	kfree(tmpbuf);
 	if (ret)
 		return -EINVAL;
-
+#ifndef FEATURE_ESD_RESET
+	return cnt;
+#endif
 	mutex_lock(&dev->mode_config.mutex);
 	list_for_each_entry(connector, &dev->mode_config.connector_list,
 			base.head) {
 		if (connector->base.base.id == connector_id) {
+			//i915_esd.dsi_esd_state = DISPLAY_DSI_STATE_HANG;
+			//i915_esd.reset_flasg = ESD_IRQ_RESET;
+			(&connector->panel)->i915_esd->dsi_esd_state = DISPLAY_DSI_STATE_HANG;
+			(&connector->panel)->i915_esd->reset_flasg = ESD_IRQ_RESET;
+
 			intel_connector_reset(&connector->base);
 			DRM_DEBUG_DRIVER("Try to reset Connector %d\n",
 				connector_id);

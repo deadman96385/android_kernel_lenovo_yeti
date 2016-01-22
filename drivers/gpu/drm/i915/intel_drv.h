@@ -193,6 +193,7 @@ struct intel_panel {
 	struct drm_display_mode *fixed_mode;
 	struct drm_display_mode *downclock_mode;
 	struct drm_display_mode *target_mode;
+	struct esd_private *i915_esd;
 	int fitting_mode;
 
 	/* backlight */
