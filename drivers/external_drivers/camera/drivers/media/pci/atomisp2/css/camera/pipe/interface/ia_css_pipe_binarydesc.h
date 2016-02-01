@@ -218,7 +218,8 @@ extern void ia_css_pipe_get_pre_de_binarydesc(
 	struct ia_css_pipe const * const pipe,
 	struct ia_css_binary_descr *pre_de_descr,
 	struct ia_css_frame_info *in_info,
-	struct ia_css_frame_info *out_info);
+	struct ia_css_frame_info *out_info,
+	unsigned int stage_idx);
 
 /** @brief Get a binary descriptor for pre anr stage.
  *

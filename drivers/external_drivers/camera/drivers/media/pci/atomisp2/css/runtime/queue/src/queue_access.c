@@ -30,21 +30,10 @@ int ia_css_queue_load(
 	if (rdesc->location == IA_CSS_QUEUE_LOC_SP) {
 		assert(ignore_desc_flags <= QUEUE_IGNORE_DESC_FLAGS_MAX);
 
-		if (0 == (ignore_desc_flags & QUEUE_IGNORE_SIZE_FLAG)) {
+		if (0 == (ignore_desc_flags & QUEUE_IGNORE_SIZE_FLAG))
 			cb_desc->size = sp_dmem_load_uint8(rdesc->proc_id,
 				rdesc->desc.remote.cb_desc_addr
 				+ offsetof(ia_css_circbuf_desc_t, size));
-
-			if (0 == cb_desc->size) {
-				/* Adding back the workaround which was removed
-				   while refactoring queues. When reading size
-				   through sp_dmem_load_*, sometimes we get back
-				   the value as zero. This causes division by 0
-				   exception as the size is used in a modular
-				   division operation. */
-				return EDOM;
-			}
-		}
 
 		if (0 == (ignore_desc_flags & QUEUE_IGNORE_START_FLAG))
 			cb_desc->start = sp_dmem_load_uint8(rdesc->proc_id,
@@ -71,6 +60,13 @@ int ia_css_queue_load(
 		return ENOTSUP;
 	}
 
+	if ((0 == (ignore_desc_flags & QUEUE_IGNORE_SIZE_FLAG)) && (0 == cb_desc->size)) {
+	        /* Adding back the workaround which was removed while refactoring
+		   queues. When reading size through sp_dmem_load_*, sometimes we
+		   get back the value as zero. This causes division by 0 exception
+		   as the size is used in a modular division operation. */
+		return EDOM;
+	}
 	return 0;
 }
 

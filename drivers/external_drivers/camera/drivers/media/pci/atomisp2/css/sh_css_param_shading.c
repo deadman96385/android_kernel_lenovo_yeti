@@ -99,6 +99,14 @@ crop_and_interpolate(unsigned int cropped_width,
 	sensor_height = in_table->sensor_height;
 	table_width   = in_table->width;
 	table_height  = in_table->height;
+
+	/* although in_table->width ranges from [0 - 81], the caller
+	   should not crop and interpolate for 0 and 1 */
+	if (table_width <= 1) {
+		assert(table_width > 1);
+		return;
+	}
+
 	in_ptr = in_table->data[color];
 	out_ptr = out_table->data[color];
 
@@ -245,7 +253,7 @@ prepare_shading_table(const struct ia_css_shading_table *in_table,
 	assert(target_table != NULL);
 	assert(binary != NULL);
 
-	if (!in_table) {
+	if (!in_table || in_table->width <= 1) {
 		sh_css_params_shading_id_table_generate(target_table,
 			binary->sctbl_legacy_width_per_color, binary->sctbl_legacy_height);
 		return;

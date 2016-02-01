@@ -51,6 +51,10 @@ more details.
 #define NUM_PRIMARY_HQ27_STAGES 4 /* number of primary stages for ISP2.7 high quality pipe */
 #define NUM_PRIMARY_STAGES     1  /* number of primary satges for ISP1/ISP2.2 pipe */
 
+#define NUM_PRE_DE_STAGES       1 /* number of pre-de binaries can be loaded on non-ISP2.7 pipe */
+#define NUM_PRE_DE_ISP27_STAGES 2 /* number of pre-de binaries can be loaded on ISP2.7 pipe */
+#define MAX_NUM_PRE_DE_STAGES   NUM_PRE_DE_ISP27_STAGES
+
 /* Indicate where binaries can read input from */
 #define IA_CSS_BINARY_INPUT_SENSOR   0
 #define IA_CSS_BINARY_INPUT_MEMORY   1

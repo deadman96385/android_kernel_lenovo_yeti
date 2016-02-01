@@ -891,6 +891,8 @@ get_shared_stage_buffer_size(unsigned int width, unsigned int height, unsigned b
 	/* On ISP 2.7 capture Pipe stages are constructed with required memory size as following
 	 * PRE_DE #0 (RAW format):        2 frames (of padded input-res)
 	 *         frame * 2 raw_bit_depth
+	 * PRE_DE #1 (RAW format):        2 frames (of padded input-res)
+	 *         frame * 2 raw_bit_depth
 	 * PRIMARY #0 (EED, YCgCo444_16): 6 frames (of padded inupt-res)
 	 *         frame * 3 YUV * 2 bytes/elem
 	 * PRIMARY #1 (IEFD, YUV420_16) : 3 frames (of padded input-res)
@@ -902,13 +904,20 @@ get_shared_stage_buffer_size(unsigned int width, unsigned int height, unsigned b
 	 * ...
 	 * To ensure shared_frames are sufficiently allocated for 2 largest of stage buffers,
 	 * we'll allocate
-	 *   buf_idx0 : 3 frames (PRE_DE, PRIM #1, PRIM #3)
-	 *   buf_idx1 : 6 frames (PRIM #0, PRIM #2 ..)
+	 *   buf_idx0 : 6 frames (PRE_DE #0, PRIM #0, PRIM #2 ..)
+	 *   buf_idx1 : 3 frames (PRE_DE #1, PRIM #1, PRIM #3 ..)
 	 */
-	switch (buf_idx) {
-		case 0:  return 3*frame;
-		case 1:  return 6*frame;
-		default: return 0;
-	}
 
+	/* PRIMARY #0 requires the largest buffer, PRIMARY #1 requires the second largest */
+	unsigned int prim0_idx = NUM_PRE_DE_ISP27_STAGES % NUM_SHARED_STAGE_BUFFERS;
+	unsigned int prim0_size = frame * 3 * 2; /* 3 planes, 2 bytes/elem */
+	unsigned int prim1_idx = prim0_idx ^ 0x1;
+	unsigned int prim1_size = frame * 3 ; /* (1 Y plane + 0.5 UV plane) * 2 bytes/elem */
+
+	if (buf_idx == prim0_idx)
+		return prim0_size;
+	else if (buf_idx == prim1_idx)
+		return prim1_size;
+	else
+		return 0;
 }

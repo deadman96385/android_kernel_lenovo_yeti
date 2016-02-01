@@ -399,7 +399,17 @@ RGB[0,8191],coef[-8192,8191] -> RGB[0,8191]
 #ifdef IS_ISP_2500_SYSTEM
 #define SH_CSS_MAX_STAGES 3 /* 2 stages for split isp pipelin, 1 for scaling */
 #else
-#define SH_CSS_MAX_STAGES 8 /* primary_stage[1-6], capture_pp, vf_pp */
+#if !defined(USE_INPUT_SYSTEM_VERSION_2401) && !defined(IS_ISP_2401_MAMOIADA)
+/* ISP2.7: primary_stage[1-4], capture_pp, vf_pp,
+ * yuv_scale[1-2], pre_de[1-2], copy
+ *
+ * IS_ISP_2401_MAMOIADA needs to check to ensure sh_css_internal.h obtain
+ * value correctly
+ */
+#define SH_CSS_MAX_STAGES 11
+#else
+#define SH_CSS_MAX_STAGES 8 /* ISP2.2: primary_stage[1-6], capture_pp, vf_pp */
+#endif
 #endif
 
 /* For CSI2+ input system, it requires extra paddinga from vmem */

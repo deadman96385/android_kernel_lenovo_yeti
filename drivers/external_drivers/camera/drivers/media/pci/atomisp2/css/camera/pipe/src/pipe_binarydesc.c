@@ -761,21 +761,32 @@ void ia_css_pipe_get_post_gdc_binarydesc(
 	IA_CSS_LEAVE_PRIVATE("");
 }
 
+/* lookup table for ISP2.7 pre_de binaries */
+static unsigned int pre_de_isp27_modes[MAX_NUM_PRE_DE_STAGES] =
+{
+	IA_CSS_BINARY_MODE_PRE_DE,
+	IA_CSS_BINARY_MODE_PRE_DE_STAGE1
+};
+
 void ia_css_pipe_get_pre_de_binarydesc(
 	struct ia_css_pipe const * const pipe,
 	struct ia_css_binary_descr *pre_de_descr,
 	struct ia_css_frame_info *in_info,
-	struct ia_css_frame_info *out_info)
+	struct ia_css_frame_info *out_info,
+	unsigned int stage_idx)
 {
 	unsigned int i;
 	struct ia_css_frame_info *out_infos[IA_CSS_BINARY_MAX_OUTPUT_PORTS];
+	enum ia_css_pipe_version pipe_version = pipe->config.isp_pipe_version;
 
 	assert(pipe != NULL);
 	assert(in_info != NULL);
 	assert(out_info != NULL);
+	assert(stage_idx < NUM_PRE_DE_ISP27_STAGES);
+
 	IA_CSS_ENTER_PRIVATE("");
 
-	if (pipe->stream->config.continuous && 
+	if (pipe->stream->config.continuous &&
 		pipe->stream->config.pack_raw_pixels) {
 		in_info->res = pipe->config.input_effective_res;
 		in_info->padded_width = in_info->res.width;
@@ -793,17 +804,20 @@ void ia_css_pipe_get_pre_de_binarydesc(
 	for (i = 1; i < IA_CSS_BINARY_MAX_OUTPUT_PORTS; i++)
 		out_infos[i] = NULL;
 
-	if (pipe->config.isp_pipe_version == IA_CSS_PIPE_VERSION_1)
+	if (pipe_version == IA_CSS_PIPE_VERSION_1)
 		pipe_binarydesc_get_offline(pipe, IA_CSS_BINARY_MODE_PRE_ISP,
 				       pre_de_descr, in_info, out_infos, NULL);
-	else if ((pipe->config.isp_pipe_version == IA_CSS_PIPE_VERSION_2_2) ||
-		(pipe->config.isp_pipe_version == IA_CSS_PIPE_VERSION_2_7)) {
+	else if (pipe_version == IA_CSS_PIPE_VERSION_2_2)
 		pipe_binarydesc_get_offline(pipe, IA_CSS_BINARY_MODE_PRE_DE,
+				       pre_de_descr, in_info, out_infos, NULL);
+	else if (pipe_version == IA_CSS_PIPE_VERSION_2_7) {
+		int mode = pre_de_isp27_modes[stage_idx];
+		pipe_binarydesc_get_offline(pipe, mode,
 				       pre_de_descr, in_info, out_infos, NULL);
 	}
 
 	if (pipe->stream->config.online) {
-		pre_de_descr->online = true;
+		pre_de_descr->online = stage_idx ? false : true;
 		pre_de_descr->two_ppc =
 		    (pipe->stream->config.pixels_per_clock == 2);
 		pre_de_descr->stream_format = pipe->stream->config.input_config.format;
