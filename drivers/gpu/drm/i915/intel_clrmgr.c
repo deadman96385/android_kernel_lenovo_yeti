@@ -820,14 +820,15 @@ static bool chv_apply_cgm_gamma(struct intel_crtc *intel_crtc,
 	struct drm_device *dev;
 	struct drm_i915_private *dev_priv;
 
-	dev = intel_crtc->base.dev;
-	dev_priv = dev->dev_private;
-
 	/* Validate input */
 	if (!intel_crtc) {
 		DRM_ERROR("Invalid CRTC object input to CGM gamma enable\n");
 		return false;
 	}
+
+	dev = intel_crtc->base.dev;
+	dev_priv = dev->dev_private;
+
 	cgm_ctrl_reg = dev_priv->info.display_mmio_offset +
 			cgm_ctrl[intel_crtc->pipe];
 	if (enable) {
@@ -1463,6 +1464,11 @@ bool intel_clrmgr_register_pipe_property(struct intel_crtc *intel_crtc,
 		/* Add the property in global pipe status */
 		regd_property = kzalloc(sizeof(struct clrmgr_regd_prop),
 								GFP_KERNEL);
+		if (!regd_property) {
+			DRM_ERROR("Failed to allocate property %s\n",
+							property->name);
+			goto error;
+		}
 		regd_property->property = property;
 		regd_property->enabled = false;
 		regd_property->set_property = cp->set_property;
