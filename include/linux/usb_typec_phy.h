@@ -239,6 +239,7 @@ struct typec_phy {
 	bool (*is_vbus_on)(struct typec_phy *phy);
 	int (*enable_auto_retry)(struct typec_phy *phy, bool en);
 	int (*enable_sop_prime)(struct typec_phy *phy, bool en);
+	int (*set_bist_test_data_mode)(struct typec_phy *phy, bool en);
 };
 
 extern struct typec_phy *typec_get_phy(int type);
@@ -372,6 +373,14 @@ static inline int typec_enable_auto_retry(struct typec_phy *phy, bool en)
 {
 	if (phy && phy->enable_auto_retry)
 		return phy->enable_auto_retry(phy, en);
+
+	return -ENOTSUPP;
+}
+
+static inline int typec_set_bist_test_data_mode(struct typec_phy *phy, bool en)
+{
+	if (phy && phy->set_bist_test_data_mode)
+		return phy->set_bist_test_data_mode(phy, en);
 
 	return -ENOTSUPP;
 }

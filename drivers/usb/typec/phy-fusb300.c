@@ -308,10 +308,11 @@ struct fusb300_chip {
 	struct delayed_work dfp_disconn_work;
 	struct fusb300_int_stat int_stat;
 	int activity_count;
-	int is_fusb300;
+	bool is_fusb300;
 	bool process_pd;
 	bool transmit;
 	bool i_vbus;
+	bool en_auto_flush;
 };
 
 static int fusb300_wake_on_cc_change(struct fusb300_chip *chip);
@@ -612,6 +613,23 @@ static int fusb300_enable_auto_retry(struct typec_phy *phy, bool en)
 	mutex_unlock(&chip->lock);
 	dev_dbg(phy->dev, "%s: en %d\n", __func__, en);
 	return ret;
+}
+
+static int fusb300_set_bist_test_data_mode(struct typec_phy *phy, bool en)
+{
+	struct fusb300_chip *chip;
+
+	if (unlikely(!phy))
+		return -ENODEV;
+
+	dev_dbg(phy->dev, "%s: en %d\n", __func__, en);
+	chip = dev_get_drvdata(phy->dev);
+
+	chip->en_auto_flush = en;
+	if (likely(en))
+		fusb300_flush_fifo(phy, FIFO_TYPE_RX);
+
+	return 0;
 }
 
 static int fusb300_enable_sop_prime(struct typec_phy *phy, bool en)
@@ -1029,15 +1047,25 @@ static irqreturn_t fusb300_interrupt(int id, void *dev)
 		(chip->int_stat.int_reg & FUSB300_INT_ACTIVITY) &&
 		(chip->int_stat.int_reg & FUSB300_INT_COLLISION) &&
 		!(chip->int_stat.stat_reg & FUSB300_STAT0_ACTIVITY)) {
-		mutex_lock(&chip->lock);
-		chip->transmit = false;
-		mutex_unlock(&chip->lock);
 		if (phy->notify_protocol)
 			phy->notify_protocol(phy, PROT_PHY_EVENT_COLLISION);
 	}
 
+	if (process_pd && chip->int_stat.inta_reg & FUSB302_INTA_HARD_RST) {
+		if (phy->notify_protocol)
+			phy->notify_protocol(phy, PROT_PHY_EVENT_HARD_RST);
+
+		regmap_update_bits(chip->map, FUSB300_SOFT_POR_REG,
+				FUSB300_PD_POR, FUSB300_PD_POR);
+	}
+
 	if (process_pd && (chip->int_stat.int_reg & FUSB300_INT_CRCCHK
-		|| chip->int_stat.stat1_reg & FUSB300_STAT1_RXEMPTY)) {
+		|| !(chip->int_stat.stat1_reg & FUSB300_STAT1_RXEMPTY))) {
+		if (chip->en_auto_flush) {
+			fusb300_flush_fifo(phy, FIFO_TYPE_RX);
+			goto end_int;
+		}
+
 		if (phy->notify_protocol)
 			phy->notify_protocol(phy, PROT_PHY_EVENT_MSG_RCV);
 	}
@@ -1059,7 +1087,7 @@ static irqreturn_t fusb300_interrupt(int id, void *dev)
 		}
 	}
 
-	if (!chip->is_fusb300 && process_pd) {
+	if (!chip->is_fusb300 && process_pd && !chip->en_auto_flush) {
 		if (chip->int_stat.intb_reg & FUSB302_INTB_GCRC_SENT) {
 			dev_dbg(phy->dev, "GoodCRC sent");
 			if (phy->notify_protocol)
@@ -1072,7 +1100,8 @@ static irqreturn_t fusb300_interrupt(int id, void *dev)
 	 */
 	if (chip->is_fusb300 && chip->int_stat.int_reg & FUSB300_INT_ACTIVITY) {
 		if (!(chip->int_stat.stat_reg & FUSB300_STAT0_ACTIVITY) &&
-			!(chip->int_stat.int_reg & FUSB300_INT_CRCCHK)) {
+			!(chip->int_stat.int_reg & FUSB300_INT_CRCCHK) &&
+			!chip->en_auto_flush) {
 			dev_info(phy->dev,
 				"Activity happend and bus is idle tx complete");
 			if (phy->notify_protocol)
@@ -1083,14 +1112,6 @@ static irqreturn_t fusb300_interrupt(int id, void *dev)
 	if (!chip->is_fusb300 && process_pd) {
 		/* handle FUSB302 specific interrupt */
 
-		if (chip->int_stat.inta_reg & FUSB302_INTA_HARD_RST) {
-			if (phy->notify_protocol)
-				phy->notify_protocol(phy,
-						PROT_PHY_EVENT_HARD_RST);
-
-			regmap_update_bits(chip->map,
-				FUSB300_SOFT_POR_REG, 2, 2);
-		}
 		if (chip->int_stat.inta_reg & FUSB302_INTA_SOFT_RST) {
 			/* flush fifo ? */
 			if (phy->notify_protocol)
@@ -1126,7 +1147,7 @@ static irqreturn_t fusb300_interrupt(int id, void *dev)
 			fusb300_reset_pd(phy);
 		}
 	}
-
+end_int:
 	pm_runtime_put_sync(chip->dev);
 
 	return IRQ_HANDLED;
@@ -1263,18 +1284,18 @@ static int fusb300_flush_fifo(struct typec_phy *phy, enum typec_fifo fifo_type)
 	chip = dev_get_drvdata(phy->dev);
 
 	mutex_lock(&chip->lock);
-	chip->activity_count = 0;
-	chip->transmit = 0;
+
+	if (fifo_type & FIFO_TYPE_RX)
+		/* RX FLUSH */
+		regmap_update_bits(chip->map, FUSB300_CONTROL1_REG,
+				FUSB300_CONTROL1_RX_FLUSH,
+				FUSB300_CONTROL1_RX_FLUSH);
 
 	if (fifo_type & FIFO_TYPE_TX)
 		/* TX FLUSH */
 		regmap_update_bits(chip->map, FUSB300_CONTROL0_REG,
 				0x40, 0x40);
 
-	if (fifo_type & FIFO_TYPE_RX)
-		/* RX FLUSH */
-		regmap_update_bits(chip->map, FUSB300_CONTROL1_REG,
-				0x4, 0x4);
 	mutex_unlock(&chip->lock);
 
 	return 0;
@@ -1798,7 +1819,7 @@ static int fusb300_enable_autocrc(struct typec_phy *phy, bool en)
 	int ret;
 
 	chip = dev_get_drvdata(phy->dev);
-	if (chip->is_fusb300)
+	if (unlikely(chip->is_fusb300))
 		return -ENOTSUPP;
 
 	mutex_lock(&chip->lock);
@@ -1918,6 +1939,8 @@ static int fusb300_probe(struct i2c_client *client,
 		chip->phy.enable_detection = fusb300_enable_typec_detection;
 		chip->phy.enable_auto_retry = fusb300_enable_auto_retry;
 		chip->phy.enable_sop_prime = fusb300_enable_sop_prime;
+		chip->phy.set_bist_test_data_mode =
+				fusb300_set_bist_test_data_mode;
 	}
 
 	if (IS_ENABLED(CONFIG_ACPI))
