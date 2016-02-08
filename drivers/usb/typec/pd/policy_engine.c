@@ -78,6 +78,9 @@ static void pe_enable_pd(struct policy_engine *pe, bool en)
 
 static void pe_do_pe_reset(struct policy_engine *pe)
 {
+	/* come out of the bist test data mode during the reset */
+	devpolicy_set_bist_test_data_mode(pe->p.dpm, false);
+
 	/*
 	 * Cancel pending state works. Donot use sync as this
 	 * reset itself might be runnig in the worker.
@@ -214,6 +217,17 @@ static void pe_handle_bist_msg(struct policy_engine *pe, u32 *data, u8 num_bdos)
 		btype = bdo[i].type;
 
 		switch (btype) {
+		case BIST_TEST_DATA:
+			/*
+			 * in test mode when receiving BIST TEST DATA
+			 * packets can be ignored and shall not pass
+			 * to the framework as tester will send 1000's
+			 * of BIST TEST DATA.
+			 * TEST mode will be cleared by hard reset
+			 * from the tester
+			 */
+			devpolicy_set_bist_test_data_mode(pe->p.dpm, true);
+			return;
 		case BIST_CARRIER_MODE2:
 			pe_change_state(pe, PE_BIST_CARRIER_MODE_2);
 			/*
@@ -228,7 +242,6 @@ static void pe_handle_bist_msg(struct policy_engine *pe, u32 *data, u8 num_bdos)
 		case BIST_CARRIER_MODE1:
 		case BIST_CARRIER_MODE3:
 		case BIST_EYE_PATTERN:
-		case BIST_TEST_DATA:
 		default:
 			log_info("BDO[%d] Type - %d not supported!\n",
 					i, btype);
