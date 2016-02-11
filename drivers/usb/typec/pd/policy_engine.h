@@ -572,6 +572,7 @@ struct policy_engine {
 	unsigned is_modal_operation:1;
 	unsigned is_pr_swap_rejected:1;
 	unsigned is_pd_enabled:1;
+	unsigned pp_is_vesa:1;
 };
 
 

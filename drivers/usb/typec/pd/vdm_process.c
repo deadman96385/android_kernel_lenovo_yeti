@@ -82,6 +82,7 @@ int pe_send_discover_identity(struct policy_engine *pe, int type)
 	struct vdm_header v_hdr = { 0 };
 	int ret;
 
+	pe->pp_is_vesa = false;
 	pe_prepare_initiator_vdm_header(&v_hdr, DISCOVER_IDENTITY,
 						PD_SID, 0);
 	ret = pe_send_packet_type(pe, &v_hdr, 4, PD_DATA_MSG_VENDOR_DEF,
@@ -137,15 +138,14 @@ static void pe_send_discover_identity_responder_ack(struct policy_engine *pe)
 
 static void pe_send_discover_svid_responder_ack(struct policy_engine *pe)
 {
-	u32 vdm[MAX_NUM_DATA_OBJ];
-	struct vdm_header *v_hdr = (struct vdm_header *)&vdm[0];
-	struct dp_vdo *svid_vdo = (struct dp_vdo *)&vdm[1];
+	struct dis_svid_response_pkt svid_pkt;
 
-	memset(&vdm, 0, sizeof(vdm));
-	pe_prepare_vdm_header(v_hdr, DISCOVER_SVID, REP_ACK, PD_SID, 0);
-	svid_vdo->svid0 = PD_SID;
+	memset(&svid_pkt, 0, sizeof(svid_pkt));
+	pe_prepare_vdm_header(&svid_pkt.vdm_hdr, DISCOVER_SVID,
+						REP_ACK, PD_SID, 0);
+	svid_pkt.svid[0].svid0 = PD_SID;
 
-	if (pe_send_packet(pe, &vdm, 8,
+	if (pe_send_packet(pe, &svid_pkt.vdm_hdr, 8,
 				PD_DATA_MSG_VENDOR_DEF, PE_EVT_SEND_VDM))
 		log_err("Failed to send SVID ack");
 	else
@@ -399,8 +399,8 @@ static int pe_handle_discover_svid(struct policy_engine *pe,
 {
 	struct dis_svid_response_pkt *svid_pkt;
 	unsigned short cmd_type;
-	int num_modes = 0;
-	int i, mode = 0;
+	int num_data;
+	int i;
 
 	svid_pkt = (struct dis_svid_response_pkt *)pkt;
 	cmd_type = svid_pkt->vdm_hdr.cmd_type;
@@ -425,21 +425,26 @@ static int pe_handle_discover_svid(struct policy_engine *pe,
 	switch (cmd_type) {
 	case REP_ACK:
 		/* 2 modes per VDO*/
-		num_modes = (svid_pkt->msg_hdr.num_data_obj - 1) * 2;
+		num_data = svid_pkt->msg_hdr.num_data_obj - 1;
 		log_dbg("SVID_ACK-> This Display supports %d modes\n",
-				num_modes);
-		for (i = 0; i < num_modes; i++) {
-			log_dbg("vdo[%d].svid0=0x%x, svid1=0x%x\n",
-				i, svid_pkt->vdo[i].svid0,
-				svid_pkt->vdo[i].svid1);
-			if ((svid_pkt->vdo[i].svid0 == VESA_SVID)
-				|| (svid_pkt->vdo[i].svid1 == VESA_SVID)) {
-				mode = VESA_SVID;
+				num_data * 2);
+		for (i = 0; i < num_data; i++) {
+			log_dbg("svid[%d].svid0=0x%x, svid1=0x%x",
+						i, svid_pkt->svid[i].svid0,
+						svid_pkt->svid[i].svid1);
+			if (svid_pkt->svid[i].svid0 == VESA_SVID
+				|| svid_pkt->svid[i].svid1 == VESA_SVID) {
+				pe->pp_is_vesa = true;
 				break;
 			}
 		}
+		if (svid_pkt->svid[num_data-1].svid1) {
+			log_dbg("More svids available, send discover_svid");
+			pe->alt_state = PE_ALT_STATE_DI_ACKED;
+			break;
+		}
 		/* Currently we support only VESA */
-		if (mode == VESA_SVID) {
+		if (pe->pp_is_vesa) {
 			log_dbg("This Display supports VESA\n");
 			pe->alt_state = PE_ALT_STATE_SVID_ACKED;
 			break;

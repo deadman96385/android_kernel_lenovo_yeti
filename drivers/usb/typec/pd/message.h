@@ -227,14 +227,14 @@ struct dis_id_response_hub_pkt {
 } __packed;
 
 struct dp_vdo {
-	u16 svid0;
 	u16 svid1;
+	u16 svid0;
 } __packed;
 
 struct dis_svid_response_pkt {
 	struct pd_pkt_header msg_hdr;
 	struct vdm_header vdm_hdr;
-	struct dp_vdo vdo[6];
+	struct dp_vdo svid[6];
 } __packed;
 
 struct disp_mode {

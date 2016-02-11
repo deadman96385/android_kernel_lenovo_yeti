@@ -84,6 +84,7 @@ static void pe_do_pe_reset(struct policy_engine *pe)
 	 */
 	pe->alt_state = PE_ALT_STATE_NONE;
 	pe->is_modal_operation = false;
+	pe->pp_is_vesa = false;
 	if (pe->pp_alt_caps.hpd_state)
 		devpolicy_set_dp_state(pe->p.dpm, CABLE_DETACHED,
 						TYPEC_DP_TYPE_NONE);
