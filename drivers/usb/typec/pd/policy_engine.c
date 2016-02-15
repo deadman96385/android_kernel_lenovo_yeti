@@ -36,6 +36,7 @@
 static void pe_dump_header(struct pd_pkt_header *header);
 static void pe_dump_data_msg(struct pd_packet *pkt);
 static void pe_send_self_sink_caps(struct policy_engine *pe);
+static int pe_send_self_source_caps(struct policy_engine *pe);
 static void pe_start_timer(struct policy_engine *pe,
 				enum pe_timers timer_type, unsigned time);
 static void pe_cancel_timer(struct policy_engine *pe,
@@ -665,8 +666,7 @@ static int policy_engine_process_ctrl_msg(struct policy *p, enum pe_event evt,
 		else if (pe->cur_state == PE_SRC_READY)
 			pe_change_state(pe, PE_SRC_GIVE_SOURCE_CAP);
 		else
-			log_info("Cannot provide source caps in state=%d",
-							pe->cur_state);
+			pe_send_self_source_caps(pe);
 		break;
 
 	case PE_EVT_RCVD_DR_SWAP:
@@ -1337,7 +1337,7 @@ static void pe_sink_create_request_msg_data(struct policy_engine *pe,
 
 }
 
-static int pe_send_srccap_cmd(struct policy_engine *pe)
+static int pe_send_self_source_caps(struct policy_engine *pe)
 {
 	int ret;
 	struct pd_fixed_supply_pdo *pdo;
@@ -2057,7 +2057,7 @@ pe_process_state_pe_src_send_capabilities(struct policy_engine *pe)
 	pe_enable_pd(pe, true);
 	pe->src_caps_couner++;
 
-	if (pe_send_srccap_cmd(pe)) {
+	if (pe_send_self_source_caps(pe)) {
 		/* failed to send Srccap */
 		log_dbg("Failed to send SrcCap");
 		pe_change_state(pe, PE_SRC_DISCOVERY);
@@ -2180,7 +2180,7 @@ pe_process_state_pe_src_transition_to_default_exit(struct policy_engine *pe)
 static void
 pe_process_state_pe_src_give_source_cap(struct policy_engine *pe)
 {
-	pe_send_srccap_cmd(pe);
+	pe_send_self_source_caps(pe);
 }
 
 static void
@@ -2566,7 +2566,7 @@ pe_process_state_pe_dr_snk_get_sink_cap(struct policy_engine *pe)
 static void
 pe_process_state_pe_dr_snk_give_source_cap(struct policy_engine *pe)
 {
-	pe_send_srccap_cmd(pe);
+	pe_send_self_source_caps(pe);
 }
 
 
