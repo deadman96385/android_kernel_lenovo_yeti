@@ -750,13 +750,26 @@ static int __power_ctrl(struct v4l2_subdev *sd, bool flag)
 		return dev->platform_data->power_ctrl(sd, flag);
 
 #ifdef CONFIG_GMIN_INTEL_MID
-	if (dev->platform_data->v1p2_ctrl) {
-		ret = dev->platform_data->v1p2_ctrl(sd, flag);
-		if (ret) {
-			dev_err(&client->dev,
-				"failed to power %s 1.2v power rail\n",
-				flag ? "up" : "down");
-			return ret;
+	/* CHT HR requires a power rail of 1.2v */
+	if (strcmp(dmi_get_system_info(DMI_BOARD_NAME), CHT_HR_DEV_NAME) == 0) {
+		if (dev->platform_data->v1p2_ctrl) {
+			ret = dev->platform_data->v1p2_ctrl(sd, flag);
+			if (ret) {
+				dev_err(&client->dev,
+						"failed to power %s 1.2v power rail\n",
+						flag ? "up" : "down");
+				return ret;
+			}
+		}
+	} else { /* CHT MRD requires a power rail of 1.6v */
+		if (dev->platform_data->v1p5_ctrl) {
+			ret = dev->platform_data->v1p5_ctrl(sd, flag);
+			if (ret) {
+				dev_err(&client->dev,
+						"failed to power %s 1.6v power rail\n",
+						flag ? "up" : "down");
+				return ret;
+			}
 		}
 	}
 
@@ -806,11 +819,22 @@ static int __gpio_ctrl(struct v4l2_subdev *sd, bool flag)
 	if (dev->platform_data->gpio_ctrl)
 		return dev->platform_data->gpio_ctrl(sd, flag);
 
-#ifdef CONFIG_GMIN_INTEL_MID
-	if (dev->platform_data->gpio0_ctrl)
-		return dev->platform_data->gpio0_ctrl(sd, flag);
-#endif
 
+#ifdef CONFIG_GMIN_INTEL_MID
+	/*Just to execute specific code  dintinguishing between HR and MRD */
+	if (strcmp(dmi_get_system_info(DMI_BOARD_NAME), CHT_HR_DEV_NAME) == 0) {
+		if (dev->platform_data->gpio0_ctrl)
+			return dev->platform_data->gpio0_ctrl(sd, flag);
+	} else {
+		if (dev->platform_data->gpio0_ctrl) {
+			int ret;
+			ret = dev->platform_data->gpio0_ctrl(sd, flag);
+			if (dev->platform_data->gpio1_ctrl)
+				ret |= dev->platform_data->gpio1_ctrl(sd, flag);
+		return ret;
+		}
+	}
+#endif
 	dev_err(&client->dev, "failed to find platform gpio callback\n");
 
 	return -EINVAL;
@@ -1450,6 +1474,17 @@ static int ov8858_s_mbus_fmt(struct v4l2_subdev *sd,
 		dev->regs = res->regs;
 
 	ret = ov8858_write_reg_array(client, dev->regs);
+#ifdef CHT_HR_DEV_NAME
+	/* W/A: For MRD, the valid BLC lines are different than in HR
+	 * making the image look green. */
+	if (strcmp(dmi_get_system_info(DMI_BOARD_NAME), CHT_HR_DEV_NAME) != 0) {
+		if (res->bin_factor_x || res->bin_factor_y)
+			ret = ov8858_write_reg(client, OV8858_8BIT,
+					OV8858_ANCHOR_RIGHT_START, 0x07);
+		else
+			ret = ov8858_write_reg_array(client, ov8858_BLC_MRD);
+	}
+#endif
 	if (ret)
 		goto out;
 
@@ -1677,7 +1712,11 @@ static int __update_ov8858_device_settings(struct ov8858_device *dev,
 #ifdef CONFIG_EXTERNAL_BTNS_CAMERA
 		dev->vcm_driver = &ov8858_vcms[OV8858_ID_DEFAULT];
 #else
+	/* CHT HR requires the vcm dw9718 and CHT MRD uses the vcm dw9714 */
+	if (strcmp(dmi_get_system_info(DMI_BOARD_NAME), CHT_HR_DEV_NAME) == 0)
 		dev->vcm_driver = &ov8858_vcms[OV8858_SUNNY];
+	else
+		dev->vcm_driver = &ov8858_vcms[OV8858_MRD];
 #endif
 	else
 		return -ENODEV;
