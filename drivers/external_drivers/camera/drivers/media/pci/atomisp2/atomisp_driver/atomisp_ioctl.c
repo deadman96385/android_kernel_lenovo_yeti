@@ -1816,8 +1816,8 @@ static int atomisp_streamon(struct file *file, void *fh,
 					asd->latest_preview_exp_id);
 
 			if (asd->delayed_init == ATOMISP_DELAYED_INIT_QUEUED) {
-				flush_work(&asd->delayed_init_work);
 				rt_mutex_unlock(&isp->mutex);
+				flush_work(&asd->delayed_init_work);
 				if (wait_for_completion_interruptible(
 						&asd->init_done) != 0)
 					return -ERESTARTSYS;
