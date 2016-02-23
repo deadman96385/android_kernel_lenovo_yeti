@@ -729,6 +729,10 @@ static void __apply_additional_pipe_config(
 			/* ISP2.7 does not support DZ, we should always turn
 			   it off. */
 			stream_env->pipe_configs[pipe_id].enable_dz = false;
+			/* ISP2.7 still pipe requires enable_xnr to be true */
+			stream_env->pipe_configs[pipe_id]
+				.default_capture_config.enable_xnr = true;
+			asd->params.capture_config.enable_xnr = true;
 		} else {
 			stream_env->pipe_configs[pipe_id].isp_pipe_version =
 				SH_CSS_ISP_PIPE_VERSION_2_2;
@@ -3464,10 +3468,20 @@ int atomisp_css_exp_id_unlock(struct atomisp_sub_device *asd, int exp_id)
 int atomisp_css_capture_enable_xnr(struct atomisp_sub_device *asd,
 				   bool enable)
 {
-	asd->stream_env[ATOMISP_INPUT_STREAM_GENERAL]
-		.pipe_configs[IA_CSS_PIPE_ID_CAPTURE]
-		.default_capture_config.enable_xnr = enable;
-	asd->params.capture_config.enable_xnr = enable;
+	if (asd->stream_env[ATOMISP_INPUT_STREAM_GENERAL]
+		.pipe_configs[IA_CSS_PIPE_ID_CAPTURE].isp_pipe_version ==
+		IA_CSS_PIPE_VERSION_2_7) {
+		/* ISP2.7 still pipe requires enable_xnr must be true */
+		asd->stream_env[ATOMISP_INPUT_STREAM_GENERAL]
+			.pipe_configs[IA_CSS_PIPE_ID_CAPTURE]
+			.default_capture_config.enable_xnr = true;
+		asd->params.capture_config.enable_xnr = true;
+	} else {
+		asd->stream_env[ATOMISP_INPUT_STREAM_GENERAL]
+			.pipe_configs[IA_CSS_PIPE_ID_CAPTURE]
+			.default_capture_config.enable_xnr = enable;
+		asd->params.capture_config.enable_xnr = enable;
+	}
 	asd->stream_env[ATOMISP_INPUT_STREAM_GENERAL]
 		.update_pipe[IA_CSS_PIPE_ID_CAPTURE] = true;
 
