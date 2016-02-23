@@ -851,6 +851,58 @@ static const struct ov8858_reg ov8858_6M[] = {
 	{OV8858_TOK_TERM, 0, 0}
 };
 
+static const struct ov8858_reg ov8858_2704x2032[] = {
+	{OV8858_8BIT, 0x0100, 0x00}, /* software_standby */
+	{OV8858_8BIT, 0x3841, 0xFF},
+	{OV8858_8BIT, 0x3800, 0x00}, /* h_crop_start high */
+	{OV8858_8BIT, 0x3801, 0x0C}, /* h_crop_start low */
+	{OV8858_8BIT, 0x3802, 0x00}, /* v_crop_start high */
+	{OV8858_8BIT, 0x3803, 0x0C}, /* v_crop_start low */
+	{OV8858_8BIT, 0x3804, 0x0C}, /* h_crop_end high */
+	{OV8858_8BIT, 0x3805, 0xD3}, /* h_crop_end low */
+	{OV8858_8BIT, 0x3806, 0x09}, /* v_crop_end high */
+	{OV8858_8BIT, 0x3807, 0xA3}, /* v_crop_end low */
+	{OV8858_8BIT, 0x3808, 0x0A}, /* h_output_size high 2704 x 2032 */
+	{OV8858_8BIT, 0x3809, 0x90}, /* h_output_size low */
+	{OV8858_8BIT, 0x380A, 0x07}, /* v_output_size high */
+	{OV8858_8BIT, 0x380B, 0xF0}, /* v_output_size low */
+	{OV8858_8BIT, 0x380C, 0x07}, /* horizontal timing size high */
+	{OV8858_8BIT, 0x380D, 0x90}, /* horizontal timing size low */
+	{OV8858_8BIT, 0x380E, 0x09}, /* vertical timing size high */
+	{OV8858_8BIT, 0x380F, 0xAE}, /* vertical timing size low */
+	{OV8858_8BIT, 0x3810, 0x00},
+	{OV8858_8BIT, 0x3811, 0x04},
+	{OV8858_8BIT, 0x3812, 0x00},
+	{OV8858_8BIT, 0x3813, 0x02},
+	{OV8858_8BIT, 0x3814, 0x01}, /* h_odd_inc */
+	{OV8858_8BIT, 0x3815, 0x01}, /* h_even_inc */
+	{OV8858_8BIT, 0x3821, 0x46}, /* format2 */
+	{OV8858_8BIT, 0x382A, 0x01}, /* v_odd_inc */
+	{OV8858_8BIT, 0x382B, 0x01}, /* v_even_inc */
+	{OV8858_8BIT, 0x382D, 0xFF},
+
+	{OV8858_8BIT, 0x4001, 0x00},
+	{OV8858_8BIT, 0x4022, 0x0A},
+	{OV8858_8BIT, 0x4023, 0x30},
+	{OV8858_8BIT, 0x4024, 0x0F},
+	{OV8858_8BIT, 0x4025, 0x36},
+	{OV8858_8BIT, 0x4026, 0x0F},
+	{OV8858_8BIT, 0x4027, 0x37},
+	{OV8858_8BIT, 0x4028, 0x00},
+	{OV8858_8BIT, 0x4029, 0x04},
+	{OV8858_8BIT, 0x402a, 0x04},
+	{OV8858_8BIT, 0x402b, 0x08},
+	{OV8858_8BIT, 0x402c, 0x00},
+	{OV8858_8BIT, 0x402d, 0x02},
+	{OV8858_8BIT, 0x402e, 0x04},
+	{OV8858_8BIT, 0x402f, 0x08},
+	{OV8858_8BIT, 0x4600, 0x01}, /* Unknown */
+	{OV8858_8BIT, 0x4601, 0x51}, /* Unknown */
+
+	{OV8858_TOK_TERM, 0, 0}
+};
+
+
 static const struct ov8858_reg ov8858_1080P[] = {
 	{OV8858_8BIT, 0x0100, 0x00}, /* software_standby */
 	{OV8858_8BIT, 0x3841, 0xFF},
@@ -1113,6 +1165,25 @@ static struct ov8858_resolution ov8858_res_preview[] = {
 		},
 	},
 	{
+		.desc = "ov8858_2704x2032_PREVIEW",
+		.width = 2704,
+		.height = 2032,
+		.used = 0,
+		.regs = ov8858_2704x2032,
+		.bin_factor_x = 0,
+		.bin_factor_y = 0,
+		.skip_frames = 0,
+		.fps_options = {
+			{
+				.fps = 30,
+				.pixels_per_line = 3872,
+				.lines_per_frame = 2478,
+			},
+			{
+			}
+		},
+	},
+	{
 		.desc = "ov8858_6M_PREVIEW",
 		.width = 3280,
 		.height = 1852,
@@ -1181,6 +1252,25 @@ static struct ov8858_resolution ov8858_res_still[] = {
 		.bin_factor_x = 0,
 		.bin_factor_y = 0,
 		.skip_frames = 1,
+		.fps_options = {
+			{
+				.fps = 30,
+				.pixels_per_line = 3872,
+				.lines_per_frame = 2478,
+			},
+			{
+			}
+		},
+	},
+	{
+		.desc = "ov8858_2704x2032_STILL",
+		.width = 2704,
+		.height = 2032,
+		.used = 0,
+		.regs = ov8858_2704x2032,
+		.bin_factor_x = 0,
+		.bin_factor_y = 0,
+		.skip_frames = 0,
 		.fps_options = {
 			{
 				.fps = 30,
