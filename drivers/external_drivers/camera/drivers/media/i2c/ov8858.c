@@ -450,8 +450,8 @@ static int ov8858_set_exposure(struct v4l2_subdev *sd, int exposure, int gain,
 	/*
 	 * Vendor: HTS reg value is half the total pixel line
 	 */
-	hts = res->fps_options[dev->fps_index].pixels_per_line;
-	vts = res->fps_options[dev->fps_index].lines_per_frame;
+	hts = dev->pixels_per_line;
+	vts = dev->lines_per_frame;
 
 	ret = __ov8858_set_exposure(sd, exposure, gain, dig_gain, &hts, &vts);
 
@@ -1200,9 +1200,8 @@ static int ov8858_get_intg_factor(struct v4l2_subdev *sd,
 	m->vt_pix_clk_freq_mhz = sclk;
 
 	/* HTS and VTS */
-	m->frame_length_lines =
-			res->fps_options[dev->fps_index].lines_per_frame;
-	m->line_length_pck = res->fps_options[dev->fps_index].pixels_per_line;
+	m->frame_length_lines = dev->lines_per_frame;
+	m->line_length_pck = dev->pixels_per_line;
 
 	m->coarse_integration_time_min = 0;
 	m->coarse_integration_time_max_margin = OV8858_INTEGRATION_TIME_MARGIN;
@@ -1952,11 +1951,9 @@ ov8858_g_frame_interval(struct v4l2_subdev *sd,
 			struct v4l2_subdev_frame_interval *interval)
 {
 	struct ov8858_device *dev = to_ov8858_sensor(sd);
-	const struct ov8858_resolution *res =
-				&dev->curr_res_table[dev->fmt_idx];
 
 	mutex_lock(&dev->input_lock);
-	interval->interval.denominator = res->fps_options[dev->fps_index].fps;
+	interval->interval.denominator = dev->fps;
 	interval->interval.numerator = 1;
 	mutex_unlock(&dev->input_lock);
 	return 0;
@@ -1967,12 +1964,12 @@ static int __ov8858_s_frame_interval(struct v4l2_subdev *sd,
 {
 	struct ov8858_device *dev = to_ov8858_sensor(sd);
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
+	struct atomisp_sensor_mode_data *m;
 	const struct ov8858_resolution *res =
 				&dev->curr_res_table[dev->fmt_idx];
 	struct camera_mipi_info *info = NULL;
-	unsigned int fps_index;
+	unsigned int fps_index, fps;
 	int ret = 0;
-	int fps;
 
 	info = v4l2_get_subdev_hostdata(sd);
 	if (info == NULL)
@@ -1982,6 +1979,8 @@ static int __ov8858_s_frame_interval(struct v4l2_subdev *sd,
 		interval->interval.numerator = 1;
 
 	fps = interval->interval.denominator / interval->interval.numerator;
+	if (fps == 0)
+		return -EINVAL;
 
 	/* No need to proceed further if we are not streaming */
 	if (!dev->streaming) {
@@ -1991,10 +1990,21 @@ static int __ov8858_s_frame_interval(struct v4l2_subdev *sd,
 	}
 
 	 /* Ignore if we are already using the required FPS. */
-	if (fps == res->fps_options[dev->fps_index].fps)
+	if (fps == dev->fps)
 		return 0;
 
+	/*
+	 * Start here, sensor is already streaming, so adjust fps dynamically
+	 */
 	fps_index = __ov8858_nearest_fps_index(fps, res->fps_options);
+	if (fps > res->fps_options[fps_index].fps) {
+		/*
+		 * if does not have high fps setting, not support increase fps
+		 * by adjust lines per frame.
+		 */
+		dev_err(&client->dev, "Could not support fps: %d.\n", fps);
+		return -EINVAL;
+	}
 
 	if (res->fps_options[fps_index].regs &&
 	    res->fps_options[fps_index].regs != dev->regs) {
@@ -2004,13 +2014,24 @@ static int __ov8858_s_frame_interval(struct v4l2_subdev *sd,
 	}
 
 	dev->fps_index = fps_index;
-	dev->fps = res->fps_options[dev->fps_index].fps;
+	dev->fps = res->fps_options[fps_index].fps;
+	dev->pixels_per_line = res->fps_options[fps_index].pixels_per_line;
+	dev->lines_per_frame = res->fps_options[fps_index].lines_per_frame;
 
-	/* Update the new frametimings based on FPS */
-	dev->pixels_per_line =
-		res->fps_options[dev->fps_index].pixels_per_line;
-	dev->lines_per_frame =
-		res->fps_options[dev->fps_index].lines_per_frame;
+	/* if the new setting does not match exactly */
+	if (dev->fps != fps) {
+		dev_dbg(&client->dev, "adjusting fps using lines_per_frame\n");
+		if ((dev->lines_per_frame * dev->fps / fps) >
+			OV8858_MAX_VTS_VALUE) {
+			dev_warn(&client->dev, "adjust lines_per_frame out of range, try to use max value.\n");
+			fps = dev->lines_per_frame * dev->fps /
+				OV8858_MAX_VTS_VALUE;
+			dev->lines_per_frame = OV8858_MAX_VTS_VALUE;
+		} else {
+			dev->lines_per_frame = dev->lines_per_frame *
+				dev->fps / fps;
+		}
+	}
 
 	/* update frametiming. Conside the curren exposure/gain as well */
 	ret = __ov8858_update_frame_timing(sd,
@@ -2018,16 +2039,17 @@ static int __ov8858_s_frame_interval(struct v4l2_subdev *sd,
 	if (ret)
 		return ret;
 
-	/* Update the new values so that user side knows the current settings */
-	ret = ov8858_get_intg_factor(sd, info, dev->regs);
-	if (ret)
-		return ret;
+	/* Update the new values so that user knows the current settings */
+	dev->fps = fps;
+	m = &info->data;
+	m->frame_length_lines = dev->lines_per_frame;
+	m->line_length_pck = dev->pixels_per_line;
 
-	interval->interval.denominator = res->fps_options[dev->fps_index].fps;
+	interval->interval.denominator = dev->fps;
 	interval->interval.numerator = 1;
 	__ov8858_print_timing(sd);
 
-	return ret;
+	return 0;
 }
 
 static int ov8858_s_frame_interval(struct v4l2_subdev *sd,
