@@ -306,7 +306,7 @@ struct drm_display_mode *inx_nt51021_get_modes(struct intel_dsi_device *dsi)
 	mode->vsync_start = mode->vdisplay + 35;
 	mode->vsync_end = mode->vsync_start + 1;
 	mode->vtotal = mode->vsync_end + 25;
-	//mode->clock = mode->htotal*mode->vtotal;
+	mode->clock = mode->htotal*mode->vtotal*mode->vrefresh/HZ;
 	return mode;
 }
 static void inx_nt51021_panel_reset(struct intel_dsi_device *dsi)
