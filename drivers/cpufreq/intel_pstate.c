@@ -119,7 +119,6 @@ struct cpudata {
 	u64	prev_tsc;
 	u64	prev_cummulative_iowait;
 	u64	flags_high_loads;
-	u64	flags_iowaits;
 	int	floor_min;
 	struct sample sample;
 
@@ -733,8 +732,11 @@ static inline int32_t get_target_pstate_use_cpu_load(struct cpudata *cpu)
 {
 	struct sample *sample = &cpu->sample;
 	struct pstate_data *pstate = &cpu->pstate;
-	u64 cummulative_iowait, delta_iowait_us, now;
-	int32_t nb_high_loads, cpu_load;
+	u64 cummulative_iowait, delta_iowait_us, now, mperf;
+	int32_t nb_high_loads, cpu_load, num_periods;
+	u64 sample_time_us = pid_params.sample_rate_ms * USEC_PER_MSEC;
+	u64 last_period_us = ktime_us_delta(cpu->sample.time,
+		cpu->last_sample_time) + (sample_time_us >> 1);
 
 	cummulative_iowait = get_cpu_iowait_time_us(cpu->cpu, &now);
 
@@ -749,34 +751,30 @@ static inline int32_t get_target_pstate_use_cpu_load(struct cpudata *cpu)
 
 	cpu->prev_cummulative_iowait = cummulative_iowait;
 
+	mperf = sample->mperf + sample->delta_iowait_mperf;
+
 	/*
 	 * The load can be estimated as the ratio of the mperf counter
 	 * running at a constant frequency during active periods
 	 * (C0) and the time stamp counter running at the same frequency
 	 * also during C-states.
 	 */
-	cpu_load = div64_u64(int_tofp(100) * sample->mperf, sample->tsc);
+	cpu_load = div64_u64(int_tofp(100) * mperf, sample->tsc);
 	sample->busy_scaled = cpu_load;
+	num_periods = div64_u64(last_period_us, sample_time_us);
 
-	if (cpu_load > int_tofp(75))
-		cpu->flags_high_loads |= 1;
+	cpu->flags_high_loads <<= num_periods;
 
-	if (get_io_busy(cpu) > 5)
-		cpu->flags_iowaits |= 1;
+	if (cpu_load > int_tofp(cpu->pid.setpoint))
+		cpu->flags_high_loads |= (1 << num_periods) - 1;
 
 	nb_high_loads = hweight64(cpu->flags_high_loads);
-	cpu->flags_high_loads <<= 1;
-	cpu->flags_iowaits <<= 1;
 
 	if (nb_high_loads < 16)
 		cpu->floor_min = 0;
 	else
 		cpu->floor_min = div64_u64((pstate->max_pstate -
 			pstate->min_pstate) * nb_high_loads, 8*sizeof(u64));
-
-	if (hweight64(cpu->flags_iowaits) > 16)
-		cpu->floor_min = (2 * pstate->turbo_pstate +
-			pstate->max_pstate) / 3;
 
 	return get_avg_pstate(cpu) - pid_calc(&cpu->pid, cpu_load);
 }
