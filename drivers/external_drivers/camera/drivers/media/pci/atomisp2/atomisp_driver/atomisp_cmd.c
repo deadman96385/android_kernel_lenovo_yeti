@@ -2627,9 +2627,20 @@ int atomisp_get_dvs2_bq_resolutions(struct atomisp_sub_device *asd,
 		cropped_w = input_config->input_res.width - pad_width;
 		cropped_h = input_config->input_res.height - pad_height;
 
-		/* the GDC input resolution */
+		/*
+		 * the GDC input resolution
+		 * If the cropped resolution (pad removed), then count
+		 * in the pad as input.
+		 */
 		bq_res->source_bq.width_bq = cropped_w / 2;
+		if (bq_res->source_bq.width_bq < bq_res->output_bq.width_bq)
+			bq_res->source_bq.width_bq =
+				bq_res->output_bq.width_bq;
 		bq_res->source_bq.height_bq = cropped_h / 2;
+		if (bq_res->source_bq.height_bq < bq_res->output_bq.height_bq)
+			bq_res->source_bq.height_bq =
+				bq_res->output_bq.height_bq;
+
 		/* spatial filter shift, always 4 pixels */
 		bq_res->gdc_shift_bq.width_bq = 4 / 2;
 		bq_res->gdc_shift_bq.height_bq = 4 / 2;
