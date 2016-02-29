@@ -430,12 +430,32 @@ int atomisp_subdev_set_selection(struct v4l2_subdev *sd,
 
 		if (isp_sd->run_mode->val == ATOMISP_RUN_MODE_VIDEO &&
 			!isp_sd->continuous_mode->val) {
+#ifdef CONFIG_EXTERNAL_BTNS_CAMERA
 			dvs_w = rounddown(crop[pad]->width - r->width,
 				ATOM_ISP_STEP_WIDTH);
 			dvs_h = rounddown(crop[pad]->height - r->height,
 				ATOM_ISP_STEP_HEIGHT);
 			crop[pad]->width = r->width;
 			crop[pad]->height = r->height;
+#else
+			if (isp_sd->params.video_dis_en) {
+				/* This resolution contains 20 % of DVS slack
+				 * (of the desired captured image before
+				 * scaling, or 1 / 6 of what we get from the
+				 * sensor) in both width and height. Remove
+				 * it. */
+				crop[pad]->width = roundup(crop[pad]->width *
+							5 / 6,
+						ATOM_ISP_STEP_WIDTH);
+				crop[pad]->height = roundup(crop[pad]->height *
+							5 / 6,
+						ATOM_ISP_STEP_HEIGHT);
+				dvs_w = rounddown(crop[pad]->width / 5,
+					  ATOM_ISP_STEP_WIDTH);
+				dvs_h = rounddown(crop[pad]->height / 5,
+					  ATOM_ISP_STEP_HEIGHT);
+			}
+#endif
 		}
 
 		crop[pad]->width = min(crop[pad]->width, r->width);

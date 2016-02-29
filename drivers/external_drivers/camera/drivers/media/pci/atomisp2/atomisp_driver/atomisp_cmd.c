@@ -2627,6 +2627,7 @@ int atomisp_get_dvs2_bq_resolutions(struct atomisp_sub_device *asd,
 		cropped_w = input_config->input_res.width - pad_width;
 		cropped_h = input_config->input_res.height - pad_height;
 
+#ifdef CONFIG_EXTERNAL_BTNS_CAMERA
 		/*
 		 * the GDC input resolution
 		 * If the cropped resolution (pad removed), then count
@@ -2640,12 +2641,18 @@ int atomisp_get_dvs2_bq_resolutions(struct atomisp_sub_device *asd,
 		if (bq_res->source_bq.height_bq < bq_res->output_bq.height_bq)
 			bq_res->source_bq.height_bq =
 				bq_res->output_bq.height_bq;
-
+#else
+		bq_res->source_bq.width_bq = bq_res->output_bq.width_bq +
+				pipe_cfg->dvs_envelope.width / 2;
+		bq_res->source_bq.height_bq = bq_res->output_bq.height_bq +
+				pipe_cfg->dvs_envelope.height / 2;
+#endif
 		/* spatial filter shift, always 4 pixels */
 		bq_res->gdc_shift_bq.width_bq = 4 / 2;
 		bq_res->gdc_shift_bq.height_bq = 4 / 2;
 
 		if (asd->params.video_dis_en) {
+#ifdef CONFIG_EXTERNAL_BTNS_CAMERA
 			unsigned int evlp_w, evlp_h;
 
 			evlp_w = min(pipe_cfg->dvs_envelope.width,
@@ -2665,6 +2672,14 @@ int atomisp_get_dvs2_bq_resolutions(struct atomisp_sub_device *asd,
 				evlp_w / 2 - bq_res->ispfilter_bq.width_bq;
 			bq_res->envelope_bq.height_bq =
 				evlp_h / 2 - bq_res->ispfilter_bq.height_bq;
+#else
+			bq_res->envelope_bq.width_bq =
+				pipe_cfg->dvs_envelope.width / 2 -
+				bq_res->ispfilter_bq.width_bq;
+			bq_res->envelope_bq.height_bq =
+				pipe_cfg->dvs_envelope.height / 2 -
+				bq_res->ispfilter_bq.height_bq;
+#endif
 		}
 	} else {
 		unsigned int w_padding;
