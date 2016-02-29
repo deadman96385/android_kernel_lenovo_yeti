@@ -1232,6 +1232,9 @@ static int kxcjk1013_probe(struct i2c_client *client,
 	} else
 		return -ENODEV;
 
+	if (data->chipset >=  KX_MAX_CHIPS)
+		return -ENODEV;
+
 	ret = kxcjk1013_chip_init(data);
 	if (ret < 0)
 		return ret;
