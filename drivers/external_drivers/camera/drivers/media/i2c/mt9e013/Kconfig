@@ -8,12 +8,10 @@ config VIDEO_MT9E013
 	  It currently depends on internal V4L2 extensions defined in
 	  atomisp driver.
 
-choice
-	prompt "Select sensor settings"
-	depends on VIDEO_MT9E013
 
 config VIDEO_MT9E013_BLACKBAY
 	bool "MT9E013 settings for Blackbay"
+	depends on VIDEO_MT9E013
 	---help---
 	  Default mt9e013 sensor settings for Blackbay
 
@@ -23,6 +21,7 @@ config VIDEO_MT9E013_BLACKBAY
 
 config VIDEO_MT9E013_LEXINGTON
 	bool "MT9E013 settings for Lexington"
+	depends on VIDEO_MT9E013
 	---help---
 	  Default mt9e013 sensor settings for Lexington
 
@@ -32,11 +31,10 @@ config VIDEO_MT9E013_LEXINGTON
 
 config VIDEO_MT9E013_ENZO
 	bool "MT9E013 settings for Enzo"
+	depends on VIDEO_MT9E013
 	---help---
 	  Default mt9e013 sensor settings for Enzo
 
 	  For MT9E013 sensor and the sensor currently depends
 	  on internal V4L2 extensions defined in atomisp
 	  driver.
-
-endchoice
