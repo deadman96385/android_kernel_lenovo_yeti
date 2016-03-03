@@ -25,6 +25,7 @@
 #include <linux/uaccess.h>
 #include <linux/suspend.h>
 
+#include <linux/syscore_ops.h>
 #include <asm/pmc_atom.h>
 #include <linux/syscore_ops.h>
 
