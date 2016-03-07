@@ -198,6 +198,7 @@ struct atomisp_css_params {
 	struct ia_css_macc1_5_config macc1_5_config;
 	struct ia_css_macc1_5_table macc1_5_table;
 	struct ia_css_xnr3_0_11_config xnr3_0_11_config;
+	struct ia_css_bnlm_config bnlm_config;
 
 
 	/*

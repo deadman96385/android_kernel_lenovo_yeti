@@ -3330,6 +3330,9 @@ void atomisp_apply_css_parameters(
 	if (css_param->update_flag.xnr3_0_11_config)
 		atomisp_css_set_xnr3_0_11_config(asd, &css_param->xnr3_0_11_config);
 
+	if (css_param->update_flag.bnlm_config)
+		atomisp_css_set_bnlm_config(asd, &css_param->bnlm_config);
+
 	atomisp_css_set_isp_config_id(asd, css_param->isp_config_id);
 	/*
 	 * These configurations are on used by ISP1.x, not for ISP2.x,
@@ -3707,6 +3710,16 @@ int atomisp_cp_general_isp_parameters(struct atomisp_sub_device *asd,
 			return -EFAULT;
 		css_param->update_flag.xnr3_0_11_config =
 			(struct atomisp_xnr3_0_11_config *) &css_param->xnr3_0_11_config;
+	}
+
+	if (arg->bnlm_config && (from_user || !cur_config->bnlm_config)) {
+		if (copy_from_compatible(&css_param->bnlm_config,
+				arg->bnlm_config,
+				sizeof(struct atomisp_css_bnlm_config),
+				from_user))
+			return -EFAULT;
+		css_param->update_flag.bnlm_config =
+			(struct atomisp_bnlm_config *) &css_param->bnlm_config;
 	}
 
 	if (from_user)

@@ -3957,6 +3957,12 @@ void atomisp_css_set_xnr3_0_11_config(struct atomisp_sub_device *asd,
 	asd->params.config.xnr3_0_11_config = xnr3_0_11_config;
 }
 
+void atomisp_css_set_bnlm_config(struct atomisp_sub_device *asd,
+			struct atomisp_css_bnlm_config *bnlm_config)
+{
+	asd->params.config.bnlm_config = bnlm_config;
+}
+
 int atomisp_css_get_dp_config(struct atomisp_sub_device *asd,
 			struct atomisp_dp_config *config)
 {

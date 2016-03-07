@@ -239,7 +239,7 @@ struct atomisp_parameters32 {
 	compat_uptr_t macc1_5_config;
 	compat_uptr_t macc1_5_table;
 	compat_uptr_t xnr3_0_11_config;
-
+	compat_uptr_t bnlm_config;
 
 	compat_uptr_t	lin_2500_config;       /* Skylake: Linearization config */
 	compat_uptr_t	obgrid_2500_config;    /* Skylake: OBGRID config */
