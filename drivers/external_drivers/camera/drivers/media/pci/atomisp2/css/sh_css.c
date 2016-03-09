@@ -4837,8 +4837,11 @@ ia_css_dequeue_psys_event(struct ia_css_event *event)
 	} else if (event->type == IA_CSS_EVENT_TYPE_FW_WARNING) {
 		event->fw_warning = (enum ia_css_fw_warning)payload[1];
 		/* exp_id is only available in these warning types */
-		if (event->fw_warning == IA_CSS_FW_WARNING_EXP_ID_LOCKED ||
-		    event->fw_warning == IA_CSS_FW_WARNING_TAG_EXP_ID_FAILED)
+		if ((event->fw_warning == IA_CSS_FW_WARNING_EXP_ID_LOCKED) ||
+		    (event->fw_warning == IA_CSS_FW_WARNING_TAG_EXP_ID_FAILED) ||
+		    (event->fw_warning == IA_CSS_FW_WARNING_UNLOCK_EXP_ID_FAILED) ||
+		    (event->fw_warning == IA_CSS_FW_WARNING_UNLOCK_EXP_ID_SKIPPED) ||
+		    (event->fw_warning == IA_CSS_FW_WARNING_CAPTURE_EXP_ID_FAILED))
 			event->exp_id = payload[3];
 	} else if (event->type == IA_CSS_EVENT_TYPE_FW_ASSERT) {
 		event->fw_assert_module_id = payload[1]; /* module */
@@ -9713,8 +9716,13 @@ ia_css_stream_create(const struct ia_css_stream_config *stream_config,
 	}
 	/* store pipes */
 	spcopyonly = (num_pipes == 1) && (pipes[0]->config.mode == IA_CSS_PIPE_MODE_COPY);
-	for (i = 0; i < num_pipes; i++)
+	for (i = 0; i < num_pipes; i++) {
+		if (pipes[i]->config.mode == IA_CSS_PIPE_MODE_CAPTURE &&
+		    pipes[i]->config.isp_pipe_version == IA_CSS_PIPE_VERSION_2_7) {
+			curr_stream->disable_preview_on_capture = true;
+		}
 		curr_stream->pipes [i] = pipes[i];
+	}
 	curr_stream->last_pipe = curr_stream->pipes[0];
 	/* take over stream config */
 	curr_stream->config = *stream_config;
@@ -9741,6 +9749,8 @@ ia_css_stream_create(const struct ia_css_stream_config *stream_config,
 	if (curr_stream->config.ia_css_enable_raw_buffer_locking)
 		sh_css_sp_configure_enable_raw_pool_locking(
 					curr_stream->config.lock_all);
+        if (curr_stream->config.disable_cont_viewfinder && curr_stream->disable_preview_on_capture)
+                sh_css_sp_set_disable_preview_on_capture(curr_stream->disable_preview_on_capture);
 
 	/* copy mode specific stuff */
 	switch (curr_stream->config.mode) {
@@ -9796,6 +9806,7 @@ ia_css_stream_create(const struct ia_css_stream_config *stream_config,
 		curr_pipe = pipes[i];
 		/* set current stream */
 		curr_pipe->stream = curr_stream;
+		curr_pipe->in_frame_struct.info.raw_type = curr_pipe->stream->config.input_config.raw_type;
 		/* take over effective info */
 
 		effective_res = curr_pipe->config.input_effective_res;

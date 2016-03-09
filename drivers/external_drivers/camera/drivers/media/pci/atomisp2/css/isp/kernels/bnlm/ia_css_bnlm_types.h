@@ -27,16 +27,16 @@ more details.
  * \details Struct with all parameters for the BNLM kernel that can be set
  * from the CSS API.
  *
- * ISP2.6.1: BNLM is used.
+ * ISP2.7: BNLM is used.
  */
 struct ia_css_bnlm_config {
 	bool		rad_enable;	/**< Enable a radial dependency in a weight calculation */
 	int32_t		rad_x_origin;	/**< Initial x coordinate for a radius calculation */
 	int32_t		rad_y_origin;	/**< Initial x coordinate for a radius calculation */
-	/* a threshold for average of weights if this < Th, do not denoise pixel */
-	int32_t		avg_min_th;
-	/* minimum weight for denoising if max < th, do not denoise pixel */
-	int32_t		max_min_th;
+	int32_t		avg_min_th;	/**< Threshold for avg of weights. if this < Th
+					  * do not denoise pixel */
+	int32_t		max_min_th;	/**< min weight for denoising. if max < th,
+					 * do not denoise pixel */
 
 	/**@{*/
 	/** Coefficient for approximation, in the form of (1 + x / N)^N,

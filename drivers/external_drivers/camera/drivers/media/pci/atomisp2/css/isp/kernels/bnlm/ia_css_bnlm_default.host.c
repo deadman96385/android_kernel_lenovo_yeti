@@ -17,8 +17,8 @@ more details.
 const struct ia_css_bnlm_config default_bnlm_config = {
 
 	.rad_enable = true,
-	.rad_x_origin = 0,
-	.rad_y_origin = 0,
+	.rad_x_origin = -1640,
+	.rad_y_origin = -1232,
 	.avg_min_th = 127,
 	.max_min_th = 2047,
 
@@ -27,8 +27,8 @@ const struct ia_css_bnlm_config default_bnlm_config = {
 	.exp_coeff_c = 0,
 	.exp_exponent = 3,
 
-	.nl_th = {2252, 2251, 2250},
-	.match_quality_max_idx = {2, 3, 3, 1},
+	.nl_th = {90, 22, 11},
+	.match_quality_max_idx = {3, 3, 3, 1},
 
 	.mu_root_lut_thr = {
 		26, 56, 128, 216, 462, 626, 932, 1108, 1480, 1564, 1824, 1896, 2368, 3428, 4560},

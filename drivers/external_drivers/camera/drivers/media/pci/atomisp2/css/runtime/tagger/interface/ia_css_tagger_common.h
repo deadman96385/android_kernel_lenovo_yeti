@@ -38,6 +38,7 @@ typedef struct {
 	uint8_t mark;	/* the mark on the element */
 	uint8_t lock;	/* the lock on the element */
 	uint8_t exp_id; /* exp_id of frame, for debugging only */
+	uint8_t capture;/* elem busy on capture pipe */
 } ia_css_tagger_buf_sp_elem_t;
 
 #endif /* __IA_CSS_TAGGER_COMMON_H__ */

@@ -78,7 +78,12 @@ struct ia_css_frame_sp_info {
 					only valid for RAW bayer frames */
 	unsigned char raw_bayer_order;	/* bayer order, only valid
 					for RAW bayer frames */
-	unsigned char padding[3];	/* Extend to 32 bit multiple */
+	unsigned char raw_type; /*To choose the proper raw frame type.
+						 for Legacy SKC pipes/Default is set to IA_CSS_RAW_BAYER.
+						 for RGB IR sensor - driver should set it to:
+						 IronGr case - IA_CSS_RAW_RGBIR_IR_ON_Gr
+						 IronGb case - IA_CSS_RAW_RGBIR_IR_ON_Gb */
+	unsigned char padding[2];	/* Extend to 32 bit multiple */
 };
 
 struct ia_css_buffer_sp {

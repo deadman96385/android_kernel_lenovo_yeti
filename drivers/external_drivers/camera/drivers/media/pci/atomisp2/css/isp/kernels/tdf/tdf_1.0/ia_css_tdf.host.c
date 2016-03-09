@@ -11,7 +11,8 @@ ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
 more details.
 */
-
+#include "ia_css_types.h"
+#include "sh_css_defs.h"
 #include "ia_css_debug.h"
 #include "ia_css_tdf.host.h"
 
@@ -73,4 +74,3 @@ ia_css_tdf_debug_dtrace(
 	(void)config;
 	(void)level;
 }
-

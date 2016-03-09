@@ -899,6 +899,7 @@ void ia_css_frame_info_to_frame_sp_info(
 	to->format = (uint8_t)from->format;
 	to->raw_bit_depth = (uint8_t)from->raw_bit_depth;
 	to->raw_bayer_order = from->raw_bayer_order;
+	to->raw_type = from->raw_type;
 }
 
 void ia_css_resolution_to_sp_resolution(

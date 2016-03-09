@@ -455,6 +455,7 @@ struct sh_css_sp_config {
 	uint8_t                 enable_isys_event_queue;
 #endif
 	uint8_t			disable_cont_vf;
+	uint8_t			disable_preview_on_capture;
 };
 
 enum sh_css_stage_type {

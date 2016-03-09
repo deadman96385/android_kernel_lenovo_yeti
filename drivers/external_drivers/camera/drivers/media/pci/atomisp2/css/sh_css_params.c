@@ -69,6 +69,7 @@ more details.
 #include "fpn/fpn_1.0/ia_css_fpn.host.h"
 #include "gc/gc_1.0/ia_css_gc.host.h"
 #include "dpc2/ia_css_dpc2.host.h"
+#include "bnlm/ia_css_bnlm.host.h"
 #include "eed1_8/ia_css_eed1_8.host.h"
 #include "iefd2_6/ia_css_iefd2_6.host.h"
 #include "macc/macc_1.0/ia_css_macc.host.h"
@@ -3395,6 +3396,7 @@ sh_css_init_isp_params_from_global(struct ia_css_stream *stream,
 		ia_css_set_dp_config(params, &default_dp_config);
 		ia_css_set_eed1_8_config(params, &default_eed1_8_config);
 		ia_css_set_iefd2_6_config(params, &default_iefd2_6_config);
+		ia_css_set_bnlm_config(params, &default_bnlm_config);
 
 		for (i = 0; i < stream->num_pipes; i++) {
 			if (IA_CSS_SUCCESS == sh_css_select_dp_10bpp_config(stream->pipes[i], &is_dp_10bpp)) {
@@ -3516,6 +3518,7 @@ sh_css_init_isp_params_from_global(struct ia_css_stream *stream,
 		ia_css_set_xnr3_0_11_config(params, &stream_params->xnr3_0_11_config);
 		ia_css_set_eed1_8_config(params, &stream_params->eed1_8_config);
 		ia_css_set_iefd2_6_config(params, &stream_params->iefd2_6_config);
+		ia_css_set_bnlm_config(params, &stream_params->bnlm_config);
 		ia_css_set_formats_config(params, &stream_params->formats_config);
 
 		for (i = 0; i < stream->num_pipes; i++) {

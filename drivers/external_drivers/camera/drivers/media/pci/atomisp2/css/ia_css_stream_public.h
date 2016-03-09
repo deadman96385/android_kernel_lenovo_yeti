@@ -81,6 +81,11 @@ struct ia_css_stream_input_config {
 					       format will be mapped to MIPI data
 					       type internally. */
 	enum ia_css_bayer_order bayer_order; /**< Bayer order for RAW streams */
+	enum ia_css_raw_type raw_type; /**<To choose the proper raw frame type.
+						 for Legacy SKC pipes/Default is set to IA_CSS_RAW_BAYER.
+						 for RGB IR sensor - driver should set it to:
+						 IronGr case - IA_CSS_RAW_RGBIR_IR_ON_Gr
+						 IronGb case - IA_CSS_RAW_RGBIR_IR_ON_Gb */
 };
 
 

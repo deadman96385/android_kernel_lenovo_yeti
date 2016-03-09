@@ -745,6 +745,12 @@ sh_css_sp_set_disable_continuous_viewfinder(bool flag)
 	sh_css_sp_group.config.disable_cont_vf = flag;
 }
 
+void
+sh_css_sp_set_disable_preview_on_capture(bool flag)
+{
+	sh_css_sp_group.config.disable_preview_on_capture = flag;
+}
+
 static enum ia_css_err
 sh_css_sp_write_frame_pointers(const struct sh_css_binary_args *args)
 {

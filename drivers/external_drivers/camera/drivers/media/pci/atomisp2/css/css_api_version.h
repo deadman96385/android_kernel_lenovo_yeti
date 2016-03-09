@@ -34,7 +34,7 @@ The version string has four dot-separated numbers, read left to right:
 
 */
 
-#define CSS_API_VERSION_STRING	"2.1.21.0"
+#define CSS_API_VERSION_STRING	"2.1.21.3"
 
 /*
 Change log
@@ -471,6 +471,19 @@ v2.1.20.21, insert copyright header on CSS-API files
 
 v2.1.21.0, Reorder EED1_8 kernel parameters in CSS API
 - Reorder EED1_8 fields in ia_css_eed1_8_config
+
+v2.1.21.1, Update FW Warnings in CSS_API
+- Update FW Warnings in CSS API
+
+v2.1.21.3 (1 changes parallel), Enable BNLM API
+- add ia_css_bnlm_config struct
+
+v2.1.21.3 (1 changes parallel), Provide CSS Interface to select correct raw frame type
+- Add an enum ia_css_raw_type to ia_css_stream_input_config
+- For new RGBIR sensor use cases ia_css_raw_type should be set to
+- IA_CSS_RAW_RGBIR_IR_ON_Gr for IR on Gr case
+- IA_CSS_RAW_RGBIR_IR_ON_Gb for IR on Gb case
+- Frame type for future RAW hybrid sensors can be added here
 
 */
 

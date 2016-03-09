@@ -20,17 +20,18 @@ more details.
 #endif
 #include <assert_support.h>
 
-#define BNLM_DIV_LUT_SIZE	(12)
+#define BNLM_MAX_NUM_LUT_ENTRIES	(16)
+#define BNLM_DIV_LUT_SIZE	(16)
 static const int32_t div_lut_nearests[BNLM_DIV_LUT_SIZE] = {
-	0, 454, 948, 1484, 2070, 2710, 3412, 4184, 5035, 5978, 7025, 8191
+	0, 454, 948, 1484, 2070, 2710, 3412, 4184, 5035, 5978, 7025, 8191, 8191, 8191, 8191, 8191
 };
 
 static const int32_t div_lut_slopes[BNLM_DIV_LUT_SIZE] = {
-	-7760, -6960, -6216, -5536, -4912, -4344, -3832, -3360, -2936, -2552, -2208, -2208
+	-7760, -6960, -6216, -5536, -4912, -4344, -3832, -3360, -2936, -2552, -2208, -2208, -2208, -2208, -2208, -2208
 };
 
 static const int32_t div_lut_intercepts[BNLM_DIV_LUT_SIZE] = {
-	8184, 7752, 7336, 6928, 6536, 6152, 5776, 5416, 5064, 4728, 4408, 4408
+	8184, 7752, 7336, 6928, 6536, 6152, 5776, 5416, 5064, 4728, 4408, 4408, 4408, 4408, 4408, 4408
 };
 
 /* Encodes a look-up table from BNLM public parameters to vmem parameters.
@@ -80,7 +81,7 @@ bnlm_lut_encode(struct bnlm_lut *lut, const int32_t *lut_thr, const int32_t *lut
 	/* Copy data from first block to all blocks */
 	for (blk = 1; blk < total_blocks; blk++) {
 		uint32_t blk_offset = blk * block_size;
-		for (i = 1; i < lut_size; i++) {
+		for (i = 0; i < BNLM_MAX_NUM_LUT_ENTRIES; i++) {
 			lut->thr[0][blk_offset + i] = lut->thr[0][i];
 			lut->val[0][blk_offset + i] = lut->val[0][i];
 		}
@@ -98,18 +99,21 @@ ia_css_bnlm_vmem_encode(
 			size_t size)
 {
 	int i;
+	uint32_t blk;
+	const uint32_t block_size = 16;
+	const uint32_t total_blocks = (ISP_VEC_NELEMS / block_size);
 	(void)size;
 
 	/* Initialize LUTs in VMEM parameters */
-	bnlm_lut_encode(&to->mu_root_lut, from->mu_root_lut_thr, from->mu_root_lut_val, 16);
-	bnlm_lut_encode(&to->sad_norm_lut, from->sad_norm_lut_thr, from->sad_norm_lut_val, 16);
-	bnlm_lut_encode(&to->sig_detail_lut, from->sig_detail_lut_thr, from->sig_detail_lut_val, 16);
-	bnlm_lut_encode(&to->sig_rad_lut, from->sig_rad_lut_thr, from->sig_rad_lut_val, 16);
-	bnlm_lut_encode(&to->rad_pow_lut, from->rad_pow_lut_thr, from->rad_pow_lut_val, 16);
-	bnlm_lut_encode(&to->nl_0_lut, from->nl_0_lut_thr, from->nl_0_lut_val, 16);
-	bnlm_lut_encode(&to->nl_1_lut, from->nl_1_lut_thr, from->nl_1_lut_val, 16);
-	bnlm_lut_encode(&to->nl_2_lut, from->nl_2_lut_thr, from->nl_2_lut_val, 16);
-	bnlm_lut_encode(&to->nl_3_lut, from->nl_3_lut_thr, from->nl_3_lut_val, 16);
+	bnlm_lut_encode(&to->mu_root_lut, from->mu_root_lut_thr, from->mu_root_lut_val, BNLM_MAX_NUM_LUT_ENTRIES);
+	bnlm_lut_encode(&to->sad_norm_lut, from->sad_norm_lut_thr, from->sad_norm_lut_val, BNLM_MAX_NUM_LUT_ENTRIES);
+	bnlm_lut_encode(&to->sig_detail_lut, from->sig_detail_lut_thr, from->sig_detail_lut_val, BNLM_MAX_NUM_LUT_ENTRIES);
+	bnlm_lut_encode(&to->sig_rad_lut, from->sig_rad_lut_thr, from->sig_rad_lut_val, BNLM_MAX_NUM_LUT_ENTRIES);
+	bnlm_lut_encode(&to->rad_pow_lut, from->rad_pow_lut_thr, from->rad_pow_lut_val, BNLM_MAX_NUM_LUT_ENTRIES);
+	bnlm_lut_encode(&to->nl_0_lut, from->nl_0_lut_thr, from->nl_0_lut_val, BNLM_MAX_NUM_LUT_ENTRIES);
+	bnlm_lut_encode(&to->nl_1_lut, from->nl_1_lut_thr, from->nl_1_lut_val, BNLM_MAX_NUM_LUT_ENTRIES);
+	bnlm_lut_encode(&to->nl_2_lut, from->nl_2_lut_thr, from->nl_2_lut_val, BNLM_MAX_NUM_LUT_ENTRIES);
+	bnlm_lut_encode(&to->nl_3_lut, from->nl_3_lut_thr, from->nl_3_lut_val, BNLM_MAX_NUM_LUT_ENTRIES);
 
 	/* Initialize arrays in VMEM parameters */
 	memset(to->nl_th, 0, sizeof(to->nl_th));
@@ -123,15 +127,39 @@ ia_css_bnlm_vmem_encode(
 	to->match_quality_max_idx[0][2] = from->match_quality_max_idx[2];
 	to->match_quality_max_idx[0][3] = from->match_quality_max_idx[3];
 
-	bnlm_lut_encode(&to->div_lut, div_lut_nearests, div_lut_slopes, BNLM_DIV_LUT_SIZE);
+	/* div lut - nearest, slopes and intercepts */
 	memset(to->div_lut_intercepts, 0, sizeof(to->div_lut_intercepts));
-	for(i = 0; i < BNLM_DIV_LUT_SIZE; i++) {
+	memset(to->div_lut.thr, 0, sizeof(to->div_lut.thr));
+	memset(to->div_lut.val, 0, sizeof(to->div_lut.val));
+	for (i = 0; i < BNLM_MAX_NUM_LUT_ENTRIES; i++) {
 		to->div_lut_intercepts[0][i] = div_lut_intercepts[i];
+		to->div_lut.thr[0][i] = div_lut_nearests[i];
+		to->div_lut.val[0][i] = div_lut_slopes[i];
 	}
 
+	/* Power of 2 */
 	memset(to->power_of_2, 0, sizeof(to->power_of_2));
-	for (i = 0; i < (ISP_VEC_ELEMBITS-1); i++) {
-		to->power_of_2[0][i] = 1 << i;
+	for (i = 0; i < BNLM_MAX_NUM_LUT_ENTRIES; i++) {
+		if (i < ISP_VEC_ELEMBITS - 1) {
+			to->power_of_2[0][i] = 1 << i;
+		} else {
+			/* pad remaining entries with last valid entry */
+			to->power_of_2[0][i] = 1 << ((ISP_VEC_ELEMBITS - 1) - 1);
+		}
+	}
+
+	/* Copy div luts (nearest, slope, intercept and power_of_2) from
+	 * block[0] to blocks 1, 2 and 3
+	 */
+	for (blk = 1; blk < total_blocks; blk++) {
+		uint32_t blk_offset = blk * block_size;
+		for (i = 0; i < BNLM_MAX_NUM_LUT_ENTRIES; i++) {
+			to->div_lut.thr[0][blk_offset + i] = to->div_lut.thr[0][i];
+			to->div_lut.val[0][blk_offset + i] = to->div_lut.val[0][i];
+			to->div_lut_intercepts[0][blk_offset + i] = to->div_lut_intercepts[0][i];
+			to->power_of_2[0][blk_offset + i] = to->power_of_2[0][i];
+			to->match_quality_max_idx[0][blk_offset + i] = to->match_quality_max_idx[0][i];
+		}
 	}
 }
 
@@ -157,10 +185,13 @@ ia_css_bnlm_encode(
 
 /* Prints debug traces for BNLM public parameters */
 void
-ia_css_bnlm_debug_trace(
+ia_css_bnlm_debug_dtrace(
 	const struct ia_css_bnlm_config *config,
 	unsigned level)
 {
+#ifndef IA_CSS_NO_DEBUG
+	int i;
+#endif
 	if (!config)
 		return;
 
@@ -177,7 +208,106 @@ ia_css_bnlm_debug_trace(
 	ia_css_debug_dtrace(level, "\t%-32s = %d\n", "exp_coeff_c", config->exp_coeff_c);
 	ia_css_debug_dtrace(level, "\t%-32s = %d\n", "exp_exponent", config->exp_exponent);
 
-	/* ToDo: print traces for LUTs */
+	ia_css_debug_dtrace(level, "\t%-32s = {", "nl_th");
+	for (i = 0; i < 3; i++)
+		ia_css_debug_dtrace(level, "%d, ", config->nl_th[i]);
+	ia_css_debug_dtrace(level, "}\n");
+
+	ia_css_debug_dtrace(level, "\t%-32s = {", "match_quality_max_idx");
+	for (i = 0; i < 4; i++)
+		ia_css_debug_dtrace(level, "%d, ", config->match_quality_max_idx[i]);
+	ia_css_debug_dtrace(level, "}\n");
+
+	ia_css_debug_dtrace(level, "\t%-32s = {", "mu_root_lut_thr");
+	for (i = 0; i < (BNLM_MAX_NUM_LUT_ENTRIES - 1); i++)
+		ia_css_debug_dtrace(level, "%d, ", config->mu_root_lut_thr[i]);
+	ia_css_debug_dtrace(level, "}\n");
+
+	ia_css_debug_dtrace(level, "\t%-32s = {", "mu_root_lut_val");
+	for (i = 0; i < BNLM_MAX_NUM_LUT_ENTRIES; i++)
+		ia_css_debug_dtrace(level, "%d, ", config->mu_root_lut_val[i]);
+	ia_css_debug_dtrace(level, "}\n");
+
+	ia_css_debug_dtrace(level, "\t%-32s = {", "sad_norm_lut_thr");
+	for (i = 0; i < (BNLM_MAX_NUM_LUT_ENTRIES - 1); i++)
+		ia_css_debug_dtrace(level, "%d, ", config->sad_norm_lut_thr[i]);
+	ia_css_debug_dtrace(level, "}\n");
+
+	ia_css_debug_dtrace(level, "\t%-32s = {", "sad_norm_lut_val");
+	for (i = 0; i < BNLM_MAX_NUM_LUT_ENTRIES; i++)
+		ia_css_debug_dtrace(level, "%d, ", config->sad_norm_lut_val[i]);
+	ia_css_debug_dtrace(level, "}\n");
+
+	ia_css_debug_dtrace(level, "\t%-32s = {", "sig_detail_lut_thr");
+	for (i = 0; i < (BNLM_MAX_NUM_LUT_ENTRIES - 1); i++)
+		ia_css_debug_dtrace(level, "%d, ", config->sig_detail_lut_thr[i]);
+	ia_css_debug_dtrace(level, "}\n");
+
+	ia_css_debug_dtrace(level, "\t%-32s = {", "sig_detail_lut_val");
+	for (i = 0; i < BNLM_MAX_NUM_LUT_ENTRIES; i++)
+		ia_css_debug_dtrace(level, "%d, ", config->sig_detail_lut_val[i]);
+	ia_css_debug_dtrace(level, "}\n");
+
+	ia_css_debug_dtrace(level, "\t%-32s = {", "sig_rad_lut_thr");
+	for (i = 0; i < (BNLM_MAX_NUM_LUT_ENTRIES - 1); i++)
+		ia_css_debug_dtrace(level, "%d, ", config->sig_rad_lut_thr[i]);
+	ia_css_debug_dtrace(level, "}\n");
+
+	ia_css_debug_dtrace(level, "\t%-32s = {", "sig_rad_lut_val");
+	for (i = 0; i < BNLM_MAX_NUM_LUT_ENTRIES; i++)
+		ia_css_debug_dtrace(level, "%d, ", config->sig_rad_lut_val[i]);
+	ia_css_debug_dtrace(level, "}\n");
+
+	ia_css_debug_dtrace(level, "\t%-32s = {", "rad_pow_lut_thr");
+	for (i = 0; i < (BNLM_MAX_NUM_LUT_ENTRIES - 1); i++)
+		ia_css_debug_dtrace(level, "%d, ", config->rad_pow_lut_thr[i]);
+	ia_css_debug_dtrace(level, "}\n");
+
+	ia_css_debug_dtrace(level, "\t%-32s = {", "rad_pow_lut_val");
+	for (i = 0; i < BNLM_MAX_NUM_LUT_ENTRIES; i++)
+		ia_css_debug_dtrace(level, "%d, ", config->rad_pow_lut_val[i]);
+	ia_css_debug_dtrace(level, "}\n");
+
+	ia_css_debug_dtrace(level, "\t%-32s = {", "nl_0_lut_thr");
+	for (i = 0; i < (BNLM_MAX_NUM_LUT_ENTRIES - 1); i++)
+		ia_css_debug_dtrace(level, "%d, ", config->nl_0_lut_thr[i]);
+	ia_css_debug_dtrace(level, "}\n");
+
+	ia_css_debug_dtrace(level, "\t%-32s = {", "nl_0_lut_val");
+	for (i = 0; i < BNLM_MAX_NUM_LUT_ENTRIES; i++)
+		ia_css_debug_dtrace(level, "%d, ", config->nl_0_lut_val[i]);
+	ia_css_debug_dtrace(level, "}\n");
+
+	ia_css_debug_dtrace(level, "\t%-32s = {", "nl_0_lut_thr");
+	for (i = 0; i < (BNLM_MAX_NUM_LUT_ENTRIES - 1); i++)
+		ia_css_debug_dtrace(level, "%d, ", config->nl_0_lut_thr[i]);
+	ia_css_debug_dtrace(level, "}\n");
+
+	ia_css_debug_dtrace(level, "\t%-32s = {", "nl_0_lut_val");
+	for (i = 0; i < BNLM_MAX_NUM_LUT_ENTRIES; i++)
+		ia_css_debug_dtrace(level, "%d, ", config->nl_0_lut_val[i]);
+	ia_css_debug_dtrace(level, "}\n");
+
+	ia_css_debug_dtrace(level, "\t%-32s = {", "nl_1_lut_thr");
+	for (i = 0; i < (BNLM_MAX_NUM_LUT_ENTRIES - 1); i++)
+		ia_css_debug_dtrace(level, "%d, ", config->nl_1_lut_thr[i]);
+	ia_css_debug_dtrace(level, "}\n");
+
+	ia_css_debug_dtrace(level, "\t%-32s = {", "nl_1_lut_val");
+	for (i = 0; i < BNLM_MAX_NUM_LUT_ENTRIES; i++)
+		ia_css_debug_dtrace(level, "%d, ", config->nl_1_lut_val[i]);
+	ia_css_debug_dtrace(level, "}\n");
+
+	ia_css_debug_dtrace(level, "\t%-32s = {", "nl_2_lut_thr");
+	for (i = 0; i < (BNLM_MAX_NUM_LUT_ENTRIES - 1); i++)
+		ia_css_debug_dtrace(level, "%d, ", config->nl_2_lut_thr[i]);
+	ia_css_debug_dtrace(level, "}\n");
+
+	ia_css_debug_dtrace(level, "\t%-32s = {", "nl_3_lut_val");
+	for (i = 0; i < BNLM_MAX_NUM_LUT_ENTRIES; i++)
+		ia_css_debug_dtrace(level, "%d, ", config->nl_3_lut_val[i]);
+	ia_css_debug_dtrace(level, "}\n");
+
 #endif /* IA_CSS_NO_DEBUG */
 
 }

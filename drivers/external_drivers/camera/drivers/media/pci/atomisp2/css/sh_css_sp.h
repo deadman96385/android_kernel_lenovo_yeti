@@ -206,6 +206,9 @@ void
 sh_css_sp_set_disable_continuous_viewfinder(bool flag);
 
 void
+sh_css_sp_set_disable_preview_on_capture(bool flag);
+
+void
 sh_css_sp_reset_global_vars(void);
 
 /**

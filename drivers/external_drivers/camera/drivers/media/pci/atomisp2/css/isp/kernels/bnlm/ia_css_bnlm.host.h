@@ -33,7 +33,7 @@ ia_css_bnlm_encode(
 
 #ifndef IA_CSS_NO_DEBUG
 void
-ia_css_bnlm_debug_trace(
+ia_css_bnlm_debug_dtrace(
 	const struct ia_css_bnlm_config *config,
 	unsigned level);
 #endif
