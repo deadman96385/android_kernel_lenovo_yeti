@@ -124,7 +124,7 @@ static int __dwc3_gadget_ep0_queue(struct dwc3_ep *dep,
 	req->request.status	= -EINPROGRESS;
 	req->epnum		= dep->number;
 
-	list_add_tail(&req->list, &dep->request_list);
+	list_add_tail(&req->list, &dep->pending_list);
 
 	/*
 	 * Gadget driver might not be quick enough to queue a request
@@ -240,7 +240,7 @@ int dwc3_gadget_ep0_queue(struct usb_ep *ep, struct usb_request *request,
 	}
 
 	/* we share one TRB for ep0/1 */
-	if (!list_empty(&dep->request_list)) {
+	if (!list_empty(&dep->pending_list)) {
 		ret = -EBUSY;
 		goto out;
 	}
@@ -272,10 +272,10 @@ static void dwc3_ep0_stall_and_restart(struct dwc3 *dwc)
 	dep->flags = DWC3_EP_ENABLED;
 	dwc->delayed_status = false;
 
-	if (!list_empty(&dep->request_list)) {
+	if (!list_empty(&dep->pending_list)) {
 		struct dwc3_request	*req;
 
-		req = next_request(&dep->request_list);
+		req = next_request(&dep->pending_list);
 		dwc3_gadget_giveback(dep, req, -ECONNRESET);
 	}
 
@@ -810,15 +810,13 @@ static void dwc3_ep0_complete_data(struct dwc3 *dwc,
 
 	dwc->ep0_next_event = DWC3_EP0_NRDY_STATUS;
 
-	if (list_empty(&ep0->request_list))
-		return;
-
-	r = next_request(&ep0->request_list);
-	ur = &r->request;
-
 	trb = dwc->ep0_trb;
 
 	trace_dwc3_complete_trb(ep0, trb);
+
+	r = next_request(&ep0->pending_list);
+	if (!r)
+		return;
 
 	status = DWC3_TRB_SIZE_TRBSTS(trb->size);
 	if (status == DWC3_TRBSTS_SETUP_PENDING) {
@@ -832,8 +830,10 @@ static void dwc3_ep0_complete_data(struct dwc3 *dwc,
 		return;
 	}
 
-	remaining_ur_length = ur->length;
+	ur = &r->request;
 	buf = ur->buf;
+	remaining_ur_length = ur->length;
+
 	length = trb->size & DWC3_TRB_SIZE_MASK;
 
 	maxp = ep0->endpoint.maxpacket;
@@ -902,8 +902,8 @@ static void dwc3_ep0_complete_status(struct dwc3 *dwc,
 
 	trace_dwc3_complete_trb(dep, trb);
 
-	if (!list_empty(&dep->request_list)) {
-		r = next_request(&dep->request_list);
+	if (!list_empty(&dep->pending_list)) {
+		r = next_request(&dep->pending_list);
 
 		dwc3_gadget_giveback(dep, r, 0);
 	}

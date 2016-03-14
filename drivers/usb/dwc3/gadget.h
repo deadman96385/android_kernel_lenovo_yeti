@@ -72,16 +72,16 @@ static inline void dwc3_gadget_move_request_list_front(struct dwc3_request *req)
 {
 	struct dwc3_ep		*dep = req->dep;
 
-	req->queued = false;
-	list_move(&req->list, &dep->request_list);
+	req->started = false;
+	list_move(&req->list, &dep->started_list);
 }
 
-static inline void dwc3_gadget_move_request_queued(struct dwc3_request *req)
+static inline void dwc3_gadget_move_started_request(struct dwc3_request *req)
 {
 	struct dwc3_ep		*dep = req->dep;
 
-	req->queued = true;
-	list_move_tail(&req->list, &dep->req_queued);
+	req->started = true;
+	list_move_tail(&req->list, &dep->started_list);
 }
 
 void dwc3_gadget_giveback(struct dwc3_ep *dep, struct dwc3_request *req,

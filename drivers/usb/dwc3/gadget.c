@@ -225,7 +225,7 @@ void dwc3_gadget_giveback(struct dwc3_ep *dep, struct dwc3_request *req,
 	struct dwc3			*dwc = dep->dwc;
 	int				i;
 
-	if (req->queued) {
+	if (req->started) {
 		i = 0;
 		do {
 			dep->busy_slot++;
@@ -239,7 +239,7 @@ void dwc3_gadget_giveback(struct dwc3_ep *dep, struct dwc3_request *req,
 				usb_endpoint_xfer_isoc(dep->endpoint.desc))
 				dep->busy_slot++;
 		} while(++i < req->request.num_mapped_sgs);
-		req->queued = false;
+		req->started = false;
 	}
 	list_del(&req->list);
 	req->trb = NULL;
@@ -570,19 +570,19 @@ static void dwc3_remove_requests(struct dwc3 *dwc, struct dwc3_ep *dep)
 {
 	struct dwc3_request		*req;
 
-	if (!list_empty(&dep->req_queued)) {
+	if (!list_empty(&dep->started_list)) {
 		dwc3_stop_active_transfer(dwc, dep->number, true);
 
 		/* - giveback all requests to gadget driver */
-		while (!list_empty(&dep->req_queued)) {
-			req = next_request(&dep->req_queued);
+		while (!list_empty(&dep->started_list)) {
+			req = next_request(&dep->started_list);
 
 			dwc3_gadget_giveback(dep, req, -ESHUTDOWN);
 		}
 	}
 
-	while (!list_empty(&dep->request_list)) {
-		req = next_request(&dep->request_list);
+	while (!list_empty(&dep->pending_list)) {
+		req = next_request(&dep->pending_list);
 
 		dwc3_gadget_giveback(dep, req, -ESHUTDOWN);
 	}
@@ -751,7 +751,7 @@ static void dwc3_prepare_one_trb(struct dwc3_ep *dep,
 	trb = &dep->trb_pool[dep->free_slot & DWC3_TRB_MASK];
 
 	if (!req->trb) {
-		dwc3_gadget_move_request_queued(req);
+		dwc3_gadget_move_started_request(req);
 		req->trb = trb;
 		req->trb_dma = dwc3_trb_dma_offset(dep, trb);
 		req->start_slot = dep->free_slot & DWC3_TRB_MASK;
@@ -875,7 +875,7 @@ static void dwc3_prepare_trbs(struct dwc3_ep *dep, bool starting)
 	if ((trbs_left <= 1) && usb_endpoint_xfer_isoc(dep->endpoint.desc))
 		return;
 
-	list_for_each_entry_safe(req, n, &dep->request_list, list) {
+	list_for_each_entry_safe(req, n, &dep->pending_list, list) {
 		unsigned	length;
 		dma_addr_t	dma;
 		last_one = false;
@@ -894,7 +894,7 @@ static void dwc3_prepare_trbs(struct dwc3_ep *dep, bool starting)
 
 				if (i == (request->num_mapped_sgs - 1) ||
 						sg_is_last(s)) {
-					if (list_empty(&dep->request_list))
+					if (list_empty(&dep->pending_list))
 						last_one = true;
 					chain = false;
 				}
@@ -924,7 +924,7 @@ static void dwc3_prepare_trbs(struct dwc3_ep *dep, bool starting)
 				last_one = 1;
 
 			/* Is this the last request? */
-			if (list_is_last(&req->list, &dep->request_list))
+			if (list_is_last(&req->list, &dep->pending_list))
 				last_one = 1;
 
 			dwc3_prepare_one_trb(dep, req, dma, length,
@@ -956,18 +956,18 @@ static int __dwc3_gadget_kick_transfer(struct dwc3_ep *dep, u16 cmd_param,
 	 * new requests as we try to set the IOC bit only on the last request.
 	 */
 	if (start_new) {
-		if (list_empty(&dep->req_queued))
+		if (list_empty(&dep->started_list))
 			dwc3_prepare_trbs(dep, start_new);
 
 		/* req points to the first request which will be sent */
-		req = next_request(&dep->req_queued);
+		req = next_request(&dep->started_list);
 	} else {
 		dwc3_prepare_trbs(dep, start_new);
 
 		/*
 		 * req points to the first request where HWO changed from 0 to 1
 		 */
-		req = next_request(&dep->req_queued);
+		req = next_request(&dep->started_list);
 	}
 	if (!req) {
 		dep->flags |= DWC3_EP_PENDING_REQUEST;
@@ -1014,7 +1014,7 @@ static int __dwc3_gadget_kick_transfer(struct dwc3_ep *dep, u16 cmd_param,
 			}
 			dwc3_stop_active_transfer(dwc, dep->number, true);
 			list_for_each_entry_safe_reverse(req1, n,
-						 &dep->req_queued, list) {
+						 &dep->started_list, list) {
 				req1->trb = NULL;
 				dwc3_gadget_move_request_list_front(req1);
 				if (req->request.num_mapped_sgs)
@@ -1058,9 +1058,10 @@ static void __dwc3_gadget_start_isoc(struct dwc3 *dwc,
 
 	dep->current_uf = cur_uf;
 
-	if (list_empty(&dep->request_list)) {
-		dwc3_trace(trace_dwc3_gadget, "ISOC ep %s run out for requests.",
-			dep->name);
+	if (list_empty(&dep->pending_list)) {
+		dwc3_trace(trace_dwc3_gadget,
+				"ISOC ep %s run out for requests",
+				dep->name);
 		dep->flags |= DWC3_EP_PENDING_REQUEST;
 		return;
 	}
@@ -1123,7 +1124,7 @@ static int __dwc3_gadget_ep_queue(struct dwc3_ep *dep, struct dwc3_request *req)
 	if (ret)
 		return ret;
 
-	list_add_tail(&req->list, &dep->request_list);
+	list_add_tail(&req->list, &dep->pending_list);
 
 	/*
 	 * If there are no pending requests and the endpoint isn't already
@@ -1163,7 +1164,7 @@ static int __dwc3_gadget_ep_queue(struct dwc3_ep *dep, struct dwc3_request *req)
 			 * Rather start queueing the requests by issuing START
 			 * TRANSFER command.
 			 */
-			if (list_empty(&dep->req_queued) && dep->resource_index) {
+			if (list_empty(&dep->started_list) && dep->resource_index) {
 				dwc3_stop_active_transfer(dwc, dep->number, true);
 				dep->flags = DWC3_EP_ENABLED;
 			} else {
@@ -1277,13 +1278,13 @@ static int dwc3_gadget_ep_dequeue_forced(struct usb_ep *ep,
 
 	spin_lock_irqsave(&dwc->lock, flags);
 
-	list_for_each_entry(r, &dep->request_list, list) {
+	list_for_each_entry(r, &dep->pending_list, list) {
 		if (r == req)
 			break;
 	}
 
 	if (r != req) {
-		list_for_each_entry(r, &dep->req_queued, list) {
+		list_for_each_entry(r, &dep->started_list, list) {
 			if (r == req)
 				break;
 		}
@@ -1329,9 +1330,10 @@ int __dwc3_gadget_ep_set_halt(struct dwc3_ep *dep, int value, int protocol)
 
 	if (value) {
 		if (!protocol && ((dep->direction && dep->flags & DWC3_EP_BUSY) ||
-				(!list_empty(&dep->req_queued) ||
-				 !list_empty(&dep->request_list)))) {
-			dwc3_trace(trace_dwc3_gadget, "%s: pending request, cannot halt",
+				(!list_empty(&dep->started_list) ||
+				 !list_empty(&dep->pending_list)))) {
+			dwc3_trace(trace_dwc3_gadget,
+					"%s: pending request, cannot halt\n",
 					dep->name);
 			return -EAGAIN;
 		}
@@ -1929,8 +1931,8 @@ static int dwc3_gadget_init_hw_endpoints(struct dwc3 *dwc,
 				return ret;
 		}
 
-		INIT_LIST_HEAD(&dep->request_list);
-		INIT_LIST_HEAD(&dep->req_queued);
+		INIT_LIST_HEAD(&dep->pending_list);
+		INIT_LIST_HEAD(&dep->started_list);
 	}
 
 	return 0;
@@ -2024,11 +2026,11 @@ static int __dwc3_cleanup_done_trbs(struct dwc3 *dwc, struct dwc3_ep *dep,
 				 * If there are still queued request
 				 * then wait, do not issue either END
 				 * or UPDATE TRANSFER, just attach next
-				 * request in request_list during
+				 * request in pending_list during
 				 * giveback.If any future queued request
 				 * is successfully transferred then we
 				 * will issue UPDATE TRANSFER for all
-				 * request in the request_list.
+				 * request in the pending_list.
 				 */
 				dep->flags |= DWC3_EP_MISSED_ISOC;
 			} else {
@@ -2074,7 +2076,7 @@ static int dwc3_cleanup_done_reqs(struct dwc3 *dwc, struct dwc3_ep *dep,
 	int			ret;
 
 	do {
-		req = next_request(&dep->req_queued);
+		req = next_request(&dep->started_list);
 		if (WARN_ON_ONCE(!req))
 			return 1;
 
@@ -2100,8 +2102,8 @@ static int dwc3_cleanup_done_reqs(struct dwc3 *dwc, struct dwc3_ep *dep,
 	} while (1);
 
 	if (dep->endpoint.desc && usb_endpoint_xfer_isoc(dep->endpoint.desc) &&
-			list_empty(&dep->req_queued)) {
-		if (list_empty(&dep->request_list)) {
+			list_empty(&dep->started_list)) {
+		if (list_empty(&dep->pending_list)) {
 			/*
 			 * If there is no entry in request list then do
 			 * not issue END TRANSFER now. Just set PENDING
@@ -2151,7 +2153,7 @@ static void dwc3_endpoint_transfer_complete(struct dwc3 *dwc,
 			if (!(dep->flags & DWC3_EP_ENABLED))
 				continue;
 
-			if (!list_empty(&dep->req_queued))
+			if (!list_empty(&dep->started_list))
 				return;
 		}
 
