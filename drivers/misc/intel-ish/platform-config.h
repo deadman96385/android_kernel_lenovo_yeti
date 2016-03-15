@@ -19,7 +19,6 @@
 /* Build ID string */
 #define BUILD_ID	"260-stdint"
 
-#define	ISH_DBG_PRINT	no_printk
 #define	ISH_INFO	1
 #if ISH_INFO
 #define	ISH_INFO_PRINT	printk

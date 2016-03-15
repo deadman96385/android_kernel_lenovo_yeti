@@ -31,4 +31,3 @@ config ISH_PATH_SENSCOL
 
 	  Disable sensor-collection path if you want to expose a different
 	  interface to user-mode, such as IIO
-

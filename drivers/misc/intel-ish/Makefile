@@ -20,7 +20,7 @@ hid-ishtp-objs += ishtp-hid-client.o
 
 obj-$(CONFIG_INTEL_ISH) += ish-hid-drv.o
 ish-hid-drv-objs := ish-hid-dd.o
-
-obj-$(CONFIG_INTEL_ISH) += sens-col-core.o
-sens-col-core-objs := senscol-core.o
+ish-hid-drv-objs += senscol-core-common.o
+ish-hid-drv-objs += senscol-core-legacy.o
+ish-hid-drv-objs += senscol-core.o
 
