@@ -707,9 +707,12 @@ int ishtp_cl_send(struct ishtp_cl *cl, uint8_t *buf, size_t length)
 
 	cl_msg = list_first_entry(&cl->tx_free_list.list,
 		struct ishtp_cl_tx_ring, list);
-	if (!cl_msg->send_buf.data)
+	if (!cl_msg->send_buf.data) {
+		spin_unlock_irqrestore(&cl->tx_free_list_spinlock,
+			tx_free_flags);
 		return	-EIO;		/* Should not happen,
 					as free list is pre-allocated */
+	}
 	/*
 	 * This is safe, as 'length' is already checked for not exceeding
 	 * max ISHTP message size per client
@@ -876,20 +879,31 @@ static void	ishtp_cl_send_msg_dma(struct ishtp_device *dev,
 	unsigned char	*msg_addr;
 	int off;
 	struct ishtp_cl_tx_ring	*cl_msg;
+	unsigned long tx_flags, tx_free_flags;
 
 	/* If last IPC message wasn't acked yet, leave this one in Tx queue */
 	if (cl->last_tx_path == CL_TX_PATH_IPC && cl->last_ipc_acked == 0)
 		return;
+
+	spin_lock_irqsave(&cl->tx_list_spinlock, tx_flags);
+	if (list_empty(&cl->tx_list.list)) {
+		spin_unlock_irqrestore(&cl->tx_list_spinlock, tx_flags);
+		return;
+	}
 
 	cl_msg = list_entry(cl->tx_list.list.next, struct ishtp_cl_tx_ring,
 		list);
 
 	msg_addr = get_dma_send_buf(dev, cl_msg->send_buf.size);
 	if (!msg_addr) {
+		spin_unlock_irqrestore(&cl->tx_list_spinlock, tx_flags);
 		if (dev->transfer_path == CL_TX_PATH_DEFAULT)
 			ishtp_cl_send_msg_ipc(dev, cl);
 		return;
 	}
+
+	list_del_init(&cl_msg->list);	/* Must be before write */
+	spin_unlock_irqrestore(&cl->tx_list_spinlock, tx_flags);
 
 	--cl->ishtp_flow_ctrl_creds;
 	cl->last_dma_acked = 0;
@@ -910,6 +924,9 @@ static void	ishtp_cl_send_msg_dma(struct ishtp_device *dev,
 	dma_xfer.msg_length = cl_msg->send_buf.size;
 	dma_xfer.reserved2 = 0;
 	ishtp_write_message(dev, &hdr, (unsigned char *)&dma_xfer);
+	spin_lock_irqsave(&cl->tx_free_list_spinlock, tx_free_flags);
+	list_add_tail(&cl_msg->list, &cl->tx_free_list.list);
+	spin_unlock_irqrestore(&cl->tx_free_list_spinlock, tx_free_flags);
 	++cl->send_msg_cnt_dma;
 }
 

@@ -17,7 +17,7 @@
 #define PLATFORM_CONFIG__H
 
 /* Build ID string */
-#define BUILD_ID	"clean-up"
+#define BUILD_ID	"261-rmmod-txdma"
 
 #define	ISH_INFO	1
 #if ISH_INFO
