@@ -58,8 +58,6 @@ struct work_struct hid_init_work;
 static unsigned	bad_recv_cnt;
 static int	multi_packet_cnt;
 
-void (*flush_cb)(void); /* flush notification */
-
 static void	report_bad_packet(void *recv_buf, size_t cur_pos,
 	size_t payload_len)
 {
@@ -221,8 +219,6 @@ static void	process_recv(void *recv_buf, size_t data_len)
 
 		case HOSTIF_GET_FEATURE_REPORT:
 			report_type = HID_FEATURE_REPORT;
-			flush_cb(); /* each "GET_FEATURE_REPORT" may indicate
-					a flush complete event */
 			goto	do_get_report;
 
 		case HOSTIF_GET_INPUT_REPORT:
@@ -604,7 +600,13 @@ static void __exit ish_exit(void)
 {
 	ishtp_cl_driver_unregister(&hid_ishtp_cl_driver);
 }
-module_exit(ish_exit);
+/*
+ * Currently, we block the removal of the module
+ * (it will be a permanent module).
+ * The ish device is not a removable device, so its drivers
+ * should be allways up.
+ */
+/* module_exit(ish_exit); */
 
 MODULE_DESCRIPTION("ISH ISHTP client driver");
 MODULE_AUTHOR("Intel Corporation");

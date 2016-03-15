@@ -175,9 +175,3 @@ void	ishtp_hid_remove(void)
 		}
 }
 
-void register_flush_cb(void (*flush_cb_func)(void))
-{
-	flush_cb = flush_cb_func;
-}
-EXPORT_SYMBOL(register_flush_cb);
-

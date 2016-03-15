@@ -169,7 +169,7 @@ ISH FW may not write to them */
 			((uint32_t)IPC_ISH_ISHTP_READY_BIT))
 
 #define IPC_IS_ISH_ILUP(ish_status)		\
-			(((ish_status) & IPC_ILUP_BIT) == ((uint32_t)IPC_ILUP_BIT))
+		(((ish_status) & IPC_ILUP_BIT) == ((uint32_t)IPC_ILUP_BIT))
 
 
 #define IPC_PROTOCOL_ISHTP		1

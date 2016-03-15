@@ -60,8 +60,8 @@ static void ishtp_hbm_fw_cl_allocate(struct ishtp_device *dev)
  * @buf: buffer for cl header
  * @len: buffer length
  */
-static inline void ishtp_hbm_cl_hdr(struct ishtp_cl *cl, uint8_t hbm_cmd, void *buf,
-	size_t len)
+static inline void ishtp_hbm_cl_hdr(struct ishtp_cl *cl, uint8_t hbm_cmd,
+	void *buf, size_t len)
 {
 	struct ishtp_hbm_cl_cmd *cmd = buf;
 
@@ -452,7 +452,8 @@ void *get_dma_send_buf(struct ishtp_device *dev, uint32_t size)
  * release_dma_acked_mem - returnes the acked memory to free list.
  * (from msg_addr, size bytes long)
  */
-void release_dma_acked_mem(struct ishtp_device *dev, void *msg_addr, uint32_t size)
+void release_dma_acked_mem(struct ishtp_device *dev, void *msg_addr,
+	uint8_t size)
 {
 	unsigned long	flags;
 	int acked_slots = (size / DMA_SLOT_SIZE)

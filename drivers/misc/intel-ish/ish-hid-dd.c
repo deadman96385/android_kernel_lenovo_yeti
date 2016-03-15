@@ -131,8 +131,8 @@ static int ish_reset_resume(struct hid_device *hdev)
 #endif /* CONFIG_PM */
 
 #if SENSCOL_1
-static int ish_set_feature(struct hid_sens_hub_device *hsdev, uint32_t report_id,
-				uint32_t field_index, int32_t value)
+static int ish_set_feature(struct hid_sens_hub_device *hsdev,
+		uint32_t report_id, uint32_t field_index, int32_t value)
 {
 	struct hid_report *report;
 	struct ish_data *data = hid_get_drvdata(hsdev->hdev);
@@ -165,8 +165,8 @@ done_proc:
  * - upon success, count is in int32_t values (not in bytes)
  */
 static int ish_get_feature_ex(struct hid_sens_hub_device *hsdev,
-	uint32_t report_id, uint32_t field_index, uint32_t *usage_id, int32_t **pvalue,
-	size_t *count, unsigned *is_string)
+	uint32_t report_id, uint32_t field_index, uint32_t *usage_id,
+	int32_t **pvalue, size_t *count, unsigned *is_string)
 {
 	struct hid_report *report;
 	struct ish_data *data = hid_get_drvdata(hsdev->hdev);
@@ -378,7 +378,6 @@ static int hid_set_sens_properties(struct list_head *set_prop_list,
 	int32_t val;
 	int	field, rv = 0;
 	struct hid_report *report;
-	struct ish_data *data;
 	struct sens_property *prop, *next;
 
 	/* sensor hub device */
@@ -389,8 +388,7 @@ static int hid_set_sens_properties(struct list_head *set_prop_list,
 	/* Report ID */
 	report_id = sensor_id & 0xFFFF;
 
-	data = hid_get_drvdata(sd->hsdev->hdev);
-	mutex_lock(&data->mutex);
+	mutex_lock(&sd->mutex);
 	report = ish_report(report_id, sd->hsdev->hdev, HID_FEATURE_REPORT);
 	if (!report) {
 		rv = -EINVAL;
@@ -422,7 +420,7 @@ static int hid_set_sens_properties(struct list_head *set_prop_list,
 
 	rv = 0;
 done_proc:
-	mutex_unlock(&data->mutex);
+	mutex_unlock(&sd->mutex);
 
 	return rv;
 }
@@ -840,7 +838,6 @@ static int ish_probe(struct hid_device *hdev, const struct hid_device_id *id)
 	struct hid_field	*inp_field, *feat_field;
 	struct sensor_def	*senscol_sensor;
 	int	dev_cnt, ret = 0;
-
 	sd = devm_kzalloc(&hdev->dev, sizeof(*sd), GFP_KERNEL);
 	if (!sd) {
 		hid_err(hdev, "cannot allocate sensor data structure\n");
@@ -931,9 +928,10 @@ static int ish_probe(struct hid_device *hdev, const struct hid_device_id *id)
 err_stop_hw:
 	hid_hw_stop(hdev);
 err_free:
-	kfree(sd->hsdev);
+	devm_kfree(&hdev->dev, sd->hsdev);
 err_free_hub:
-	kfree(sd);
+	devm_kfree(&hdev->dev, sd);
+	ish_cur_count--;
 
 	return ret;
 }
@@ -977,6 +975,8 @@ static void ish_remove(struct hid_device *hdev)
 #else
 		senscol_reset_notify();
 #endif
+	devm_kfree(&hdev->dev, data->hsdev);
+	devm_kfree(&hdev->dev, data);
 }
 
 static const struct hid_device_id ish_devices[] = {
@@ -1029,9 +1029,17 @@ static void __exit ish_driver_exit(void)
 	hid_unregister_driver(&ish_driver);
 #if SENSCOL_1
 	senscol_exit_legacy();
+#else
+	senscol_exit();
 #endif
 }
-module_exit(ish_driver_exit);
+/*
+ * Currently, we block the removal of the module
+ * (it will be a permanent module).
+ * The ish device is not a removable device, so its drivers
+ * should be allways up.
+ */
+/* module_exit(ish_driver_exit); */
 
 MODULE_DESCRIPTION("ISH HID driver");
 MODULE_LICENSE("GPL");

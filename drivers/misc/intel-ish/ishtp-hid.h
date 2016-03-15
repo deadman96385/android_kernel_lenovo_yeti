@@ -41,9 +41,6 @@ static const uuid_le hid_ishtp_guid = UUID_LE(0x33AECD58, 0xB679, 0x4E54,
 
 extern wait_queue_head_t	ishtp_hid_wait;
 
-/* flush notification */
-extern void (*flush_cb)(void);
-
 struct hostif_msg_hdr {
 	uint8_t	command;	/* Bit 7: is_response */
 	uint8_t	device_id;
@@ -119,9 +116,6 @@ void hid_ishtp_get_report(struct hid_device *hid, int report_id,
 
 int	ishtp_hid_probe(unsigned cur_hid_dev);
 void	ishtp_hid_remove(void);
-
-/* flush notification */
-void register_flush_cb(void (*flush_cb_func)(void));
 
 /*********** Locally redirect ish_print_log **************/
 void g_ish_print_log(char *format, ...);

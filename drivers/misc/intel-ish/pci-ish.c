@@ -541,7 +541,7 @@ static struct device_attribute transfer_path = {
 static void workqueue_init_function(struct work_struct *work)
 {
 	struct ishtp_device *dev = ((struct init_work_t *)work)->dev;
-	int err;
+	int err = 0;
 
 	dev_set_drvdata(dev->devc, dev);
 
@@ -583,25 +583,17 @@ static void workqueue_init_function(struct work_struct *work)
 	if (ish_hw_start(dev)) {
 		dev_err(dev->devc, "ISH: Init hw failed.\n");
 		err = -ENODEV;
-		goto out_err;
+		goto out;
 	}
 
 	if (ishtp_start(dev)) {
 		dev_err(dev->devc, "ISHTP: Protocol init failed.\n");
 		err = -ENOENT;
-		goto out_err;
+		goto out;
 	}
 
 	err = ishtp_register(dev);
-	if (err)
-		goto out_err;
-
-	mutex_unlock(&ishtp_mutex);
-
-	kfree((void *)work);
-	return;
-
-out_err:
+out:
 	mutex_unlock(&ishtp_mutex);
 	kfree((void *)work);
 }
@@ -634,7 +626,6 @@ static int ish_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 		(pdev->revision & REVISION_ID_SI_MASK) ==
 			REVISION_ID_CHT_Dx_SI ? "CHT Dx" : "Unknown",
 		pdev->revision);
-
 	mutex_lock(&ishtp_mutex);
 	if (ishtp_pci_device) {
 		err = -EEXIST;
@@ -742,7 +733,6 @@ static void ish_remove(struct pci_dev *pdev)
 {
 	struct ishtp_device *dev;
 	struct ish_hw *hw;
-
 	/*
 	 * This happens during power-off/reboot and may be at the same time as
 	 * a lot of bi-directional communication happens
@@ -758,14 +748,14 @@ static void ish_remove(struct pci_dev *pdev)
 		return;
 	}
 
-	hw = to_ish_hw(dev);
-
+	ishtp_bus_remove_all_clients(dev);      /* Remove all client devices */
 	/*
 	 * Set ISHTP device state to disabled.
 	 * Invalidate all other possible communication in both directions
 	 */
 	ishtp_device_disable(dev);
 
+	hw = to_ish_hw(dev);
 	free_irq(pdev->irq, dev);
 	pci_disable_msi(pdev);
 	pci_iounmap(pdev, hw->mem_addr);
@@ -777,8 +767,12 @@ static void ish_remove(struct pci_dev *pdev)
 	}
 	pci_set_drvdata(pdev, NULL);
 	ishtp_deregister(dev);
+#if ISH_DEBUGGER
+	misc_deregister(&ishdbg_misc_device);
+#endif
 	kfree(dev);
 	pci_release_regions(pdev);
+	pci_clear_master(pdev);
 	pci_disable_device(pdev);
 }
 
@@ -835,7 +829,25 @@ static struct pci_driver ish_driver = {
 	.driver.pm = ISHTP_ISH_PM_OPS,
 };
 
-module_pci_driver(ish_driver);
+static int __init ish_driver_init(void)
+{
+	return pci_register_driver(&ish_driver);
+}
+module_init(ish_driver_init);
+
+static void __exit ish_driver_exit(void)
+{
+	 pci_unregister_driver(&ish_driver);
+}
+/*
+ * Currently, we block the removal of the module
+ * (it will be a permanent module).
+ * The ish device is not a removable device, so its drivers
+ * should be allways up.
+ */
+/* module_exit(ish_driver_exit); */
+
+/* module_pci_driver(ish_driver); */
 
 MODULE_AUTHOR("Intel Corporation");
 MODULE_DESCRIPTION("Intel(R) Integrated Sensor Hub PCI Device Driver");

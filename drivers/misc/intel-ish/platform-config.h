@@ -17,7 +17,7 @@
 #define PLATFORM_CONFIG__H
 
 /* Build ID string */
-#define BUILD_ID	"260-stdint"
+#define BUILD_ID	"clean-up"
 
 #define	ISH_INFO	1
 #if ISH_INFO

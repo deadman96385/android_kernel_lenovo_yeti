@@ -469,14 +469,19 @@ static int __init ishtp_init(void)
 {
 	return ishtp_cl_bus_init();
 }
+module_init(ishtp_init);
 
 static void __exit ishtp_exit(void)
 {
 	ishtp_cl_bus_exit();
 }
-
-module_init(ishtp_init);
-module_exit(ishtp_exit);
+/*
+ * Currently, we block the removal of the module
+ * (it will be a permanent module).
+ * The ish device is not a removable device, so its drivers
+ * should be allways up.
+ */
+/* module_exit(ishtp_exit); */
 
 MODULE_AUTHOR("Intel Corporation");
 MODULE_DESCRIPTION("Intel(R)ISHTP user-mode API ");
