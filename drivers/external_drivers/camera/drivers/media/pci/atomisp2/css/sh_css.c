@@ -6156,9 +6156,6 @@ static enum ia_css_err set_num_primary_stages(unsigned int *num,
 			}
 		}
 		break;
-	case IA_CSS_PIPE_VERSION_2_6_1:
-		*num = NUM_PRIMARY_HQ_STAGES;
-		break;
 	case IA_CSS_PIPE_VERSION_2_2:
 	case IA_CSS_PIPE_VERSION_1:
 		*num = NUM_PRIMARY_STAGES;

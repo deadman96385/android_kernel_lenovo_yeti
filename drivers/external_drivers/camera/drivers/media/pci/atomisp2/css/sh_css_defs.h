@@ -85,7 +85,7 @@ more details.
  * will be evaluted to 0 in preprocessing time. */
 #define SH_CSS_ISP_PIPE_VERSION_1	1
 #define SH_CSS_ISP_PIPE_VERSION_2_2	2
-#define SH_CSS_ISP_PIPE_VERSION_2_6_1	3
+#define SH_CSS_ISP_PIPE_VERSION_2_6_1	3 /* obsolete */
 #define SH_CSS_ISP_PIPE_VERSION_2_7	4
 
 /*--------------- sRGB Gamma -----------------
@@ -401,12 +401,12 @@ RGB[0,8191],coef[-8192,8191] -> RGB[0,8191]
 #else
 #if !defined(USE_INPUT_SYSTEM_VERSION_2401) && !defined(IS_ISP_2401_MAMOIADA)
 /* ISP2.7: primary_stage[1-4], capture_pp, vf_pp,
- * yuv_scale[1-2], pre_de[1-2], copy
+ * yuv_scale[1-2], pre_de[1-3], copy
  *
  * IS_ISP_2401_MAMOIADA needs to check to ensure sh_css_internal.h obtain
  * value correctly
  */
-#define SH_CSS_MAX_STAGES 11
+#define SH_CSS_MAX_STAGES 12
 #else
 #define SH_CSS_MAX_STAGES 8 /* ISP2.2: primary_stage[1-6], capture_pp, vf_pp */
 #endif

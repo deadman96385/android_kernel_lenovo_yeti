@@ -38,21 +38,21 @@ more details.
 #define IA_CSS_BINARY_MODE_VF_PP      9
 #define IA_CSS_BINARY_MODE_PRE_DE		10
 #define IA_CSS_BINARY_MODE_PRE_DE_STAGE1	11
-#define IA_CSS_BINARY_MODE_PRIMARY_HQ_STAGE0    12
-#define IA_CSS_BINARY_MODE_PRIMARY_HQ_STAGE1    13
-#define IA_CSS_BINARY_MODE_PRIMARY_HQ_STAGE2    14
-#define IA_CSS_BINARY_MODE_PRIMARY_HQ_STAGE3    15
-#define IA_CSS_BINARY_MODE_PRIMARY_HQ_STAGE4    16
-#define IA_CSS_BINARY_MODE_PRIMARY_HQ_STAGE5    17
-#define IA_CSS_BINARY_NUM_MODES       18
+#define IA_CSS_BINARY_MODE_PRE_DE_STAGE2	12
+#define IA_CSS_BINARY_MODE_PRIMARY_HQ_STAGE0    13
+#define IA_CSS_BINARY_MODE_PRIMARY_HQ_STAGE1    14
+#define IA_CSS_BINARY_MODE_PRIMARY_HQ_STAGE2    15
+#define IA_CSS_BINARY_MODE_PRIMARY_HQ_STAGE3    16
+#define IA_CSS_BINARY_MODE_PRIMARY_HQ_STAGE4    17
+#define IA_CSS_BINARY_MODE_PRIMARY_HQ_STAGE5    18
+#define IA_CSS_BINARY_NUM_MODES                 19
 
-#define MAX_NUM_PRIMARY_STAGES 6
-#define NUM_PRIMARY_HQ_STAGES  6  /* number of primary stages for ISP2.6.1 high quality pipe */
 #define NUM_PRIMARY_HQ27_STAGES 4 /* number of primary stages for ISP2.7 high quality pipe */
 #define NUM_PRIMARY_STAGES     1  /* number of primary satges for ISP1/ISP2.2 pipe */
+#define MAX_NUM_PRIMARY_STAGES NUM_PRIMARY_HQ27_STAGES
 
 #define NUM_PRE_DE_STAGES       1 /* number of pre-de binaries can be loaded on non-ISP2.7 pipe */
-#define NUM_PRE_DE_ISP27_STAGES 2 /* number of pre-de binaries can be loaded on ISP2.7 pipe */
+#define NUM_PRE_DE_ISP27_STAGES 3 /* number of pre-de binaries can be loaded on ISP2.7 pipe */
 #define MAX_NUM_PRE_DE_STAGES   NUM_PRE_DE_ISP27_STAGES
 
 /* Indicate where binaries can read input from */

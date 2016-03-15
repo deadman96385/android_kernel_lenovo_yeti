@@ -893,6 +893,8 @@ get_shared_stage_buffer_size(unsigned int width, unsigned int height, unsigned b
 	 *         frame * 2 raw_bit_depth
 	 * PRE_DE #1 (RAW format):        2 frames (of padded input-res)
 	 *         frame * 2 raw_bit_depth
+	 * PRE_DE #2 (RAW format):        2 frames (of padded input-res)
+	 *         frame * 2 raw_bit_depth
 	 * PRIMARY #0 (EED, YCgCo444_16): 6 frames (of padded inupt-res)
 	 *         frame * 3 YUV * 2 bytes/elem
 	 * PRIMARY #1 (IEFD, YUV420_16) : 3 frames (of padded input-res)
@@ -904,8 +906,8 @@ get_shared_stage_buffer_size(unsigned int width, unsigned int height, unsigned b
 	 * ...
 	 * To ensure shared_frames are sufficiently allocated for 2 largest of stage buffers,
 	 * we'll allocate
-	 *   buf_idx0 : 6 frames (PRE_DE #0, PRIM #0, PRIM #2 ..)
-	 *   buf_idx1 : 3 frames (PRE_DE #1, PRIM #1, PRIM #3 ..)
+	 *   buf_idx0 : 3 frames (PRE_DE #0, PRE_DE #2, PRIM #1, PRIM #3 ..)
+	 *   buf_idx1 : 6 frames (PRE_DE #1, PRIM #0,   PRIM #2 ..)
 	 */
 
 	/* PRIMARY #0 requires the largest buffer, PRIMARY #1 requires the second largest */

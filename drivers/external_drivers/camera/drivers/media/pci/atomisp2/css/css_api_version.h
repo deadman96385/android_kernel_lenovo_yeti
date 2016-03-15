@@ -34,7 +34,7 @@ The version string has four dot-separated numbers, read left to right:
 
 */
 
-#define CSS_API_VERSION_STRING	"2.1.21.3"
+#define CSS_API_VERSION_STRING	"2.1.22.2"
 
 /*
 Change log
@@ -478,12 +478,18 @@ v2.1.21.1, Update FW Warnings in CSS_API
 v2.1.21.3 (1 changes parallel), Enable BNLM API
 - add ia_css_bnlm_config struct
 
-v2.1.21.3 (1 changes parallel), Provide CSS Interface to select correct raw frame type
+v2.1.22.0 (1 changes parallel), BNLM Kernel Parameter API Update
+- BNLM Kernel Parameter API Update
+
+v2.1.22.1 (2 changes parallel), Provide CSS Interface to select correct raw frame type
 - Add an enum ia_css_raw_type to ia_css_stream_input_config
 - For new RGBIR sensor use cases ia_css_raw_type should be set to
 - IA_CSS_RAW_RGBIR_IR_ON_Gr for IR on Gr case
 - IA_CSS_RAW_RGBIR_IR_ON_Gb for IR on Gb case
 - Frame type for future RAW hybrid sensors can be added here
+
+v2.1.22.2, Enable TDF API
+- add ia_css_tdf_config struct
 
 */
 

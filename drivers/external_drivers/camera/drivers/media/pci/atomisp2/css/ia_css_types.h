@@ -1,4 +1,4 @@
-/* Release Version: irci_ecr-master_20160308_0202 */
+/* Release Version: irci_ecr-master_20160315_0113 */
 /**
 Support for Intel Camera Imaging ISP subsystem.
 Copyright (c) 2010 - 2015, Intel Corporation.
@@ -51,6 +51,7 @@ more details.
 #include "isp/kernels/macc/macc1_5/ia_css_macc1_5_types.h"
 #include "isp/kernels/dpc2/ia_css_dpc2_types.h"
 #include "isp/kernels/bnlm/ia_css_bnlm_types.h"
+#include "isp/kernels/tdf/tdf_1.0/ia_css_tdf_types.h"
 #include "isp/kernels/eed1_8/ia_css_eed1_8_types.h"
 #include "isp/kernels/ob/ob_1.0/ia_css_ob_types.h"
 #include "isp/kernels/ob/ob2/ia_css_ob2_types.h"
@@ -568,7 +569,7 @@ struct ia_css_isp_config {
 							[OB2, 2.7only] */
 	struct ia_css_ctc2_config    *ctc2_config;    /**< Chroma Tone Control
 							[CTC2, 2.7] */
-	struct ia_css_iefd2_6_config *iefd2_6_config; /**<Image Enhancement Filter Directed
+	struct ia_css_iefd2_6_config *iefd2_6_config; /**< Image Enhancement Filter Directed
 							[IEFD2_6, 2.7] */
 	struct ia_css_macc1_5_config *macc1_5_config; /**< MACC
 							[MACC1.5, 2.7only] */
@@ -578,6 +579,7 @@ struct ia_css_isp_config {
 								[XNR3_0_11] */
 	struct ia_css_bnlm_config    *bnlm_config;    /**< Bayer Non-Linear Mean
 							[BNLM, 2.7only] */
+	struct ia_css_tdf_config     *tdf_config;     /**< Transform Domain Filter */
 
 	struct ia_css_2500_lin_kernel_config     *lin_2500_config;       /**< Skylake: Linearization config */
 	struct ia_css_2500_obgrid_kernel_config  *obgrid_2500_config;    /**< Skylake: OBGRID config */

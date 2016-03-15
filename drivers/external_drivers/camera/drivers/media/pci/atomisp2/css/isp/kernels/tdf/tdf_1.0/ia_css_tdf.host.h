@@ -21,13 +21,13 @@ more details.
 
 void
 ia_css_tdf_vmem_encode(
-	struct ia_css_isp_tdf_vmem_params *to,
+	struct tdf_vmem_params *to,
 	const struct ia_css_tdf_config *from,
 	size_t size);
 
 void
 ia_css_tdf_encode(
-	struct ia_css_isp_tdf_dmem_params *to,
+	struct tdf_dmem_params *to,
 	const struct ia_css_tdf_config *from,
 	size_t size);
 
