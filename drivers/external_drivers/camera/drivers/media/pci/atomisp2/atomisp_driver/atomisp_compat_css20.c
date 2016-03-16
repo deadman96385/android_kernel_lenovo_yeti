@@ -3963,6 +3963,12 @@ void atomisp_css_set_bnlm_config(struct atomisp_sub_device *asd,
 	asd->params.config.bnlm_config = bnlm_config;
 }
 
+void atomisp_css_set_tdf_config(struct atomisp_sub_device *asd,
+			struct atomisp_css_tdf_config *tdf_config)
+{
+	asd->params.config.tdf_config = tdf_config;
+}
+
 int atomisp_css_get_dp_config(struct atomisp_sub_device *asd,
 			struct atomisp_dp_config *config)
 {

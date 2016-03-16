@@ -94,6 +94,7 @@
 #define atomisp_css_macc1_5_table	ia_css_macc1_5_table
 #define atomisp_css_xnr3_0_11_config	ia_css_xnr3_0_11_config
 #define atomisp_css_bnlm_config	ia_css_bnlm_config
+#define atomisp_css_tdf_config ia_css_tdf_config
 
 
 #define CSS_PIPE_ID_PREVIEW	IA_CSS_PIPE_ID_PREVIEW
@@ -297,6 +298,9 @@ void atomisp_css_set_xnr3_0_11_config(struct atomisp_sub_device *asd,
 
 void atomisp_css_set_bnlm_config(struct atomisp_sub_device *asd,
 			struct atomisp_css_bnlm_config *bnlm_config);
+
+void atomisp_css_set_tdf_config(struct atomisp_sub_device *asd,
+			struct atomisp_css_tdf_config *tdf_config);
 
 unsigned int atomisp_css_debug_get_dtrace_level(void);
 
