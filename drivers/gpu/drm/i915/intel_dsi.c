@@ -669,12 +669,12 @@ static void intel_dsi_port_disable(struct intel_encoder *encoder)
 		I915_WRITE(MIPI_PORT_CTRL(pipe), 0);
 		intel_dsi->port_ctrl_reg_val = 0;
 	} else {
-		I915_WRITE(MIPI_PORT_CTRL(pipe), 0);
+		I915_WRITE_BITS(MIPI_PORT_CTRL(pipe), 0, DPI_ENABLE);
 		POSTING_READ(MIPI_PORT_CTRL(pipe));
 	}
 
 	if (intel_dsi->dual_link) {
-		I915_WRITE(MIPI_PORT_CTRL(pipe ? 0 : 1), 0);
+		I915_WRITE_BITS(MIPI_PORT_CTRL(pipe ? 0 : 1), 0, DPI_ENABLE);
 		POSTING_READ(MIPI_PORT_CTRL(pipe ? 0 : 1));
 	}
 }

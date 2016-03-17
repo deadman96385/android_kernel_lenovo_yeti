@@ -429,10 +429,10 @@ static void inx_nt51021_disable(struct intel_dsi_device *dsi)
 	struct intel_dsi *intel_dsi = container_of(dsi, struct intel_dsi, dev);
 	intel_dsi->hs=0;
 	DRM_INFO("%s\n", __func__);
-	dsi_vc_dcs_write_0(intel_dsi, 0, 0x28);
-	mdelay(120);
+	//dsi_vc_dcs_write_0(intel_dsi, 0, 0x28);
+	//mdelay(120);
 	dsi_vc_dcs_write_0(intel_dsi, 0, 0x10);
-
+	mdelay(120);
 #ifdef  CONFIG_LENOVO_DISPLAY_FEATURE
 	inx_nt51021__panel_device.status = OFF;
 #endif
