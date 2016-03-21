@@ -1569,7 +1569,7 @@ static void intel_uncore_reset_notification(void)
 	 * mcgrp_offset for our generic netlink family. Our netlink portid is always 0
 	 */
 	rc = genlmsg_multicast(&i915_gpu_rst_genl_family, skb, 0, mc_group, GFP_KERNEL);
-	if (rc != 0) {
+	if ((rc != 0) && (rc != -ESRCH)) {
 		DRM_ERROR("failed to multicast netlink message, rc=%d\n", rc);
 		return;
 	}
