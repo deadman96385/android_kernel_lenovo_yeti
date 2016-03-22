@@ -1008,7 +1008,7 @@ static const struct ov8858_reg ov8858_1080P[] = {
 	{OV8858_TOK_TERM, 0, 0}
 };
 
-static const struct ov8858_reg ov8858_1640x1232[] = {
+static const struct ov8858_reg ov8858_1632x1232[] = {
 	{OV8858_8BIT, 0x0100, 0x00}, /* software_standby */
 	{OV8858_8BIT, 0x3841, 0x00},
 	{OV8858_8BIT, 0x3800, 0x00}, /* h_crop_start high */
@@ -1019,8 +1019,8 @@ static const struct ov8858_reg ov8858_1640x1232[] = {
 	{OV8858_8BIT, 0x3805, 0xDF}, /* h_crop_end low */
 	{OV8858_8BIT, 0x3806, 0x09}, /* v_crop_end high */
 	{OV8858_8BIT, 0x3807, 0xAF}, /* v_crop_end low */
-	{OV8858_8BIT, 0x3808, 0x06}, /* h_output_size high 1640 x 1232 */
-	{OV8858_8BIT, 0x3809, 0x68}, /* h_output_size low */
+	{OV8858_8BIT, 0x3808, 0x06}, /* h_output_size high 1632 x 1232 */
+	{OV8858_8BIT, 0x3809, 0x60}, /* h_output_size low */
 	{OV8858_8BIT, 0x380A, 0x04}, /* v_output_size high */
 	{OV8858_8BIT, 0x380B, 0xD0}, /* v_output_size low */
 	{OV8858_8BIT, 0x380C, 0x0E}, /* horizontal timing size high */
@@ -1181,11 +1181,11 @@ static struct ov8858_resolution ov8858_res_preview[] = {
 		},
 	},
 	{
-		.desc = "ov8858_1640x1232_PREVIEW",
-		.width = 1640,
+		.desc = "ov8858_1632x1232_PREVIEW",
+		.width = 1632,
 		.height = 1232,
 		.used = 0,
-		.regs = ov8858_1640x1232,
+		.regs = ov8858_1632x1232,
 		.bin_factor_x = 0,
 		.bin_factor_y = 0,
 		.skip_frames = 0,
@@ -1279,11 +1279,11 @@ static struct ov8858_resolution ov8858_res_preview[] = {
 
 static struct ov8858_resolution ov8858_res_still[] = {
 	{
-		.desc = "ov8858_1640x1232_STILL",
-		.width = 1640,
+		.desc = "ov8858_1632x1232_STILL",
+		.width = 1632,
 		.height = 1232,
 		.used = 0,
-		.regs = ov8858_1640x1232,
+		.regs = ov8858_1632x1232,
 		.bin_factor_x = 0,
 		.bin_factor_y = 0,
 		.skip_frames = 0,
@@ -1397,11 +1397,11 @@ static struct ov8858_resolution ov8858_res_video[] = {
 		},
 	},
 	{
-		.desc = "ov8858_1640x1232_VIDEO",
-		.width = 1640,
+		.desc = "ov8858_1632x1232_VIDEO",
+		.width = 1632,
 		.height = 1232,
 		.used = 0,
-		.regs = ov8858_1640x1232,
+		.regs = ov8858_1632x1232,
 		.bin_factor_x = 0,
 		.bin_factor_y = 0,
 		.skip_frames = 1,
