@@ -837,6 +837,7 @@ intel_dp_aux_ch(struct intel_dp *intel_dp,
 
 	ret = recv_bytes;
 out:
+	pm_qos_update_request(&dev_priv->pm_qos, PM_QOS_DEFAULT_VALUE);
 	intel_display_power_put(dev_priv, pipe);
 
 	if (vdd)
