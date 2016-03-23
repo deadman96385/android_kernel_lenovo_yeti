@@ -22,7 +22,7 @@ more details.
 #define __IA_CSS_VERSION_DATA_H
 
 
-#define CSS_VERSION_STRING "REL:20160315_11.2_0521; API:2.1.22.2; GIT:irci___#64cb3e22e01a43907f4b6bd2675c1a48a9b4ff1a; SDK:; USER:viedifw; "
+#define CSS_VERSION_STRING "REL:20160323_12.3_0824; API:2.1.22.2; GIT:irci___#68ed6f17feea6cf4c24f5d25684588f180ca6bfe; SDK:; USER:viedifw; "
 
 
 #endif
