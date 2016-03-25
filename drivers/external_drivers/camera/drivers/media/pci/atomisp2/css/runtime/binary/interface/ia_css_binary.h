@@ -52,7 +52,7 @@ more details.
 #define MAX_NUM_PRIMARY_STAGES NUM_PRIMARY_HQ27_STAGES
 
 #define NUM_PRE_DE_STAGES       1 /* number of pre-de binaries can be loaded on non-ISP2.7 pipe */
-#define NUM_PRE_DE_ISP27_STAGES 2 /* number of pre-de binaries can be loaded on ISP2.7 pipe */
+#define NUM_PRE_DE_ISP27_STAGES 3 /* number of pre-de binaries can be loaded on ISP2.7 pipe */
 #define MAX_NUM_PRE_DE_STAGES   NUM_PRE_DE_ISP27_STAGES
 
 /* Indicate where binaries can read input from */
