@@ -1445,9 +1445,9 @@ static struct ov8858_resolution ov8858_res_video[] = {
 		.skip_frames = 1,
 		.fps_options = {
 			{
-				.fps = 30,
+				.fps = 24,
 				.pixels_per_line = 3872,
-				.lines_per_frame = 2478,
+				.lines_per_frame = 3096,
 			},
 			{
 			}
