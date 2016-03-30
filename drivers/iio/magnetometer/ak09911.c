@@ -81,7 +81,7 @@
 #define AK09911_CNTL2_CONTINUOUS_MASK	(AK09911_CNTL2_CONTINUOUS_1_BIT | \
 					AK09911_CNTL2_CONTINUOUS_2_BIT | \
 					AK09911_CNTL2_CONTINUOUS_3_BIT)
-#define AK09911_CNTL2_CONTINUOUS_SHIFT	0
+#define AK09911_CNTL2_CONTINUOUS_SHIFT	1
 
 #define AK09911_MAX_CONVERSION_TIMEOUT		100
 #define AK09911_CONVERSION_DONE_POLL_TIME	10
@@ -312,6 +312,11 @@ static int ak09911_read_raw(struct iio_dev *indio_dev,
 		data->reg_cntl2 = ret;
 
 		i = data->reg_cntl2 >> AK09911_CNTL2_CONTINUOUS_SHIFT;
+		if (i == 0) {
+			*val  = 0;
+			*val2 = 0;
+			return IIO_VAL_INT_PLUS_MICRO;
+		}
 		i = i - 1;
 		if (i < 0 || i >= ARRAY_SIZE(ak09911_samp_freq))
 			return -EINVAL;
@@ -348,8 +353,8 @@ enum ak09911_axis {
 		.modified = 1,						\
 		.channel2 = IIO_MOD_##axis,				\
 		.info_mask_separate = BIT(IIO_CHAN_INFO_RAW) |		\
-				BIT(IIO_CHAN_INFO_SCALE) |		\
-				BIT(IIO_CHAN_INFO_SAMP_FREQ),		\
+				BIT(IIO_CHAN_INFO_SCALE),  		\
+		.info_mask_shared_by_type = BIT(IIO_CHAN_INFO_SAMP_FREQ),\
 		.address = index,					\
 		.scan_index = (AXIS_##axis), \
 		.scan_type = { \
@@ -404,6 +409,18 @@ static int ak09911_write_raw(struct iio_dev *indio_dev,
 					AK09911_CNTL2_CONTINUOUS_MASK,
 				(i + 1) << AK09911_CNTL2_CONTINUOUS_SHIFT);
 #else
+		/* When user wants to change operation mode,
+		* transit to Power-down mode first and then
+		* transit to other modes*/
+		ret = i2c_smbus_write_byte_data(data->client,
+				AK09911_REG_CNTL2, AK09911_MODE_POWERDOWN);
+		if (ret < 0) {
+			dev_err(&data->client->dev, "Error in switching to powerdown\n");
+			return ret;
+		}
+		/*After Power-down mode is set, at least 100 μ s (Twat)
+		 *  is needed before setting another mode*/
+				usleep_range(100, 500);
 		ret = i2c_smbus_write_byte_data(data->client,
 				AK09911_REG_CNTL2, data->reg_cntl2);
 #endif
