@@ -234,11 +234,13 @@ static int ak09911_read_axis(struct iio_dev *indio_dev, int index, int *val)
 	meas_reg = ret;
 
 	/* datasheet recommends reading ST2 register after each
-	 * data read operation */
+	 * data read operation, read ST2 when we reach index z */
+	 if(index == 2) {
 	ret = i2c_smbus_read_byte_data(client, AK09911_REG_ST2);
-	if (ret < 0) {
-		dev_err(&client->dev, "Read AK09911_REG_ST2 reg fails\n");
-		goto fn_exit;
+		if (ret < 0) {
+			dev_err(&client->dev, "Read AK09911_REG_ST2 reg fails\n");
+			goto fn_exit;
+		}
 	}
 	mutex_unlock(&data->lock);
 
