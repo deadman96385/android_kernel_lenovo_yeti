@@ -4937,26 +4937,6 @@ intel_dp_detect(struct drm_connector *connector, bool force)
 
 	}
 
-	/* if simulation was in progress clear the flag & skip upfront */
-	if (dev_priv->simulate_dp_in_progress & intel_encoder->hpd_pin)
-		dev_priv->simulate_dp_in_progress &= ~(intel_encoder->hpd_pin);
-	else if (IS_CHERRYVIEW(dev) &&
-		intel_dp->compliance_test_type != DP_TEST_LINK_TRAINING &&
-			intel_encoder->type == INTEL_OUTPUT_DISPLAYPORT) {
-
-		/*
-		 * TODO: Need to test connected boot scenario once platform
-		 * patches are ready. This path is tested on reworked-RVP only.
-		 */
-		if (intel_encoder->connectors_active &&
-						crtc && crtc->enabled) {
-			intel_crtc = to_intel_crtc(crtc);
-			DRM_DEBUG_KMS("Disabling crtc %c for upfront LT\n",
-					pipe_name(intel_crtc->pipe));
-			intel_crtc_control(crtc, false);
-		}
-		chv_upfront_link_train(dev, intel_dp, intel_crtc);
-	}
 
 	/*
 	 * dp aux is extremely sensitive to irq latency, hence request the
