@@ -22,6 +22,15 @@
 #include <linux/i2c.h>
 #include <linux/acpi.h>
 #include <linux/iio/iio.h>
+#include <linux/interrupt.h>
+#include <linux/hrtimer.h>
+
+#include <linux/iio/sysfs.h>
+#include <linux/iio/buffer.h>
+#include <linux/iio/trigger.h>
+#include <linux/iio/events.h>
+#include <linux/iio/trigger_consumer.h>
+#include <linux/iio/triggered_buffer.h>
 
 #define AK09911_REGMAP_NAME "ak09911_regmap"
 
@@ -76,6 +85,8 @@
 #define AK09911_CONVERSION_DONE_POLL_TIME	10
 #define AK09911_CNTL2_CONTINUOUS_DEFAULT	0
 #define IF_USE_REGMAP_INTERFACE			0
+#define CLAMP_RANGE_MIN -8192
+#define CLAMP_RANGE_MAX 8192
 
 struct ak09911_data {
 	struct i2c_client	*client;
@@ -84,6 +95,9 @@ struct ak09911_data {
 	struct regmap		*regmap;
 	u8			asa[3];
 	long			raw_to_gauss[3];
+
+	s16 buffer[3];
+	int64_t timestamp;
 };
 
 static const struct {
@@ -309,6 +323,12 @@ static int ak09911_read_raw(struct iio_dev *indio_dev,
 	return -EINVAL;
 }
 
+enum ak09911_axis {
+	AXIS_X = 0,
+	AXIS_Y,
+	AXIS_Z,
+};
+
 #define AK09911_CHANNEL(axis, index)					\
 	{								\
 		.type = IIO_MAGN,					\
@@ -318,10 +338,20 @@ static int ak09911_read_raw(struct iio_dev *indio_dev,
 				BIT(IIO_CHAN_INFO_SCALE) |		\
 				BIT(IIO_CHAN_INFO_SAMP_FREQ),		\
 		.address = index,					\
+		.scan_index = (AXIS_##axis), \
+		.scan_type = { \
+			.sign = 's', \
+			.realbits = 16, \
+			.storagebits = 16, \
+			.endianness = IIO_CPU, \
+		}, \
 	}
 
 static const struct iio_chan_spec ak09911_channels[] = {
-	AK09911_CHANNEL(X, 0), AK09911_CHANNEL(Y, 1), AK09911_CHANNEL(Z, 2),
+	AK09911_CHANNEL(X, 0),
+	AK09911_CHANNEL(Y, 1),
+	AK09911_CHANNEL(Z, 2),
+	IIO_CHAN_SOFT_TIMESTAMP(3),
 };
 
 static int ak09911_get_samp_freq_index(struct ak09911_data *data,
@@ -446,6 +476,53 @@ static const struct regmap_config ak09911_regmap_config = {
 	.reg_defaults  = ak09911_reg_defaults,
 	.num_reg_defaults = ARRAY_SIZE(ak09911_reg_defaults),
 };
+static irqreturn_t ak09911_trigger_handler(int irq, void *p)
+{
+	struct iio_poll_func *pf = p;
+	struct iio_dev *indio_dev = pf->indio_dev;
+	struct ak09911_data *data = iio_priv(indio_dev);
+	int ret, i=0 ,j=0 ;
+	u16 meas_reg;
+	s16 raw;
+
+	ret = ak09911_set_mode(data->client,  AK09911_MODE_CONTINUOUS_4);
+	if (ret < 0)
+		goto err;
+
+	ret = wait_conversion_complete_polled(data);
+	if (ret < 0)
+		goto err;
+
+	mutex_lock(&data->lock);
+	for_each_set_bit(i, indio_dev->active_scan_mask,
+		indio_dev->masklength) {
+
+	ret = i2c_smbus_read_word_data(data->client, ak09911_index_to_reg[i]);
+	if (ret < 0)
+		goto err;
+
+	meas_reg = ret;
+	/* Endian conversion of the measured values. */
+	raw = (s16) (le16_to_cpu(meas_reg));
+
+	/* Clamp to valid range. */
+	raw = clamp_t(s16, raw, CLAMP_RANGE_MIN, CLAMP_RANGE_MAX);
+	data->buffer[j++] = raw;
+	}
+
+	/* datasheet recommends reading ST2 register after each
+	 * data read operation */
+	ret = i2c_smbus_read_byte_data(data->client, AK09911_REG_ST2);
+	if (ret < 0)
+		goto err;
+
+	iio_push_to_buffers_with_timestamp(indio_dev, data->buffer,
+					   pf->timestamp);
+err:
+	mutex_unlock(&data->lock);
+	iio_trigger_notify_done(indio_dev->trig);
+	return IRQ_HANDLED;
+}
 
 static int ak09911_probe(struct i2c_client *client,
 			const struct i2c_device_id *id)
@@ -502,6 +579,16 @@ static int ak09911_probe(struct i2c_client *client,
 
 	data->reg_cntl2 = AK09911_CNTL2_CONTINUOUS_DEFAULT;
 
+
+	ret = iio_triggered_buffer_setup(indio_dev,
+					 &iio_pollfunc_store_time,
+					 ak09911_trigger_handler,
+					 NULL);
+	if (ret < 0) {
+		dev_err(&client->dev, "iio triggered buffer setup failed\n");
+		return ret;
+	}
+
 	ret = iio_device_register(indio_dev);
 	if (ret < 0)
 		return ret;
@@ -514,6 +601,7 @@ static int ak09911_remove(struct i2c_client *client)
 	struct iio_dev *indio_dev = i2c_get_clientdata(client);
 
 	iio_device_unregister(indio_dev);
+	iio_triggered_buffer_cleanup(indio_dev);
 
 	return 0;
 }
