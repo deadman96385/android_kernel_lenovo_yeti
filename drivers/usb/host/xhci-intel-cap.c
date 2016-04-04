@@ -339,3 +339,26 @@ void hub_intel_ssic_check_unblock_runtime(struct usb_device *udev)
 	}
 }
 
+/*
+ * This function enables/disables the PIPE 4.1 synchronous phystatus.
+ */
+void xhci_intel_pipe_sync_phystatus_quirk(struct xhci_hcd *xhci, bool enable)
+{
+	u32	data;
+
+	if (!xhci || !xhci->phy_mux_regs) {
+		pr_err("no xhci or phy_mux_regs\n");
+		return;
+	}
+
+	xhci_dbg(xhci, "pipe 4.1 phystatus: %s\n",
+		enable ? "enable" : "disable");
+
+	data = readl(xhci->phy_mux_regs + DUAL_ROLE_CFG0);
+	if (enable)
+		data |= EN_PIPE_4_1_SYNC_PHY_STATUS;
+	else
+		data &= ~EN_PIPE_4_1_SYNC_PHY_STATUS;
+	writel(data, xhci->phy_mux_regs + DUAL_ROLE_CFG0);
+}
+EXPORT_SYMBOL_GPL(xhci_intel_pipe_sync_phystatus_quirk);

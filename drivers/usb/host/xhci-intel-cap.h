@@ -30,6 +30,7 @@
 #define SW_VBUS_VALID		(1 << 24)
 #define SW_IDPIN_EN		(1 << 21)
 #define SW_IDPIN		(1 << 20)
+#define EN_PIPE_4_1_SYNC_PHY_STATUS	(1 << 23)
 
 #define DUAL_ROLE_CFG1		0x6c
 #define SW_MODE			(1 << 29)
@@ -79,4 +80,5 @@ extern int xhci_intel_need_disable_stall(struct xhci_hcd *xhci);
 
 extern void hub_intel_ssic_check_block_runtime(struct usb_device *udev);
 extern void hub_intel_ssic_check_unblock_runtime(struct usb_device *udev);
-
+extern void xhci_intel_pipe_sync_phystatus_quirk(struct xhci_hcd *xhci,
+						 bool enable);
