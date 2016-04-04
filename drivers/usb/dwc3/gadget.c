@@ -300,6 +300,7 @@ int dwc3_send_gadget_ep_cmd(struct dwc3 *dwc, unsigned ep,
 	u32			timeout = 500;
 	u32			reg;
 	u32			phycfg_val = 0;
+	int			ret = -EINVAL;
 
 	trace_dwc3_gadget_ep_cmd(dep, cmd, params);
 
@@ -324,7 +325,7 @@ int dwc3_send_gadget_ep_cmd(struct dwc3 *dwc, unsigned ep,
 				dwc3_writel(dwc->regs, DWC3_GUSB2PHYCFG(0),
 				phycfg_val);
 			if (DWC3_DEPCMD_STATUS(reg))
-				return -EINVAL;
+				break;
 
 			/* SW issues START TRANSFER command to isochronous ep
 			* with future frame interval. If future interval time
@@ -332,10 +333,13 @@ int dwc3_send_gadget_ep_cmd(struct dwc3 *dwc, unsigned ep,
 			* will respond with an error(bit13 in Command complete
 			* event. Hence return error in this case.
 			*/
-			if ((reg & 0x2000) && ((cmd & 0xF) == DWC3_DEPCMD_STARTTRANSFER))
-				return -EAGAIN;
-			
-			return 0;
+			if ((reg & 0x2000) && ((cmd & 0xF) == DWC3_DEPCMD_STARTTRANSFER)) {
+				ret = -EAGAIN;
+				break;
+			}
+
+			ret = 0;
+			break;
 		}
 
 		/*
@@ -343,11 +347,17 @@ int dwc3_send_gadget_ep_cmd(struct dwc3 *dwc, unsigned ep,
 		 * interrupt context.
 		 */
 		timeout--;
-		if (!timeout)
-			return -ETIMEDOUT;
+		if (!timeout) {
+			dwc3_trace(trace_dwc3_gadget,
+					"Command Timed Out");
+			ret = -ETIMEDOUT;
+			break;
+		}
 
 		udelay(1);
 	} while (1);
+
+	return ret;
 }
 
 static dma_addr_t dwc3_trb_dma_offset(struct dwc3_ep *dep,
