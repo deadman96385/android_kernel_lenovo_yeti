@@ -415,10 +415,6 @@ static int silead_ts_setup(struct i2c_client *client)
 	int ret;
 	u32 status;
 
-	silead_ts_set_power(client, SILEAD_POWER_OFF);
-	msleep(20);
-	silead_ts_set_power(client, SILEAD_POWER_ON);
-	msleep(20);
 
 	ret = silead_ts_get_id(client);
 	if (ret)
