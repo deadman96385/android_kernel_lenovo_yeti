@@ -2562,6 +2562,74 @@ int atomisp_set_array_res(struct atomisp_sub_device *asd,
 }
 
 /*
+ * Function  to get isp crop offset size & image effective size
+ */
+int atomisp_get_isp_frame_params(struct atomisp_sub_device *asd,
+			 struct atomisp_isp_frame_params  *config)
+{
+	struct ia_css_stream_config *s_config =
+		&asd->stream_env[ATOMISP_INPUT_STREAM_GENERAL].stream_config;
+	struct atomisp_stream_env *stream_env =
+		&asd->stream_env[ATOMISP_INPUT_STREAM_GENERAL];
+	struct atomisp_resolution  eff_res, sensor_res;
+	struct atomisp_dvs2_bq_resolutions bq_res;
+	int ret;
+
+	memset(&eff_res, 0, sizeof(eff_res));
+	memset(&sensor_res, 0, sizeof(sensor_res));
+	memset(&bq_res, 0, sizeof(bq_res));
+
+	eff_res.width =
+		stream_env->stream_config.input_config.effective_res.width;
+	eff_res.height =
+		stream_env->stream_config.input_config.effective_res.height;
+	if (eff_res.width == 0 || eff_res.height == 0) {
+		dev_err(asd->isp->dev, "%s err effective resolution"
+				, __func__);
+		return -EINVAL;
+	}
+
+	sensor_res.width = s_config->input_config.input_res.width;
+	sensor_res.height = s_config->input_config.input_res.height;
+	if (sensor_res.width == 0 || sensor_res.height == 0) {
+		dev_err(asd->isp->dev, "%s err sensor resolution"
+				, __func__);
+		return -EINVAL;
+	}
+
+	if (sensor_res.width < eff_res.width ||
+		sensor_res.height < eff_res.height) {
+		dev_err(asd->isp->dev, "%s err isp frame params"
+				, __func__);
+		return -EINVAL;
+	}
+	if (asd->run_mode->val == ATOMISP_RUN_MODE_VIDEO) {
+		ret = atomisp_get_dvs2_bq_resolutions(asd, &bq_res);
+		if (ret) {
+			dev_err(asd->isp->dev, "%s err get dvs2 bq params"
+				, __func__);
+			return -EINVAL;
+		}
+		config->isp_crop_image_width =
+			bq_res.source_bq.width_bq * 2;
+		config->isp_crop_image_height =
+			bq_res.source_bq.height_bq * 2;
+		config->isp_horizontal_crop_offset =
+			(sensor_res.width - config->isp_crop_image_width) / 2;
+		config->isp_vertical_crop_offset =
+			(sensor_res.height - config->isp_crop_image_height) / 2;
+	} else {
+		config->isp_crop_image_width = eff_res.width;
+		config->isp_crop_image_height = eff_res.height;
+		config->isp_horizontal_crop_offset =
+			(sensor_res.width - eff_res.width) / 2;
+		config->isp_vertical_crop_offset =
+			(sensor_res.height - eff_res.height) / 2;
+	}
+	return 0;
+}
+
+/*
  * Function to get DVS2 BQ resolution settings
  */
 int atomisp_get_dvs2_bq_resolutions(struct atomisp_sub_device *asd,

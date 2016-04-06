@@ -301,6 +301,12 @@ int atomisp_set_array_res(struct atomisp_sub_device *asd,
 			struct atomisp_resolution  *config);
 
 /*
+ * Function  to get isp crop offset size & image effective size
+ */
+int atomisp_get_isp_frame_params(struct atomisp_sub_device *asd,
+			 struct atomisp_isp_frame_params  *config);
+
+/*
  * Function to calculate real zoom region for every pipe
  */
 int atomisp_calculate_real_zoom_region(struct atomisp_sub_device *asd,

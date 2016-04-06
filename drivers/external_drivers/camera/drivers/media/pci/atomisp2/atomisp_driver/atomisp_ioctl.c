@@ -3084,6 +3084,9 @@ static long atomisp_vidioc_default(struct file *file, void *fh,
 	case ATOMISP_IOC_S_ARRAY_RESOLUTION:
 		err = atomisp_set_array_res(asd, arg);
 		break;
+	case ATOMISP_IOC_G_ISP_FRAME_PARAMS:
+		err = atomisp_get_isp_frame_params(asd, arg);
+		break;
 	default:
 		err = -EINVAL;
 		break;
