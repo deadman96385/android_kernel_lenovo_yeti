@@ -1301,6 +1301,13 @@ struct atomisp_sensor_ae_bracketing_lut {
 	unsigned int lut_size;
 };
 
+struct atomisp_isp_frame_params{
+	__u16 isp_horizontal_crop_offset;
+	__u16 isp_vertical_crop_offset;
+	__u16 isp_crop_image_width;
+	__u16 isp_crop_image_height;
+};
+
 /*Private IOCTLs for ISP */
 #define ATOMISP_IOC_G_XNR \
 	_IOR('v', BASE_VIDIOC_PRIVATE + 0, int)
@@ -1553,6 +1560,9 @@ struct atomisp_sensor_ae_bracketing_lut {
 
 #define ATOMISP_IOC_G_UPDATE_EXPOSURE \
 	_IOWR('v', BASE_VIDIOC_PRIVATE + 49, struct atomisp_update_exposure)
+
+#define ATOMISP_IOC_G_ISP_FRAME_PARAMS \
+	_IOWR('v', BASE_VIDIOC_PRIVATE + 50, struct atomisp_isp_frame_params)
 
 /*
  * Reserved ioctls. We have customer implementing it internally.
