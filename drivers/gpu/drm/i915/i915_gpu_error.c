@@ -483,17 +483,16 @@ int i915_error_state_buf_init(struct drm_i915_error_state_buf *ebuf,
 	 * so that we can move it to start position.
 	 */
 	ebuf->size = count + 1 > PAGE_SIZE ? count + 1 : PAGE_SIZE;
-	ebuf->buf = kmalloc(ebuf->size,
-				GFP_TEMPORARY | __GFP_NORETRY | __GFP_NOWARN);
+	ebuf->buf = vmalloc(ebuf->size);
 
 	if (ebuf->buf == NULL) {
 		ebuf->size = PAGE_SIZE;
-		ebuf->buf = kmalloc(ebuf->size, GFP_TEMPORARY);
+		ebuf->buf = vmalloc(ebuf->size);
 	}
 
 	if (ebuf->buf == NULL) {
 		ebuf->size = 128;
-		ebuf->buf = kmalloc(ebuf->size, GFP_TEMPORARY);
+		ebuf->buf = vmalloc(ebuf->size);
 	}
 
 	if (ebuf->buf == NULL)
@@ -509,7 +508,7 @@ int i915_obj_state_buf_init(struct drm_i915_error_state_buf *ebuf,
 {
 	memset(ebuf, 0, sizeof(*ebuf));
 
-	ebuf->buf = kmalloc(count, GFP_KERNEL);
+	ebuf->buf = vmalloc(count);
 
 	if (ebuf->buf == NULL)
 		return -ENOMEM;

@@ -3170,7 +3170,7 @@ int i915_obj_state_buf_init(struct drm_i915_error_state_buf *eb,
 static inline void i915_error_state_buf_release(
 	struct drm_i915_error_state_buf *eb)
 {
-	kfree(eb->buf);
+	vfree(eb->buf);
 }
 void i915_capture_error_state(struct drm_device *dev, const char *error_msg);
 void i915_error_state_get(struct drm_device *dev,
