@@ -1,12 +1,12 @@
 /******************************************************************************
- * Intel HECI Interface Header
+ * Intel ISHTP Interface Header
  *
- * This file is provided under a dual BSD/GPLv2 license.  When using or
+ * This file is provided under a dual BSD/GPLv2 license. When using or
  * redistributing this file, you may do so under either license.
  *
  * GPL LICENSE SUMMARY
  *
- * Copyright(c) 2003 - 2015 Intel Corporation. All rights reserved.
+ * Copyright(c) 2003 - 2016 Intel Corporation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of version 2 of the GNU General Public License as
@@ -14,7 +14,7 @@
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
@@ -25,12 +25,12 @@
  *
  * Contact Information:
  *	Intel Corporation.
- *	linux-heci@linux.intel.com
+ *	linux-ishtp@linux.intel.com
  *	http://www.intel.com
  *
  * BSD LICENSE
  *
- * Copyright(c) 2003 - 2015 Intel Corporation. All rights reserved.
+ * Copyright(c) 2003 - 2016 Intel Corporation. All rights reserved.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -61,8 +61,8 @@
  *
  *****************************************************************************/
 
-#ifndef _LINUX_HECI_H
-#define _LINUX_HECI_H
+#ifndef _LINUX_ISHTP_H
+#define _LINUX_ISHTP_H
 
 #include <linux/uuid.h>
 
@@ -82,34 +82,36 @@
  * (FW protocol version and max message size).
  *
  */
-#define IOCTL_HECI_CONNECT_CLIENT	_IOWR('H', 0x01,	\
-				struct heci_connect_client_data)
+#define IOCTL_ISHTP_CONNECT_CLIENT	_IOWR('H', 0x01,	\
+				struct ishtp_connect_client_data)
 
-/* Configuration: set number of Rx/Tx buffers. Must be used before conneciton */
-#define IOCTL_HECI_SET_RX_FIFO_SIZE	_IOWR('H', 0x02, long)
-#define IOCTL_HECI_SET_TX_FIFO_SIZE	_IOWR('H', 0x03, long)
+/* Configuration: set number of Rx/Tx buffers. Must be used before connection */
+#define IOCTL_ISHTP_SET_RX_FIFO_SIZE	_IOWR('H', 0x02, long)
+#define IOCTL_ISHTP_SET_TX_FIFO_SIZE	_IOWR('H', 0x03, long)
 
 /* Get FW status */
-#define IOCTL_GET_FW_STATUS             _IO('H', 0x04)
+#define IOCTL_ISH_GET_FW_STATUS	_IO('H', 0x04)
+
+#define IOCTL_ISH_HW_RESET	_IO('H', 0x05)
 
 /*
- * Intel HECI client information struct
+ * Intel ISHTP client information struct
  */
-struct heci_client {
-	__u32 max_msg_length;
-	__u8 protocol_version;
-	__u8 reserved[3];
+struct ishtp_client {
+	uint32_t max_msg_length;
+	uint8_t protocol_version;
+	uint8_t reserved[3];
 };
 
 /*
  * IOCTL Connect Client Data structure
  */
-struct heci_connect_client_data {
+struct ishtp_connect_client_data {
 	union {
 		uuid_le in_client_uuid;
-		struct heci_client out_client_properties;
+		struct ishtp_client out_client_properties;
 	};
 };
 
-#endif /* _LINUX_HECI_H  */
+#endif /* _LINUX_ISHTP_H */
 

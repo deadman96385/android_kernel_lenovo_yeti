@@ -1,26 +1,34 @@
 config INTEL_ISH
-	tristate "Intel Integrated Sensors Solution"
+	tristate "Intel Integrated Sensor Hub"
 	depends on X86 && PCI
 	help
-	  ISS enabled sensors hub functionality on SoC/chipset level.
-	  Placeholder for description line 2.
-	  Placeholder for description line 3.
-	  Placeholder for description line 4.
+	  ISH enables sensors hub functionality on SoC/chipset level.
+	  Integrated Sensor Hub (ISH) allows connecting and streaming
+	  many sensors at once, adding algorithms (as custom sensors)
+	  and saving power by offloading sensors polling and algorithms
+	  to low-power complex in chipset.
+
+	  ISH can operate in low-power system modes and can aggregate
+	  sensors data in batches, optionally also providing wake event
+	  to CPU (wake sensors functionality).
+
+	  Chips that include ISH support: Cherrytrail, Skylake, Broxton
 
 config ISH_PATH_SENSCOL
-	tristate "ISS path through sensor-collection"
+	tristate "ISH path through sensor-collection"
 	depends on INTEL_ISH
 	help
 	  Enables sensor-collection path for ISH
-	  Placeholder for description line 2.
-	  Placeholder for description line 3.
-	  Placeholder for description line 4.
+	  Sensor-collection is a collection (hub) interface exposed to
+	  user-mode with multiplexed data and possibly aggregated properties
+	  setting/reading. Interface is provided through file/device POSIX
+	  system calls.
 
-config ISH_PATH_IIO
-	tristate "ISS path through IIO"
-	depends on INTEL_ISH
-	help
-	  Enables IIO path for ISH
-	  Placeholder for description line 2.
-	  Placeholder for description line 3.
-	  Placeholder for description line 4.
+	  Through sensor-collection custom sensors may be added only in
+	  firmware, no modification of kernel code is necessary; once sensor
+	  algorithm is added in firmware it will automatically expose to
+	  user-mode.
+
+	  Disable sensor-collection path if you want to expose a different
+	  interface to user-mode, such as IIO
+

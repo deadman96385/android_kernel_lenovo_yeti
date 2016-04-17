@@ -1,7 +1,7 @@
 /*
- * HECI bus definitions
+ * ISHTP bus definitions
  *
- * Copyright (c) 2014-2015, Intel Corporation.
+ * Copyright (c) 2014-2016, Intel Corporation.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -9,117 +9,69 @@
  *
  * This program is distributed in the hope it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
  * more details.
  */
-#ifndef _LINUX_HECI_CL_BUS_H
-#define _LINUX_HECI_CL_BUS_H
+#ifndef _LINUX_ISHTP_CL_BUS_H
+#define _LINUX_ISHTP_CL_BUS_H
 
 #include <linux/device.h>
-#include <linux/uuid.h>
+#include <linux/mod_devicetable.h>
 
-/*typedef void (*heci_cl_event_cb_t)(struct heci_cl_device *device, u32 events,
-	void *context);*/
-
-struct heci_cl;
-struct heci_cl_device;
-struct heci_device;
-
-#define	HECI_CL_NAME_SIZE	32
-
-struct heci_cl_device_id {
-	char name[MEI_CL_NAME_SIZE];
-	kernel_ulong_t driver_info;
-};
+struct ishtp_cl;
+struct ishtp_cl_device;
+struct ishtp_device;
+struct ishtp_msg_hdr;
 
 /**
- * struct heci_cl_dev_ops - HECI CL device ops
- * This structure allows ME host clients to implement technology
- * specific operations.
- *
- * @enable: Enable an HECI CL device. Some devices require specific
- *	HECI commands to initialize completely.
- * @disable: Disable an HECI CL device.
- * @send: Tx hook for the device. This allows ME host clients to trap
- *	the device driver buffers before actually physically
- *	pushing it to the ME.
- * @recv: Rx hook for the device. This allows ME host clients to trap the
- *	ME buffers before forwarding them to the device driver.
+ * struct ishtp_cl_device - ISHTP device handle
+ * An ishtp_cl_device pointer is returned from ishtp_add_device()
+ * and links ISHTP bus clients to their actual host client pointer.
+ * Drivers for ISHTP devices will get an ishtp_cl_device pointer
+ * when being probed and shall use it for doing bus I/O.
  */
-struct heci_cl_dev_ops {
-	int (*enable)(struct heci_cl_device *device);
-	int (*disable)(struct heci_cl_device *device);
-	int (*send)(struct heci_cl_device *device, u8 *buf, size_t length);
-	int (*recv)(struct heci_cl_device *device, u8 *buf, size_t length);
-};
-
-struct heci_cl_device *heci_bus_add_device(struct heci_device *dev,
-	uuid_le uuid, char *name, struct heci_cl_dev_ops *ops);
-void heci_bus_remove_device(struct heci_cl_device *device);
-
-/**
- * struct heci_cl_device - HECI device handle
- * An heci_cl_device pointer is returned from heci_add_device()
- * and links HECI bus clients to their actual ME host client pointer.
- * Drivers for HECI devices will get an heci_cl_device pointer
- * when being probed and shall use it for doing ME bus I/O.
- *
- * @dev: linux driver model device pointer
- * @uuid: me client uuid
- * @cl: heci client
- * @ops: ME transport ops
- * @event_cb: Drivers register this callback to get asynchronous ME
- *	events (e.g. Rx buffer pending) notifications.
- * @events: Events bitmask sent to the driver.
- * @priv_data: client private data
- */
-struct heci_cl_device {
+struct ishtp_cl_device {
 	struct device dev;
-	/*struct heci_cl *cl;*/
-	struct heci_device	*heci_dev;
-	struct heci_me_client	*fw_client;	/* For easy reference */
+	struct ishtp_device	*ishtp_dev;
+	struct ishtp_fw_client	*fw_client;
 	struct list_head	device_link;
-	const struct heci_cl_dev_ops *ops;
 	struct work_struct event_work;
-	void (*event_cb)(struct heci_cl_device *device, u32 events,
-		void *context);
-	void *event_context;
-	unsigned long events;
-	void *priv_data;
+	void (*event_cb)(struct ishtp_cl_device *device);
 };
 
-struct heci_cl_driver {
+struct ishtp_cl_driver {
 	struct device_driver driver;
 	const char *name;
-	const struct heci_cl_device_id *id_table;
-	int (*probe)(struct heci_cl_device *dev,
-		const struct heci_cl_device_id *id);
-	int (*remove)(struct heci_cl_device *dev);
+	int (*probe)(struct ishtp_cl_device *dev);
+	int (*remove)(struct ishtp_cl_device *dev);
 };
 
-int __heci_cl_driver_register(struct heci_cl_driver *driver,
+int	__ishtp_cl_driver_register(struct ishtp_cl_driver *driver,
 	struct module *owner);
-#define heci_cl_driver_register(driver)             \
-	__heci_cl_driver_register(driver, THIS_MODULE)
+#define ishtp_cl_driver_register(driver)		\
+	__ishtp_cl_driver_register(driver, THIS_MODULE)
+void	ishtp_cl_driver_unregister(struct ishtp_cl_driver *driver);
 
-void heci_cl_driver_unregister(struct heci_cl_driver *driver);
-int heci_register_event_cb(struct heci_cl_device *device,
-	void (*read_cb)(struct heci_cl_device *, u32, void *), void *context);
+int	ishtp_register_event_cb(struct ishtp_cl_device *device,
+	void (*read_cb)(struct ishtp_cl_device *));
 
-#define HECI_CL_EVENT_RX 0
-#define HECI_CL_EVENT_TX 1
+int	ishtp_cl_bus_init(void);
+void	ishtp_cl_bus_exit(void);
+int	ishtp_bus_new_client(struct ishtp_device *dev);
+void	ishtp_remove_all_clients(struct ishtp_device *dev);
+int	ishtp_cl_device_bind(struct ishtp_cl *cl);
+void	ishtp_cl_bus_rx_event(struct ishtp_cl_device *device);
+int	ishtp_reset_handler(struct ishtp_device *dev);
+int	ishtp_reset_compl_handler(struct ishtp_device *dev);
+void	recv_ishtp(struct ishtp_device *dev);
 
-void *heci_cl_get_drvdata(const struct heci_cl_device *device);
-void heci_cl_set_drvdata(struct heci_cl_device *device, void *data);
+/* Write a multi-fragment message */
+int	send_ishtp_msg(struct ishtp_device *dev,
+	struct ishtp_msg_hdr *hdr, void *msg, void(*ipc_send_compl)(void *),
+	void *ipc_send_compl_prm);
 
-int heci_cl_enable_device(struct heci_cl_device *device);
-int heci_cl_disable_device(struct heci_cl_device *device);
+/* Write a single-fragment message */
+int	ishtp_write_message(struct ishtp_device *dev,
+	struct ishtp_msg_hdr *hdr, unsigned char *buf);
 
-void heci_cl_bus_rx_event(struct heci_cl_device *device);
-int heci_cl_bus_init(void);
-void heci_cl_bus_exit(void);
-int	heci_bus_new_client(struct heci_device *dev);
-void	heci_remove_all_clients(struct heci_device *dev);
-int	heci_cl_device_bind(struct heci_cl *cl);
-
-#endif /* _LINUX_HECI_CL_BUS_H */
+#endif /* _LINUX_ISHTP_CL_BUS_H */

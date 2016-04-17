@@ -1,7 +1,7 @@
 /*
- * HECI client logic
+ * ISHTP client logic
  *
- * Copyright (c) 2003-2015, Intel Corporation.
+ * Copyright (c) 2003-2016, Intel Corporation.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -13,94 +13,110 @@
  * more details.
  */
 
-#ifndef _HECI_CLIENT_H_
-#define _HECI_CLIENT_H_
+#ifndef _ISHTP_CLIENT_H_
+#define _ISHTP_CLIENT_H_
 
 #include <linux/types.h>
-#include <linux/watchdog.h>
-#include <linux/poll.h>
-#include "heci_dev.h"
+#include "ishtp_dev.h"
 
 /* Client state */
 enum cl_state {
-	HECI_CL_INITIALIZING = 0,
-	HECI_CL_CONNECTING,
-	HECI_CL_CONNECTED,
-	HECI_CL_DISCONNECTING,
-	HECI_CL_DISCONNECTED
+	ISHTP_CL_INITIALIZING = 0,
+	ISHTP_CL_CONNECTING,
+	ISHTP_CL_CONNECTED,
+	ISHTP_CL_DISCONNECTING,
+	ISHTP_CL_DISCONNECTED
 };
 
+/* Tx and Rx ring size */
 #define	CL_DEF_RX_RING_SIZE	2
 #define	CL_DEF_TX_RING_SIZE	2
 #define	CL_MAX_RX_RING_SIZE	32
 #define	CL_MAX_TX_RING_SIZE	32
 
-/* Client Tx  buffer list entry */
-struct heci_cl_tx_ring {
-	struct list_head list;
-	struct heci_msg_data	send_buf;
+#define DMA_SLOT_SIZE		4096
+/* Number of IPC fragments after which it's worth sending via DMA */
+#define	DMA_WORTH_THRESHOLD	3
+
+/* DMA/IPC Tx paths. Other the default means enforcement */
+#define	CL_TX_PATH_DEFAULT	0
+#define	CL_TX_PATH_IPC		1
+#define	CL_TX_PATH_DMA		2
+
+/* Client Tx buffer list entry */
+struct ishtp_cl_tx_ring {
+	struct list_head	list;
+	struct ishtp_msg_data	send_buf;
 };
 
-/* HECI client instance carried as file->pirvate_data*/
-struct heci_cl {
-	struct list_head link;
-	struct heci_device *dev;
-	enum cl_state state;
-	wait_queue_head_t rx_wait;
-	wait_queue_head_t wait;
-	int status;
-	/* ID of client connected */
-	u8 host_client_id;
-	u8 me_client_id;
-	u8 heci_flow_ctrl_creds;
-	u8 out_flow_ctrl_creds;
-	struct heci_cl_rb *read_rb;
+/* ISHTP client instance carried as file->pirvate_data (in ishtp-api)*/
+struct ishtp_cl {
+	struct list_head	link;
+	struct ishtp_device	*dev;
+	enum cl_state	state;
+	int	status;
 
-	/* Link to HECI bus device */
-	struct heci_cl_device *device;
+	/* Link to ISHTP bus device */
+	struct ishtp_cl_device	*device;
+
+	/* ID of client connected */
+	uint8_t	host_client_id;
+	uint8_t	fw_client_id;
+	uint8_t	ishtp_flow_ctrl_creds;
+	uint8_t	out_flow_ctrl_creds;
+
+	wait_queue_head_t	rx_wait;
+	wait_queue_head_t	wait;
+	struct ishtp_cl_rb	*read_rb;
+
+	/* dma */
+	int	last_tx_path;
+	int	last_dma_acked;	/*0: ack wasn't received, 1: ack was received */
+	unsigned char	*last_dma_addr;
+	int	last_ipc_acked;	/*0: ack wasn't received, 1: ack was received */
 
 	/* Rx ring buffer pool */
 	unsigned	rx_ring_size;
-	struct heci_cl_rb	free_rb_list;
-	/*int     send_fc_flag;*/
-	spinlock_t      free_list_spinlock;
+	struct ishtp_cl_rb	free_rb_list;
+	spinlock_t	free_list_spinlock;
 	/* Rx in-process list */
-	struct heci_cl_rb       in_process_list;
-	spinlock_t      in_process_spinlock;
+	struct ishtp_cl_rb	in_process_list;
+	spinlock_t	in_process_spinlock;
 
 	/* Client Tx buffers list */
 	unsigned	tx_ring_size;
-	struct heci_cl_tx_ring	tx_list, tx_free_list;
-	spinlock_t      tx_list_spinlock;
-	spinlock_t      tx_free_list_spinlock;
+	struct ishtp_cl_tx_ring	tx_list, tx_free_list;
+	spinlock_t	tx_list_spinlock;
+	spinlock_t	tx_free_list_spinlock;
 	size_t	tx_offs;	/* Offset in buffer at head of 'tx_list' */
-	/*#############################*/
-	/* if we get a FC, and the list is not empty, we must know whether we
+
+	/**
+	 * if we get a FC, and the list is not empty, we must know whether we
 	 * are at the middle of sending.
 	 * if so - need to increase FC counter, otherwise, need to start sending
 	 * the first msg in list
 	 * (!) This is for counting-FC implementation only. Within single-FC the
 	 * other party may NOT send FC until it receives complete message
 	 */
-	int sending;
-	/*#############################*/
+	int	sending;
 
 	/* Send FC spinlock */
-	spinlock_t      fc_spinlock;
+	spinlock_t	fc_spinlock;
 
 	/* wait queue for connect and disconnect response from FW */
-	wait_queue_head_t wait_ctrl_res;
+	wait_queue_head_t	wait_ctrl_res;
 
 	/* Error stats */
 	unsigned	err_send_msg;
 	unsigned	err_send_fc;
 
 	/* Send/recv stats */
-	unsigned	send_msg_cnt;
+	unsigned	send_msg_cnt_ipc;
+	unsigned	send_msg_cnt_dma;
 	unsigned	recv_msg_cnt_ipc;
 	unsigned	recv_msg_cnt_dma;
 	unsigned	recv_msg_num_frags;
-	unsigned	heci_flow_ctrl_cnt;
+	unsigned	ishtp_flow_ctrl_cnt;
 	unsigned	out_flow_ctrl_cnt;
 
 	/* Rx msg ... out FC timing */
@@ -109,7 +125,8 @@ struct heci_cl {
 	unsigned long	max_fc_delay_sec, max_fc_delay_usec;
 };
 
-extern int	dma_ready;
+extern struct miscdevice	ishtp_misc_device;
+/* dma global vars */
 extern int	host_dma_enabled;
 extern void	*host_dma_tx_buf;
 extern unsigned	host_dma_tx_buf_size;
@@ -117,85 +134,69 @@ extern uint64_t	host_dma_tx_buf_phys;
 extern void	*host_dma_rx_buf;
 extern unsigned	host_dma_rx_buf_size;
 extern uint64_t	host_dma_rx_buf_phys;
+extern spinlock_t	dma_tx_lock;
+extern int	dma_num_slots;
+extern uint8_t	*dma_tx_map;
 
-int heci_can_client_connect(struct heci_device *heci_dev, uuid_le *uuid);
-int heci_me_cl_by_uuid(struct heci_device *dev, const uuid_le *cuuid);
-int heci_me_cl_by_id(struct heci_device *dev, u8 client_id);
-
-/*
- * HECI IO Functions
- */
-struct heci_cl_rb *heci_io_rb_init(struct heci_cl *cl);
-void heci_io_rb_free(struct heci_cl_rb *priv_rb);
-int heci_io_rb_alloc_buf(struct heci_cl_rb *rb, size_t length);
-int heci_io_rb_recycle(struct heci_cl_rb *rb);
-
-
-/**
- * heci_io_list_init - Sets up a queue list.
- *
- * @list: An instance cl callback structure
- */
-static inline void heci_io_list_init(struct heci_cl_rb *list)
-{
-	INIT_LIST_HEAD(&list->list);
-}
-void heci_read_list_flush(struct heci_cl *cl);
+int ishtp_can_client_connect(struct ishtp_device *ishtp_dev, uuid_le *uuid);
+int ishtp_fw_cl_by_uuid(struct ishtp_device *dev, const uuid_le *cuuid);
+int ishtp_fw_cl_by_id(struct ishtp_device *dev, uint8_t client_id);
 
 /*
- * HECI Host Client Functions
+ * ISHTP IO Functions
  */
+struct ishtp_cl_rb	*ishtp_io_rb_init(struct ishtp_cl *cl);
+void	ishtp_io_rb_free(struct ishtp_cl_rb *priv_rb);
+int	ishtp_io_rb_alloc_buf(struct ishtp_cl_rb *rb, size_t length);
+int	ishtp_io_rb_recycle(struct ishtp_cl_rb *rb);
 
-struct heci_cl *heci_cl_allocate(struct heci_device *dev);
-void heci_cl_init(struct heci_cl *cl, struct heci_device *dev);
-void	heci_cl_free(struct heci_cl *cl);
+/*
+ * ISHTP Host Client Functions
+ */
+struct ishtp_cl	*ishtp_cl_allocate(struct ishtp_device *dev);
+void	ishtp_cl_init(struct ishtp_cl *cl, struct ishtp_device *dev);
+void	ishtp_cl_free(struct ishtp_cl *cl);
 
-int	heci_cl_alloc_rx_ring(struct heci_cl *cl);
-int	heci_cl_alloc_tx_ring(struct heci_cl *cl);
-int	heci_cl_free_rx_ring(struct heci_cl *cl);
-int	heci_cl_free_tx_ring(struct heci_cl *cl);
+int	ishtp_cl_alloc_rx_ring(struct ishtp_cl *cl);
+int	ishtp_cl_alloc_tx_ring(struct ishtp_cl *cl);
+int	ishtp_cl_free_rx_ring(struct ishtp_cl *cl);
+int	ishtp_cl_free_tx_ring(struct ishtp_cl *cl);
 
-int heci_cl_link(struct heci_cl *cl, int id);
-int heci_cl_unlink(struct heci_cl *cl);
+int	ishtp_cl_link(struct ishtp_cl *cl, int id);
+int	ishtp_cl_unlink(struct ishtp_cl *cl);
 
-int heci_cl_flush_queues(struct heci_cl *cl);
-struct heci_cl_rb *heci_cl_find_read_rb(struct heci_cl *cl);
+int	ishtp_cl_flush_queues(struct ishtp_cl *cl);
+struct ishtp_cl_rb	*ishtp_cl_find_read_rb(struct ishtp_cl *cl);
+void	ishtp_read_list_flush(struct ishtp_cl *cl);
+
+/*
+ *  ISHTP input output function prototype
+ */
+bool	ishtp_cl_is_other_connecting(struct ishtp_cl *cl);
+int	ishtp_cl_disconnect(struct ishtp_cl *cl);
+int	ishtp_cl_connect(struct ishtp_cl *cl);
+int	ishtp_cl_read_start(struct ishtp_cl *cl);
+int	ishtp_cl_send(struct ishtp_cl *cl, uint8_t *buf, size_t length);
+void	ishtp_cl_read_complete(struct ishtp_cl_rb *rb);
+void	ishtp_cl_all_disconnect(struct ishtp_device *dev);
+void	ishtp_cl_all_read_wakeup(struct ishtp_device *dev);
+void	ishtp_cl_send_msg(struct ishtp_device *dev, struct ishtp_cl *cl);
+void	ishtp_cl_alloc_dma_buf(void);
+void	recv_ishtp_cl_msg(struct ishtp_device *dev,
+		struct ishtp_msg_hdr *ishtp_hdr);
+void	recv_ishtp_cl_msg_dma(struct ishtp_device *dev, void *msg,
+		struct dma_xfer_hbm *hbm);
 
 /**
- * heci_cl_cmp_id - tells if file private data have same id
- *
- * @fe1: private data of 1. file object
- * @fe2: private data of 2. file object
- *
+ * ishtp_cl_cmp_id - tells if file private data have same id
  * returns true  - if ids are the same and not NULL
  */
-static inline bool heci_cl_cmp_id(const struct heci_cl *cl1,
-				const struct heci_cl *cl2)
+static inline bool ishtp_cl_cmp_id(const struct ishtp_cl *cl1,
+				const struct ishtp_cl *cl2)
 {
 	return cl1 && cl2 &&
 		(cl1->host_client_id == cl2->host_client_id) &&
-		(cl1->me_client_id == cl2->me_client_id);
+		(cl1->fw_client_id == cl2->fw_client_id);
 }
 
-
-int heci_cl_flow_ctrl_creds(struct heci_cl *cl);
-
-/*
- *  HECI input output function prototype
- */
-bool heci_cl_is_other_connecting(struct heci_cl *cl);
-int heci_cl_disconnect(struct heci_cl *cl);
-int heci_cl_connect(struct heci_cl *cl);
-int heci_cl_read_start(struct heci_cl *cl);
-int heci_cl_send(struct heci_cl *cl, u8 *buf, size_t length);
-void heci_cl_read_complete(struct heci_cl_rb *rb);
-void heci_cl_all_disconnect(struct heci_device *dev);
-void heci_cl_all_read_wakeup(struct heci_device *dev);
-void heci_cl_send_msg(struct heci_device *dev, struct heci_cl *cl);
-void heci_cl_alloc_dma_buf(void);
-void recv_heci_cl_msg(struct heci_device *dev, struct heci_msg_hdr *heci_hdr);
-void recv_heci_cl_msg_dma(struct heci_device *dev, void *msg,
-	struct dma_xfer_hbm *hbm);
-
-#endif /* _HECI_CLIENT_H_ */
-
+#endif /* _ISHTP_CLIENT_H_ */
