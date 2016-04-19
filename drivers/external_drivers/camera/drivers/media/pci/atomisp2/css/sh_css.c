@@ -3612,6 +3612,11 @@ init_in_frameinfo_memory_defaults(struct ia_css_pipe *pipe,
 	in_frame->info.res.height = pipe->stream->config.input_config.input_res.height;
 	in_frame->info.raw_bit_depth =
 		ia_css_pipe_util_pipe_input_format_bpp(pipe);
+
+#if defined(IS_ISP_2500_SYSTEM)
+	in_frame->info.raw_type = pipe->stream->config.input_config.raw_type;
+#endif
+
 	ia_css_frame_info_set_width(&in_frame->info, pipe->stream->config.input_config.input_res.width, 0);
 	in_frame->contiguous = false;
 	in_frame->flash_state = IA_CSS_FRAME_FLASH_STATE_NONE;

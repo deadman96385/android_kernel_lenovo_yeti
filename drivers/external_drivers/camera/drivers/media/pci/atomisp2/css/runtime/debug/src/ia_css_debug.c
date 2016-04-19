@@ -3327,12 +3327,18 @@ ia_css_debug_dump_stream_config(
 			config->pack_raw_pixels);
 	ia_css_debug_dtrace(IA_CSS_DEBUG_TRACE, "continuous: %d\n",
 			config->continuous);
+	ia_css_debug_dtrace(IA_CSS_DEBUG_TRACE, "disable_cont_viewfinder: %d\n",
+			config->disable_cont_viewfinder);
 	ia_css_debug_dtrace(IA_CSS_DEBUG_TRACE, "flash_gpio_pin: %d\n",
 			config->flash_gpio_pin);
 	ia_css_debug_dtrace(IA_CSS_DEBUG_TRACE, "left_padding: %d\n",
 			config->left_padding);
 	ia_css_debug_dump_mipi_buffer_config(&config->mipi_buffer_config);
 	ia_css_debug_dump_metadata_config(&config->metadata_config);
+	ia_css_debug_dtrace(IA_CSS_DEBUG_TRACE, "enable_raw_buffer_locking: %d\n",
+			config->ia_css_enable_raw_buffer_locking);
+	ia_css_debug_dtrace(IA_CSS_DEBUG_TRACE, "lock_all: %d\n",
+			config->lock_all);
 }
 
 /*
