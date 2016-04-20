@@ -419,6 +419,11 @@ static int ov8858_set_exposure(struct v4l2_subdev *sd, int exposure, int gain,
 	const struct ov8858_resolution *res;
 	u16 hts, vts;
 	int ret;
+	/* W/A: In CHT_MRD there is a sync problem between the new exposure,
+	 * and the statistics being reported to AE. This delay allows the old
+	 * statistics to be correctly reported before applying a new exposure */
+	if (strcmp(dmi_get_system_info(DMI_BOARD_NAME), CHT_HR_DEV_NAME) != 0)
+		usleep_range(4000, 6000);
 
 	mutex_lock(&dev->input_lock);
 
