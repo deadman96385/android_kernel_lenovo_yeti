@@ -63,20 +63,20 @@ DEFINE_EVENT(dwc3_log_msg, dwc3_ep0,
 );
 
 DECLARE_EVENT_CLASS(dwc3_log_event,
-	TP_PROTO(u32 event),
-	TP_ARGS(event),
+	TP_PROTO(u32 event_raw),
+	TP_ARGS(event_raw),
 	TP_STRUCT__entry(
-		__field(u32, event)
+		__field(u32, event_raw)
 	),
 	TP_fast_assign(
-		__entry->event = event;
+		__entry->event_raw = event_raw;
 	),
-	TP_printk("event %08x", __entry->event)
+	TP_printk("event %08x", __entry->event_raw)
 );
 
 DEFINE_EVENT(dwc3_log_event, dwc3_event,
-	TP_PROTO(u32 event),
-	TP_ARGS(event)
+	TP_PROTO(u32 event_raw),
+	TP_ARGS(event_raw)
 );
 
 DECLARE_EVENT_CLASS(dwc3_log_ctrl,
