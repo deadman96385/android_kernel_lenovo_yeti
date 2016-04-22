@@ -102,6 +102,8 @@ struct mtp_dev {
 	/* to enforce only one ioctl at a time */
 	atomic_t ioctl_excl;
 
+	struct completion ioctl_completion;
+
 	struct list_head tx_idle;
 	struct list_head intr_idle;
 
@@ -830,6 +832,7 @@ static void send_file_work(struct work_struct *data)
 	/* write the result */
 	dev->xfer_result = r;
 	smp_wmb();
+	complete(&dev->ioctl_completion);
 }
 
 /* read from USB and write to a local file */
@@ -923,6 +926,7 @@ static void receive_file_work(struct work_struct *data)
 	/* write the result */
 	dev->xfer_result = r;
 	smp_wmb();
+	complete(&dev->ioctl_completion);
 }
 
 static int mtp_send_event(struct mtp_dev *dev, struct mtp_event *event)
@@ -1024,7 +1028,16 @@ static long mtp_ioctl(struct file *fp, unsigned code, unsigned long value)
 		 */
 		queue_work(dev->wq, work);
 		/* wait for operation to complete */
-		flush_workqueue(dev->wq);
+		ret = wait_for_completion_interruptible(&dev->ioctl_completion);
+		if (ret) {
+			spin_lock_irq(&dev->lock);
+			dev->state = STATE_CANCELED;
+			spin_unlock_irq(&dev->lock);
+			wake_up(&dev->read_wq);
+			wake_up(&dev->write_wq);
+			flush_workqueue(dev->wq);
+		}
+
 		fput(filp);
 
 		/* read the result */
@@ -1484,6 +1497,7 @@ static int __mtp_setup(struct mtp_instance *fi_mtp)
 	init_waitqueue_head(&dev->read_wq);
 	init_waitqueue_head(&dev->write_wq);
 	init_waitqueue_head(&dev->intr_wq);
+	init_completion(&dev->ioctl_completion);
 	atomic_set(&dev->open_excl, 0);
 	atomic_set(&dev->ioctl_excl, 0);
 	INIT_LIST_HEAD(&dev->tx_idle);
