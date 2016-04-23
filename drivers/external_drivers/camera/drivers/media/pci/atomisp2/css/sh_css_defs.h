@@ -116,7 +116,7 @@ RGB[0,8191],coef[-8192,8191] -> RGB[0,8191]
 
 /* Bits of output of CCM,  = 12, RGB[0,4095] */
 
-#ifdef GC2_PIPE_VERSION_2_6_1
+#ifdef GC2_PIPE_VERSION_2_7
 /* According to spec CCM output is 13bit. GAMMA is expected to do 1bit right shift */
 /* This is required to bit-exact with ate */
 
