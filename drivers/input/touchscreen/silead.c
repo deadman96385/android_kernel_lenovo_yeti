@@ -374,6 +374,8 @@ static int silead_ts_load_fw(struct i2c_client *client)
 
 release_fw_err:
 	release_firmware(fw);
+	fw = NULL;
+
 	return ret;
 }
 
@@ -707,6 +709,7 @@ static int silead_ts_probe(struct i2c_client *client,
 					client->name, data);
 	if (ret) {
 		dev_err(dev, "IRQ request failed %d\n", ret);
+		input_unregister_device(data->input_dev);
 		return ret;
 	}
 #ifdef CONFIG_PM
