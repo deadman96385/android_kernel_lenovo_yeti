@@ -120,6 +120,7 @@ struct ia_css_isp_parameters {
 	struct ia_css_2500_lin_kernel_config  lin_2500_config;
 	struct ia_css_2500_tnr_kernel_config  tnr_2500_config;
 	struct ia_css_tnr3_kernel_config      tnr3_config;
+	struct ia_css_2500_rgbir_kernel_config rgbir_2500_config;
 #endif
 	struct ia_css_dvs_6axis_config  *pipe_dvs_6axis_config[IA_CSS_PIPE_ID_NUM];
 /* ------ deprecated(bz675) : from ------ */

@@ -34,7 +34,7 @@ The version string has four dot-separated numbers, read left to right:
 
 */
 
-#define CSS_API_VERSION_STRING	"2.1.22.2"
+#define CSS_API_VERSION_STRING	"2.1.22.3"
 
 /*
 Change log
@@ -490,6 +490,9 @@ v2.1.22.1 (2 changes parallel), Provide CSS Interface to select correct raw fram
 
 v2.1.22.2, Enable TDF API
 - add ia_css_tdf_config struct
+
+v2.1.22.3, RGBIR Remosaic ISP Configuration
+- RGBIR Remosaic ISP Configuration
 
 */
 

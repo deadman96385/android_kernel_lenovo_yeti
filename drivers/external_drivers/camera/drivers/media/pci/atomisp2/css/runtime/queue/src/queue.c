@@ -114,6 +114,9 @@ int ia_css_queue_enqueue(
 		if (error != 0)
 			return error;
 
+		if (cb_desc.size == 0)
+			return EINVAL;
+
 		/* b. Operate on the queue */
 		if (ia_css_circbuf_desc_is_full(&cb_desc))
 			return ENOBUFS;
@@ -172,6 +175,9 @@ int ia_css_queue_dequeue(
 		if (error != 0)
 			return error;
 
+		if (cb_desc.size == 0)
+			return EINVAL;
+
 		/* b. Operate on the queue */
 		if (ia_css_circbuf_desc_is_empty(&cb_desc))
 			return ENODATA;
@@ -222,8 +228,10 @@ int ia_css_queue_is_full(
 			return error;
 
 		/* b. Operate on the queue */
-		*is_full = ia_css_circbuf_desc_is_full(&cb_desc);
-		return 0;
+		if (cb_desc.size != 0) {
+			*is_full = ia_css_circbuf_desc_is_full(&cb_desc);
+			return 0;
+		}
 	}
 
 	return EINVAL;
@@ -330,7 +338,7 @@ int ia_css_queue_peek(
 
 		/* Check if offset is valid */
 		num_elems = ia_css_circbuf_desc_get_num_elems(&cb_desc);
-		if (offset > num_elems)
+		if (offset > num_elems || cb_desc.size == 0)
 			return EINVAL;
 
 		offset = OP_std_modadd(cb_desc.start, offset, cb_desc.size);

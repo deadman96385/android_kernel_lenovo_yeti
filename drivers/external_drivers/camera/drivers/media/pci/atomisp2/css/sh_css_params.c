@@ -3469,6 +3469,7 @@ sh_css_init_isp_params_from_global(struct ia_css_stream *stream,
 		ia_css_lin_set_default_config(&params->lin_2500_config);
 		ia_css_tnr_set_default_config(&params->tnr_2500_config);
 		ia_css_tnr3_set_default_config(&params->tnr3_config);
+		ia_css_rgbir_set_default_config(&params->rgbir_2500_config);
 #endif
 	}
 	else

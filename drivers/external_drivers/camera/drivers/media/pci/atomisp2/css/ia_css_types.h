@@ -1,4 +1,4 @@
-/* Release Version: irci_ecr-master_20160422_0704 */
+/* Release Version: irci_ecr-master_20160426_2016 */
 /**
 Support for Intel Camera Imaging ISP subsystem.
 Copyright (c) 2010 - 2015, Intel Corporation.
@@ -611,6 +611,7 @@ struct ia_css_isp_config {
 	struct ia_css_frame                      *output_frame;          /**< Output frame the config is to be applied to (optional) */
 	struct ia_css_2500_input_feeder_config   *input_feeder_2500_config;   /**< Input feeder cropping configuration (getters only) */
 	uint32_t			isp_config_id;	/**< Unique ID to track which config was actually applied to a particular frame */
+	struct ia_css_2500_rgbir_kernel_config	 *rgbir_2500_config;	 /**< Skylake: RGBIR Remosaic */
 };
 
 #endif /* _IA_CSS_TYPES_H */
