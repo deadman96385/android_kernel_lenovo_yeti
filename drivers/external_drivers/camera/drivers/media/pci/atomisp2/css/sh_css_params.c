@@ -32,6 +32,7 @@ more details.
 #include "assert_support.h"
 #include "misc_support.h"	/* NOT_USED */
 #include "math_support.h"	/* max(), min()  EVEN_FLOOR()*/
+#include "string_support.h" /* memcpy_s */
 
 #include "ia_css_stream.h"
 #include "sh_css_params_internal.h"
@@ -1697,7 +1698,8 @@ ia_css_params_alloc_convert_sctbl(
 
 	for (i = 0; i < shading_table->height; i++) {
 		for (j = 0; j < IA_CSS_SC_NUM_COLORS; j++) {
-			memcpy(ptr,
+			memcpy_s(ptr,
+				    sctbl_size,
 				   &shading_table->data[j]
 					[i*shading_table->width],
 				   shading_table->width * sizeof(short));

@@ -197,6 +197,8 @@ more details.
 #define SH_CSS_BINARY_ID_IF_TO_OSYS_PREVIEW                 241
 #define SH_CSS_BINARY_ID_IF_TO_OSYS_PREVIEW_STRIPED         242
 #define SH_CSS_BINARY_ID_IF_TO_RGBIR_REMOSAIC               243
+#define SH_CSS_BINARY_ID_VIDEO_RGBIR_IF_TO_OSYS             244
+#define SH_CSS_BINARY_ID_RGBIR_IF_TO_OSYS_PRIMARY           245
 
 /* Skycam IR camera binaries */
 #define SH_CSS_BINARY_ID_IR_IF_TO_OSYS                      300

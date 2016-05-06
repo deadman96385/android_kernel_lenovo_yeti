@@ -19,6 +19,7 @@ more details.
 #include <ia_css_types.h>
 #include "ia_css_debug.h"
 #include "memory_access.h"
+#include "string_support.h" /* memcpy_s */
 
 #if defined(IS_ISP_2500_SYSTEM)
 #include <components/acc_cluster/acc_dvs_stat/dvs_stat_private.h>
@@ -146,10 +147,10 @@ init_dvs_6axis_table_from_config(struct ia_css_dvs_6axis_config *dvs_config, str
 	unsigned int width_uv = dvs_config->width_uv;
 	unsigned int height_uv = dvs_config->height_uv;
 
-	memcpy(dvs_config->xcoords_y, dvs_config_src->xcoords_y, (width_y * height_y * sizeof(uint32_t)));
-	memcpy(dvs_config->ycoords_y, dvs_config_src->ycoords_y, (width_y * height_y * sizeof(uint32_t)));
-	memcpy(dvs_config->xcoords_uv, dvs_config_src->xcoords_uv, (width_uv * height_uv * sizeof(uint32_t)));
-	memcpy(dvs_config->ycoords_uv, dvs_config_src->ycoords_uv, (width_uv * height_uv * sizeof(uint32_t)));
+	memcpy_s(dvs_config->xcoords_y, (width_y * height_y * sizeof(uint32_t)), dvs_config_src->xcoords_y, (width_y * height_y * sizeof(uint32_t)));
+	memcpy_s(dvs_config->ycoords_y, (width_y * height_y * sizeof(uint32_t)), dvs_config_src->ycoords_y, (width_y * height_y * sizeof(uint32_t)));
+	memcpy_s(dvs_config->xcoords_uv, (width_uv * height_uv * sizeof(uint32_t)), dvs_config_src->xcoords_uv, (width_uv * height_uv * sizeof(uint32_t)));
+	memcpy_s(dvs_config->ycoords_uv, (width_uv * height_uv * sizeof(uint32_t)), dvs_config_src->ycoords_uv, (width_uv * height_uv * sizeof(uint32_t)));
 }
 
 struct ia_css_dvs_6axis_config *
@@ -247,11 +248,11 @@ void copy_dvs_6axis_table(struct ia_css_dvs_6axis_config *dvs_config_dst,
 	width_uv = dvs_config_src->width_uv; /* = Y/2, depens on colour format YUV 4.2.0*/
 	height_uv = dvs_config_src->height_uv;
 
-	memcpy(dvs_config_dst->xcoords_y, dvs_config_src->xcoords_y, (width_y * height_y * sizeof(uint32_t)));
-	memcpy(dvs_config_dst->ycoords_y, dvs_config_src->ycoords_y, (width_y * height_y * sizeof(uint32_t)));
+	memcpy_s(dvs_config_dst->xcoords_y, (width_y * height_y * sizeof(uint32_t)), dvs_config_src->xcoords_y, (width_y * height_y * sizeof(uint32_t)));
+	memcpy_s(dvs_config_dst->ycoords_y, (width_y * height_y * sizeof(uint32_t)), dvs_config_src->ycoords_y, (width_y * height_y * sizeof(uint32_t)));
 
-	memcpy(dvs_config_dst->xcoords_uv, dvs_config_src->xcoords_uv, (width_uv * height_uv * sizeof(uint32_t)));
-	memcpy(dvs_config_dst->ycoords_uv, dvs_config_src->ycoords_uv, (width_uv * height_uv * sizeof(uint32_t)));
+	memcpy_s(dvs_config_dst->xcoords_uv, (width_uv * height_uv * sizeof(uint32_t)), dvs_config_src->xcoords_uv, (width_uv * height_uv * sizeof(uint32_t)));
+	memcpy_s(dvs_config_dst->ycoords_uv, (width_uv * height_uv * sizeof(uint32_t)), dvs_config_src->ycoords_uv, (width_uv * height_uv * sizeof(uint32_t)));
 
 }
 

@@ -257,6 +257,7 @@ struct ia_css_binary_info {
 		uint8_t	routing_rgb_to_yuvp1;/**< connect RGB with YUVP1 ACCs*/
 		uint8_t	routing_yuvp1_to_yuvp2;/**< connect YUVP1 with YUVP2 ACCs*/
 #endif
+		uint8_t	rgbir_remosaic;
 		uint8_t	luma_only;
 		uint8_t	input_yuv;
 		uint8_t	input_raw;

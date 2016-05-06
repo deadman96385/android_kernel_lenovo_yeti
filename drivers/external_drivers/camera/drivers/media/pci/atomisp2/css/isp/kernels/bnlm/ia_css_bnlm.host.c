@@ -200,23 +200,6 @@ ia_css_bnlm_debug_dtrace(
 	ia_css_debug_dtrace(level, "\t%-32s = %d\n", "rad_enable", config->rad_enable);
 	ia_css_debug_dtrace(level, "\t%-32s = %d\n", "rad_x_origin", config->rad_x_origin);
 	ia_css_debug_dtrace(level, "\t%-32s = %d\n", "rad_y_origin", config->rad_y_origin);
-	ia_css_debug_dtrace(level, "\t%-32s = %d\n", "avg_min_th", config->avg_min_th);
-	ia_css_debug_dtrace(level, "\t%-32s = %d\n", "max_min_th", config->max_min_th);
-
-	ia_css_debug_dtrace(level, "\t%-32s = %d\n", "exp_coeff_a", config->exp_coeff_a);
-	ia_css_debug_dtrace(level, "\t%-32s = %d\n", "exp_coeff_b", config->exp_coeff_b);
-	ia_css_debug_dtrace(level, "\t%-32s = %d\n", "exp_coeff_c", config->exp_coeff_c);
-	ia_css_debug_dtrace(level, "\t%-32s = %d\n", "exp_exponent", config->exp_exponent);
-
-	ia_css_debug_dtrace(level, "\t%-32s = {", "nl_th");
-	for (i = 0; i < 3; i++)
-		ia_css_debug_dtrace(level, "%d, ", config->nl_th[i]);
-	ia_css_debug_dtrace(level, "}\n");
-
-	ia_css_debug_dtrace(level, "\t%-32s = {", "match_quality_max_idx");
-	for (i = 0; i < 4; i++)
-		ia_css_debug_dtrace(level, "%d, ", config->match_quality_max_idx[i]);
-	ia_css_debug_dtrace(level, "}\n");
 
 	ia_css_debug_dtrace(level, "\t%-32s = {", "mu_root_lut_thr");
 	for (i = 0; i < (BNLM_MAX_NUM_LUT_ENTRIES - 1); i++)
@@ -238,16 +221,6 @@ ia_css_bnlm_debug_dtrace(
 		ia_css_debug_dtrace(level, "%d, ", config->sad_norm_lut_val[i]);
 	ia_css_debug_dtrace(level, "}\n");
 
-	ia_css_debug_dtrace(level, "\t%-32s = {", "sig_detail_lut_thr");
-	for (i = 0; i < (BNLM_MAX_NUM_LUT_ENTRIES - 1); i++)
-		ia_css_debug_dtrace(level, "%d, ", config->sig_detail_lut_thr[i]);
-	ia_css_debug_dtrace(level, "}\n");
-
-	ia_css_debug_dtrace(level, "\t%-32s = {", "sig_detail_lut_val");
-	for (i = 0; i < BNLM_MAX_NUM_LUT_ENTRIES; i++)
-		ia_css_debug_dtrace(level, "%d, ", config->sig_detail_lut_val[i]);
-	ia_css_debug_dtrace(level, "}\n");
-
 	ia_css_debug_dtrace(level, "\t%-32s = {", "sig_rad_lut_thr");
 	for (i = 0; i < (BNLM_MAX_NUM_LUT_ENTRIES - 1); i++)
 		ia_css_debug_dtrace(level, "%d, ", config->sig_rad_lut_thr[i]);
@@ -256,6 +229,16 @@ ia_css_bnlm_debug_dtrace(
 	ia_css_debug_dtrace(level, "\t%-32s = {", "sig_rad_lut_val");
 	for (i = 0; i < BNLM_MAX_NUM_LUT_ENTRIES; i++)
 		ia_css_debug_dtrace(level, "%d, ", config->sig_rad_lut_val[i]);
+	ia_css_debug_dtrace(level, "}\n");
+
+	ia_css_debug_dtrace(level, "\t%-32s = {", "sig_detail_lut_thr");
+	for (i = 0; i < (BNLM_MAX_NUM_LUT_ENTRIES - 1); i++)
+		ia_css_debug_dtrace(level, "%d, ", config->sig_detail_lut_thr[i]);
+	ia_css_debug_dtrace(level, "}\n");
+
+	ia_css_debug_dtrace(level, "\t%-32s = {", "sig_detail_lut_val");
+	for (i = 0; i < BNLM_MAX_NUM_LUT_ENTRIES; i++)
+		ia_css_debug_dtrace(level, "%d, ", config->sig_detail_lut_val[i]);
 	ia_css_debug_dtrace(level, "}\n");
 
 	ia_css_debug_dtrace(level, "\t%-32s = {", "rad_pow_lut_thr");
@@ -268,15 +251,11 @@ ia_css_bnlm_debug_dtrace(
 		ia_css_debug_dtrace(level, "%d, ", config->rad_pow_lut_val[i]);
 	ia_css_debug_dtrace(level, "}\n");
 
-	ia_css_debug_dtrace(level, "\t%-32s = {", "nl_0_lut_thr");
-	for (i = 0; i < (BNLM_MAX_NUM_LUT_ENTRIES - 1); i++)
-		ia_css_debug_dtrace(level, "%d, ", config->nl_0_lut_thr[i]);
-	ia_css_debug_dtrace(level, "}\n");
 
-	ia_css_debug_dtrace(level, "\t%-32s = {", "nl_0_lut_val");
-	for (i = 0; i < BNLM_MAX_NUM_LUT_ENTRIES; i++)
-		ia_css_debug_dtrace(level, "%d, ", config->nl_0_lut_val[i]);
-	ia_css_debug_dtrace(level, "}\n");
+	ia_css_debug_dtrace(level, "\t%-32s = %d\n", "exp_coeff_a", config->exp_coeff_a);
+	ia_css_debug_dtrace(level, "\t%-32s = %d\n", "exp_coeff_b", config->exp_coeff_b);
+	ia_css_debug_dtrace(level, "\t%-32s = %d\n", "exp_coeff_c", config->exp_coeff_c);
+	ia_css_debug_dtrace(level, "\t%-32s = %d\n", "exp_exponent", config->exp_exponent);
 
 	ia_css_debug_dtrace(level, "\t%-32s = {", "nl_0_lut_thr");
 	for (i = 0; i < (BNLM_MAX_NUM_LUT_ENTRIES - 1); i++)
@@ -307,6 +286,19 @@ ia_css_bnlm_debug_dtrace(
 	for (i = 0; i < BNLM_MAX_NUM_LUT_ENTRIES; i++)
 		ia_css_debug_dtrace(level, "%d, ", config->nl_3_lut_val[i]);
 	ia_css_debug_dtrace(level, "}\n");
+
+	ia_css_debug_dtrace(level, "\t%-32s = {", "nl_th");
+	for (i = 0; i < 3; i++)
+		ia_css_debug_dtrace(level, "%d, ", config->nl_th[i]);
+	ia_css_debug_dtrace(level, "}\n");
+
+	ia_css_debug_dtrace(level, "\t%-32s = {", "match_quality_max_idx");
+	for (i = 0; i < 4; i++)
+		ia_css_debug_dtrace(level, "%d, ", config->match_quality_max_idx[i]);
+	ia_css_debug_dtrace(level, "}\n");
+
+	ia_css_debug_dtrace(level, "\t%-32s = %d\n", "avg_min_th", config->avg_min_th);
+	ia_css_debug_dtrace(level, "\t%-32s = %d\n", "max_min_th", config->max_min_th);
 
 #endif /* IA_CSS_NO_DEBUG */
 

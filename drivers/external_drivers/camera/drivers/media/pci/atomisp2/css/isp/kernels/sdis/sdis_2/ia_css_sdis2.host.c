@@ -1,18 +1,29 @@
 /**
-Support for Intel Camera Imaging ISP subsystem.
-Copyright (c) 2010 - 2015, Intel Corporation.
+INTEL CONFIDENTIAL
 
-This program is free software; you can redistribute it and/or modify it
-under the terms and conditions of the GNU General Public License,
-version 2, as published by the Free Software Foundation.
+Copyright (C) 2014 - 2016 Intel Corporation.
+All Rights Reserved.
 
-This program is distributed in the hope it will be useful, but WITHOUT
-ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-more details.
+The source code contained or described herein and all documents
+related to the source code ("Material") are owned by Intel Corporation
+or licensors. Title to the Material remains with Intel
+Corporation or its licensors. The Material contains trade
+secrets and proprietary and confidential information of Intel or its
+licensors. The Material is protected by worldwide copyright
+and trade secret laws and treaty provisions. No part of the Material may
+be used, copied, reproduced, modified, published, uploaded, posted,
+transmitted, distributed, or disclosed in any way without Intel's prior
+express written permission.
+
+No License under any patent, copyright, trade secret or other intellectual
+property right is granted to or conferred upon you by disclosure or
+delivery of the Materials, either expressly, by implication, inducement,
+estoppel or otherwise. Any license under such intellectual property rights
+must be express and approved by Intel in writing.
 */
 
 #include <assert_support.h>
+#include "string_support.h"
 #include "memory_access.h"
 #include "ia_css_debug.h"
 #include "ia_css_sdis2.host.h"
@@ -26,7 +37,7 @@ const struct ia_css_dvs2_coefficients default_sdis2_config = {
 static void
 fill_row(short *private, const short *public, unsigned width, unsigned padding)
 {
-	memcpy (private, public, width*sizeof(short));
+	memcpy_s (private, width*sizeof(short), public, width*sizeof(short));
 	memset (&private[width], 0, padding*sizeof(short));
 }
 
@@ -135,14 +146,14 @@ void ia_css_get_isp_dvs2_coefficients(
 	hor_num_isp = dvs_binary->dis.coef.pad.width;
 	ver_num_isp = dvs_binary->dis.coef.pad.height;
 
-	memcpy (hor_coefs_odd_real,  params->dvs2_coefs.hor_coefs.odd_real,  hor_num_3a * sizeof(short));
-	memcpy (hor_coefs_odd_imag,  params->dvs2_coefs.hor_coefs.odd_imag,  hor_num_3a * sizeof(short));
-	memcpy (hor_coefs_even_real, params->dvs2_coefs.hor_coefs.even_real, hor_num_3a * sizeof(short));
-	memcpy (hor_coefs_even_imag, params->dvs2_coefs.hor_coefs.even_imag, hor_num_3a * sizeof(short));
-	memcpy (ver_coefs_odd_real,  params->dvs2_coefs.ver_coefs.odd_real,  ver_num_3a * sizeof(short));
-	memcpy (ver_coefs_odd_imag,  params->dvs2_coefs.ver_coefs.odd_imag,  ver_num_3a * sizeof(short));
-	memcpy (ver_coefs_even_real, params->dvs2_coefs.ver_coefs.even_real, ver_num_3a * sizeof(short));
-	memcpy (ver_coefs_even_imag, params->dvs2_coefs.ver_coefs.even_imag, ver_num_3a * sizeof(short));
+	memcpy_s (hor_coefs_odd_real,  hor_num_3a * sizeof(short), params->dvs2_coefs.hor_coefs.odd_real,  hor_num_3a * sizeof(short));
+	memcpy_s (hor_coefs_odd_imag,  hor_num_3a * sizeof(short), params->dvs2_coefs.hor_coefs.odd_imag,  hor_num_3a * sizeof(short));
+	memcpy_s (hor_coefs_even_real, hor_num_3a * sizeof(short), params->dvs2_coefs.hor_coefs.even_real, hor_num_3a * sizeof(short));
+	memcpy_s (hor_coefs_even_imag, hor_num_3a * sizeof(short), params->dvs2_coefs.hor_coefs.even_imag, hor_num_3a * sizeof(short));
+	memcpy_s (ver_coefs_odd_real,  ver_num_3a * sizeof(short), params->dvs2_coefs.ver_coefs.odd_real,  ver_num_3a * sizeof(short));
+	memcpy_s (ver_coefs_odd_imag,  ver_num_3a * sizeof(short), params->dvs2_coefs.ver_coefs.odd_imag,  ver_num_3a * sizeof(short));
+	memcpy_s (ver_coefs_even_real, ver_num_3a * sizeof(short), params->dvs2_coefs.ver_coefs.even_real, ver_num_3a * sizeof(short));
+	memcpy_s (ver_coefs_even_imag, ver_num_3a * sizeof(short), params->dvs2_coefs.ver_coefs.even_imag, ver_num_3a * sizeof(short));
 
 	IA_CSS_LEAVE("void");
 }
@@ -232,23 +243,23 @@ ia_css_translate_dvs2_statistics(
 	vtemp_ptr = isp_stats->ver_proj; /* vertical stats */
 	for (height = 0; height < host_stats->grid.aligned_height; height++) {
 		/* hor stats */
-		memcpy(host_stats->hor_prod.odd_real + dst_offset,
+        	memcpy_s(host_stats->hor_prod.odd_real + dst_offset, size_bytes,
 			&htemp_ptr[0*table_size+src_offset], size_bytes);
-		memcpy(host_stats->hor_prod.odd_imag + dst_offset,
+        	memcpy_s(host_stats->hor_prod.odd_imag + dst_offset, size_bytes,
 			&htemp_ptr[1*table_size+src_offset], size_bytes);
-		memcpy(host_stats->hor_prod.even_real + dst_offset,
+        	memcpy_s(host_stats->hor_prod.even_real + dst_offset, size_bytes,
 			&htemp_ptr[2*table_size+src_offset], size_bytes);
-		memcpy(host_stats->hor_prod.even_imag + dst_offset,
+        	memcpy_s(host_stats->hor_prod.even_imag + dst_offset, size_bytes,
 			&htemp_ptr[3*table_size+src_offset], size_bytes);
 
 		/* ver stats */
-		memcpy(host_stats->ver_prod.odd_real + dst_offset,
+        	memcpy_s(host_stats->ver_prod.odd_real + dst_offset, size_bytes,
 			&vtemp_ptr[0*table_size+src_offset], size_bytes);
-		memcpy(host_stats->ver_prod.odd_imag + dst_offset,
+        	memcpy_s(host_stats->ver_prod.odd_imag + dst_offset, size_bytes,
 			&vtemp_ptr[1*table_size+src_offset], size_bytes);
-		memcpy(host_stats->ver_prod.even_real + dst_offset,
+        	memcpy_s(host_stats->ver_prod.even_real + dst_offset, size_bytes,
 			&vtemp_ptr[2*table_size+src_offset], size_bytes);
-		memcpy(host_stats->ver_prod.even_imag + dst_offset,
+        	memcpy_s(host_stats->ver_prod.even_imag + dst_offset, size_bytes,
 			&vtemp_ptr[3*table_size+src_offset], size_bytes);
 
 		src_offset += table_width; /* aligned table width */

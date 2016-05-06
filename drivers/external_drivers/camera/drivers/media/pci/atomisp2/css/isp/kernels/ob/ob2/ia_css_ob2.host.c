@@ -72,7 +72,7 @@ ia_css_ob2_debug_dtrace(
 {
 	ia_css_debug_dtrace(level,
 		"config.level_gr=%d, config.level_r=%d, "
-		"config.level_b=%d,  config.level_gb=%d, ",
+		"config.level_b=%d,  config.level_gb=%d, \n",
 		config->level_gr, config->level_r,
 		config->level_b, config->level_gb);
 }

@@ -9808,7 +9808,6 @@ ia_css_stream_create(const struct ia_css_stream_config *stream_config,
 		curr_pipe = pipes[i];
 		/* set current stream */
 		curr_pipe->stream = curr_stream;
-		curr_pipe->in_frame_struct.info.raw_type = curr_pipe->stream->config.input_config.raw_type;
 		/* take over effective info */
 
 		effective_res = curr_pipe->config.input_effective_res;

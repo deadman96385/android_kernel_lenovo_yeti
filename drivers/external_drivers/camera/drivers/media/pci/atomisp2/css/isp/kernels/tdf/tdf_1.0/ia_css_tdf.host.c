@@ -102,6 +102,54 @@ ia_css_tdf_debug_dtrace(
 	const struct ia_css_tdf_config *config,
 	unsigned level)
 {
-	(void)config;
-	(void)level;
+	unsigned int row, col;
+
+	if (!config)
+		return;
+
+	ia_css_debug_dtrace(level, "\tthres_flat_table = {\n");
+	for (row = 0; row < TDF_BLOCK_SIZE_Y; row++) {
+		ia_css_debug_dtrace(level, "\t\t\t");
+		for (col = 0; col < TDF_BLOCK_SIZE_X; col++) {
+			ia_css_debug_dtrace(level, "%4d,",
+					    config->thres_flat_table[row*TDF_BLOCK_SIZE_Y + col]);
+		}
+		ia_css_debug_dtrace(level, row == TDF_BLOCK_SIZE_Y - 1 ? "}\n" : "\n");
+	}
+	ia_css_debug_dtrace(level, "\thres_detail_table = {\n");
+	for (row = 0; row < TDF_BLOCK_SIZE_Y; row++) {
+		ia_css_debug_dtrace(level, "\t\t\t");
+		for (col = 0; col < TDF_BLOCK_SIZE_X; col++) {
+			ia_css_debug_dtrace(level, "%4d,",
+					    config->thres_detail_table[row*TDF_BLOCK_SIZE_Y + col]);
+		}
+		ia_css_debug_dtrace(level, row == TDF_BLOCK_SIZE_Y - 1 ? "}\n" : "\n");
+	}
+	ia_css_debug_dtrace(level, "\thres_detail_table\n");
+	ia_css_debug_dtrace(level, "\t%-18s = %4d\t%-18s = %4d\n",
+			    "epsilon_0", config->epsilon_0,
+			    "epsilon_1", config->epsilon_1);
+	ia_css_debug_dtrace(level, "\t%-18s = %4d\t%-18s = %4d\n",
+			    "eps_scale_text", config->eps_scale_text,
+			    "eps_scale_edge", config->eps_scale_edge);
+	ia_css_debug_dtrace(level, "\t%-18s = %4d\t%-18s = %4d\n",
+			    "sepa_flat", config->sepa_flat,
+			    "sepa_edge", config->sepa_edge);
+	ia_css_debug_dtrace(level, "\t%-18s = %4d\t%-18s = %4d\t%-18s = %4d\n",
+			    "blend_flat", config->blend_flat,
+			    "blend_text", config->blend_text,
+			    "blend_edge", config->blend_edge);
+	ia_css_debug_dtrace(level, "\t%-18s = %4d\t%-18s = %4d\n",
+			    "shading_gain", config->shading_gain,
+			    "shading_base_gain", config->shading_base_gain);
+	ia_css_debug_dtrace(level, "\t%-18s = %4d\t%-18s = %4d\n",
+			    "local_y_gain", config->local_y_gain,
+			    "local_y_base_gain", config->local_y_base_gain);
+	ia_css_debug_dtrace(level, "\t%-18s = %4d\t%-18s = %4d\n",
+			    "rad_x_origin", config->rad_x_origin,
+			    "rad_y_origin", config->rad_y_origin);
+	ia_css_debug_dtrace(level, "\t%-18s = %4d\t%-18s = %4d\n",
+			    "blend_ratio", config->blend_ratio,
+			    "min_edge_thres", config->min_edge_thres);
+
 }

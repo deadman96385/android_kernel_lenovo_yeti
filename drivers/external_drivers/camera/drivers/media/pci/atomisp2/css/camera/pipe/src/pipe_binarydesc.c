@@ -58,6 +58,7 @@ static void pipe_binarydesc_get_offline(
 	descr->enable_dpc = false;
 	descr->enable_luma_only = false;
 	descr->enable_tnr = false;
+	descr->enable_rgbir_remosaic = false;
 	descr->enable_capture_pp_bli = false;
 	descr->enable_fractional_ds = false;
 	descr->dvs_env.width = 0;
@@ -427,6 +428,8 @@ enum ia_css_err ia_css_pipe_get_video_binarydesc(
 			pipe->config.enable_luma_only;
 		video_descr->enable_tnr =
 			pipe->config.enable_tnr;
+		video_descr->enable_rgbir_remosaic =
+			pipe->stream->config.input_config.raw_type;
 
 #if defined(IS_ISP_2500_SYSTEM)
 /*
@@ -658,6 +661,8 @@ void ia_css_pipe_get_primary_binarydesc(
 		    pipe->extra_config.enable_fractional_ds;
 		prim_descr->enable_luma_only =
 			pipe->config.enable_luma_only;
+		prim_descr->enable_rgbir_remosaic =
+			pipe->stream->config.input_config.raw_type;
 		/* We have both striped and non-striped primary binaries,
 		 * if continuous viewfinder is required, then we must select
 		 * a striped one. Otherwise we prefer to use a non-striped

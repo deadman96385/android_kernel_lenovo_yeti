@@ -20,6 +20,8 @@ more details.
 #else
 #include <string.h> /* memset */
 #endif
+#include "string_support.h"
+
 
 #include "sh_css_internal.h" /* sh_css_malloc and sh_css_free */
 
@@ -35,7 +37,7 @@ ia_css_cpu_mem_copy(void* dst, const void* src, unsigned int size)
 	if(!src || !dst)
 		return NULL;
 
-	return memcpy(dst, src, size);
+	return memcpy_s(dst, size, src, size);
 }
 
 static inline void*

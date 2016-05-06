@@ -15,6 +15,7 @@ more details.
 #include "memory_access.h"
 #include "assert_support.h"
 #include "ia_css_debug.h"
+#include "string_support.h"
 #include "ia_css_sdis_types.h"
 #include "sdis/common/ia_css_sdis_common.host.h"
 #include "ia_css_sdis.host.h"
@@ -30,7 +31,7 @@ fill_row(short *private, const short *public, unsigned width, unsigned padding)
 {
 	assert((int)width >= 0);
 	assert((int)padding >= 0);
-	memcpy (private, public, width*sizeof(short));
+	memcpy_s (private, width*sizeof(short), public, width*sizeof(short));
 	memset (&private[width], 0, padding*sizeof(short));
 }
 
@@ -279,11 +280,11 @@ ia_css_translate_dvs_statistics(
 	ver_ptr_dvs = host_stats->ver_proj;
 
 	for (i = 0; i < IA_CSS_DVS_NUM_COEF_TYPES; i++) {
-		memcpy(hor_ptr_dvs, hor_ptr_isp, hor_num_dvs * sizeof(int32_t));
+		memcpy_s(hor_ptr_dvs, hor_num_dvs * sizeof(int32_t), hor_ptr_isp, hor_num_dvs * sizeof(int32_t));
 		hor_ptr_isp += hor_num_isp;
 		hor_ptr_dvs += hor_num_dvs;
 
-		memcpy(ver_ptr_dvs, ver_ptr_isp, ver_num_dvs * sizeof(int32_t));
+		memcpy_s(ver_ptr_dvs, ver_num_dvs * sizeof(int32_t), ver_ptr_isp, ver_num_dvs * sizeof(int32_t));
 		ver_ptr_isp += ver_num_isp;
 		ver_ptr_dvs += ver_num_dvs;
 	}

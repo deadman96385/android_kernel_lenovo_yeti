@@ -1264,6 +1264,7 @@ ia_css_binary_find(struct ia_css_binary_descr *descr,
 	bool enable_reduced_pipe;
 	bool enable_capture_pp_bli;
 	bool enable_luma_only;
+	bool enable_rgbir_remosaic;
 	enum ia_css_err err = IA_CSS_ERR_INTERNAL_ERROR;
 	bool continuous;
 	unsigned int isp_pipe_version;
@@ -1311,6 +1312,7 @@ ia_css_binary_find(struct ia_css_binary_descr *descr,
 	enable_reduced_pipe = descr->enable_reduced_pipe;
 	enable_capture_pp_bli = descr->enable_capture_pp_bli;
 	enable_luma_only = descr->enable_luma_only;
+	enable_rgbir_remosaic = descr->enable_rgbir_remosaic;
 	continuous = descr->continuous;
 	striped = descr->striped;
 	isp_pipe_version = descr->isp_pipe_version;
@@ -1645,6 +1647,14 @@ ia_css_binary_find(struct ia_css_binary_descr *descr,
 				"ia_css_binary_find() [%d] continue: !%d && %d\n",
 				__LINE__, candidate->enable.tnr,
 				descr->enable_tnr);
+			continue;
+		}
+
+		if (candidate->enable.rgbir_remosaic != enable_rgbir_remosaic) {
+			ia_css_debug_dtrace(IA_CSS_DEBUG_TRACE,
+				"ia_css_binary_find() [%d] continue: %d != %d\n",
+				__LINE__, candidate->enable.rgbir_remosaic,
+				descr->enable_rgbir_remosaic);
 			continue;
 		}
 

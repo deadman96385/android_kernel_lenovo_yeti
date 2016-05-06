@@ -110,6 +110,7 @@ struct ia_css_binary_descr {
 	bool enable_dpc;
 	bool enable_luma_only;
 	bool enable_tnr;
+	bool enable_rgbir_remosaic;
 	bool enable_capture_pp_bli;
 	struct ia_css_resolution dvs_env;
 	enum ia_css_stream_format stream_format;
