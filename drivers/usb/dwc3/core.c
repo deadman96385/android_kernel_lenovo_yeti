@@ -104,12 +104,12 @@ static int ulpi_read(struct dwc3 *dwc, u32 reg)
 	count = 200;
 	/* Determine if use extend registers access */
 	if (reg & EXTEND_ULPI_REGISTER_ACCESS_MASK) {
-		dev_dbg(dwc->dev, "Access extend registers 0x%x\n", reg);
+		dwc3_trace(trace_dwc3_core, "Access extend registers 0x%x", reg);
 		val32 = GUSB2PHYACC0_NEWREGREQ
 			| GUSB2PHYACC0_REGADDR(ULPI_ACCESS_EXTENDED)
 			| GUSB2PHYACC0_VCTRL(reg);
 	} else {
-		dev_dbg(dwc->dev, "Access normal registers 0x%x\n", reg);
+		dwc3_trace(trace_dwc3_core, "Access normal registers 0x%x", reg);
 		val32 = GUSB2PHYACC0_NEWREGREQ | GUSB2PHYACC0_REGADDR(reg)
 			| GUSB2PHYACC0_VCTRL(0x00);
 	}
@@ -119,7 +119,7 @@ static int ulpi_read(struct dwc3 *dwc, u32 reg)
 		if (dwc3_readl(dwc->regs, GUSB2PHYACC0) & GUSB2PHYACC0_VSTSDONE) {
 			val = dwc3_readl(dwc->regs, GUSB2PHYACC0) &
 				GUSB2PHYACC0_REGDATA_MASK;
-			dev_dbg(dwc->dev, "%s - reg 0x%x data 0x%x\n",
+			dwc3_trace(trace_dwc3_core, "%s - reg 0x%x data 0x%x",
 					__func__, reg, val);
 			goto cleanup;
 		}
@@ -161,13 +161,13 @@ static int ulpi_write(struct dwc3 *dwc, u32 val, u32 reg)
 
 	count = 10000;
 	if (reg & EXTEND_ULPI_REGISTER_ACCESS_MASK) {
-		dev_dbg(dwc->dev, "Access extend registers 0x%x\n", reg);
+		dwc3_trace(trace_dwc3_core, "Access extend registers 0x%x", reg);
 		val32 = GUSB2PHYACC0_NEWREGREQ
 			| GUSB2PHYACC0_REGADDR(ULPI_ACCESS_EXTENDED)
 			| GUSB2PHYACC0_VCTRL(reg)
 			| GUSB2PHYACC0_REGWR | GUSB2PHYACC0_REGDATA(val);
 	} else {
-		dev_dbg(dwc->dev, "Access normal registers 0x%x\n", reg);
+		dwc3_trace(trace_dwc3_core, "Access normal registers 0x%x", reg);
 		val32 = GUSB2PHYACC0_NEWREGREQ
 			| GUSB2PHYACC0_REGADDR(reg)
 			| GUSB2PHYACC0_REGWR
@@ -178,7 +178,7 @@ static int ulpi_write(struct dwc3 *dwc, u32 val, u32 reg)
 	while (count) {
 		if (dwc3_readl(dwc->regs, GUSB2PHYACC0) &
 			GUSB2PHYACC0_VSTSDONE) {
-			dev_dbg(dwc->dev, "%s - reg 0x%x data 0x%x write done\n",
+			dwc3_trace(trace_dwc3_core, "%s - reg 0x%x data 0x%x write done",
 				__func__, reg, val);
 			goto cleanup;
 		}
@@ -411,7 +411,7 @@ static int dwc3_event_buffers_setup(struct dwc3 *dwc)
 
 	for (n = 0; n < dwc->num_event_buffers; n++) {
 		evt = dwc->ev_buffs[n];
-		dev_dbg(dwc->dev, "Event buf %p dma %08llx length %d\n",
+		dwc3_trace(trace_dwc3_core, "Event buf %p dma %08llx length %d",
 				evt->buf, (unsigned long long) evt->dma,
 				evt->length);
 
@@ -454,7 +454,7 @@ static void dwc3_core_num_eps(struct dwc3 *dwc)
 	dwc->num_in_eps = DWC3_NUM_IN_EPS(parms);
 	dwc->num_out_eps = DWC3_NUM_EPS(parms) - dwc->num_in_eps;
 
-	dev_vdbg(dwc->dev, "found %d IN and %d OUT endpoints\n",
+	dwc3_trace(trace_dwc3_core, "found %d IN and %d OUT endpoints",
 			dwc->num_in_eps, dwc->num_out_eps);
 }
 
@@ -535,7 +535,7 @@ static int dwc3_core_init(struct dwc3 *dwc)
 		reg &= ~DWC3_GCTL_DSBLCLKGTNG;
 		break;
 	default:
-		dev_dbg(dwc->dev, "No power optimization available\n");
+		dwc3_trace(trace_dwc3_core, "No power optimization available");
 	}
 
 	/*
@@ -632,10 +632,9 @@ static int dwc3_handle_otg_notification(struct notifier_block *nb,
 		spin_unlock_irqrestore(&dwc->lock, flags);
 		break;
 	default:
-		dev_dbg(dwc->dev, "DWC3 OTG Notify unknow notify message\n");
+		dwc3_trace(trace_dwc3_core, "DWC3 OTG Notify unknow notify message");
 	}
 
-out:
 	return state;
 }
 
