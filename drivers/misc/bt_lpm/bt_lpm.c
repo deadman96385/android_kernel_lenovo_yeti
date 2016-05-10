@@ -29,8 +29,8 @@
 #include <linux/serial_hsu.h>
 
 enum {
-	gpio_enable_bt_acpi_idx,
 	gpio_wake_acpi_idx,
+	gpio_enable_bt_acpi_idx,
 	host_wake_acpi_idx
 };
 static struct gpio_desc *bt_lpm_gpiod;
@@ -239,6 +239,8 @@ static void set_wake_locked(int wake)
 static enum hrtimer_restart enter_lpm(struct hrtimer *timer)
 {
 	pr_debug("%s\n", __func__);
+
+	set_wake_locked(0);
 
 	return HRTIMER_NORESTART;
 }
