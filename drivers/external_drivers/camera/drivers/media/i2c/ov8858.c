@@ -1008,11 +1008,12 @@ static int __gpio_ctrl(struct v4l2_subdev *sd, bool flag)
 		return dev->platform_data->gpio_ctrl(sd, flag);
 
 
-#ifdef CONFIG_GMIN_INTEL_MID
 	/*Just to execute specific code  dintinguishing between HR and MRD */
 	if (strcmp(dmi_get_system_info(DMI_BOARD_NAME), CHT_HR_DEV_NAME) == 0) {
+#ifdef CONFIG_GMIN_INTEL_MID
 		if (dev->platform_data->gpio0_ctrl)
 			return dev->platform_data->gpio0_ctrl(sd, flag);
+#endif
 	} else {
 		if (dev->platform_data->gpio0_ctrl) {
 			int ret;
@@ -1022,7 +1023,6 @@ static int __gpio_ctrl(struct v4l2_subdev *sd, bool flag)
 		return ret;
 		}
 	}
-#endif
 	dev_err(&client->dev, "failed to find platform gpio callback\n");
 
 	return -EINVAL;
@@ -1662,7 +1662,6 @@ static int ov8858_s_mbus_fmt(struct v4l2_subdev *sd,
 		dev->regs = res->regs;
 
 	ret = ov8858_write_reg_array(client, dev->regs);
-#ifdef CHT_HR_DEV_NAME
 	/* W/A: For MRD, the valid BLC lines are different than in HR
 	 * making the image look green. */
 	if (strcmp(dmi_get_system_info(DMI_BOARD_NAME), CHT_HR_DEV_NAME) != 0) {
@@ -1672,7 +1671,6 @@ static int ov8858_s_mbus_fmt(struct v4l2_subdev *sd,
 		else
 			ret = ov8858_write_reg_array(client, ov8858_BLC_MRD);
 	}
-#endif
 	if (ret)
 		goto out;
 
