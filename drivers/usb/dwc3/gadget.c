@@ -299,7 +299,7 @@ int dwc3_send_gadget_ep_cmd(struct dwc3 *dwc, unsigned ep,
 	struct dwc3_ep		*dep = dwc->eps[ep];
 	u32			timeout = 500;
 	u32			reg;
-	u32			phycfg_val = 0;
+	u32			phycfg_val;
 	int			ret = -EINVAL;
 
 	trace_dwc3_gadget_ep_cmd(dep, cmd, params);
@@ -308,12 +308,10 @@ int dwc3_send_gadget_ep_cmd(struct dwc3 *dwc, unsigned ep,
 	dwc3_writel(dwc->regs, DWC3_DEPCMDPAR1(ep), params->param1);
 	dwc3_writel(dwc->regs, DWC3_DEPCMDPAR2(ep), params->param2);
 
-	if (dwc->gadget.speed != USB_SPEED_SUPER) {
-		phycfg_val = dwc3_readl(dwc->regs, DWC3_GUSB2PHYCFG(0));
+	phycfg_val = dwc3_readl(dwc->regs, DWC3_GUSB2PHYCFG(0));
 
-		dwc3_writel(dwc->regs, DWC3_GUSB2PHYCFG(0),
-			(phycfg_val & ~DWC3_GUSB2PHYCFG_SUSPHY));
-	}
+	dwc3_writel(dwc->regs, DWC3_GUSB2PHYCFG(0),
+		(phycfg_val & ~DWC3_GUSB2PHYCFG_SUSPHY));
 
 	dwc3_writel(dwc->regs, DWC3_DEPCMD(ep), cmd | DWC3_DEPCMD_CMDACT);
 	do {
@@ -321,9 +319,7 @@ int dwc3_send_gadget_ep_cmd(struct dwc3 *dwc, unsigned ep,
 		if (!(reg & DWC3_DEPCMD_CMDACT)) {
 			dwc3_trace(trace_dwc3_gadget, "Command Complete --> %d",
 					DWC3_DEPCMD_STATUS(reg));
-			if (dwc->gadget.speed != USB_SPEED_SUPER)
-				dwc3_writel(dwc->regs, DWC3_GUSB2PHYCFG(0),
-				phycfg_val);
+			dwc3_writel(dwc->regs, DWC3_GUSB2PHYCFG(0), phycfg_val);
 			if (DWC3_DEPCMD_STATUS(reg))
 				break;
 
