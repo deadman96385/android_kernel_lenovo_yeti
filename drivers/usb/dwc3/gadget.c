@@ -360,16 +360,11 @@ int dwc3_send_gadget_ep_cmd(struct dwc3_ep *dep, unsigned cmd,
 		if (!(reg & DWC3_DEPCMD_CMDACT)) {
 			cmd_status = DWC3_DEPCMD_STATUS(reg);
 
-			dwc3_trace(trace_dwc3_gadget,
-					"Command Complete --> %d",
-					cmd_status);
-
 			switch (cmd_status) {
 			case 0:
 				ret = 0;
 				break;
 			case DEPEVT_TRANSFER_NO_RESOURCE:
-				dwc3_trace(trace_dwc3_gadget, "no resource available");
 				ret = -EINVAL;
 				break;
 			case DEPEVT_TRANSFER_BUS_EXPIRY:
@@ -384,7 +379,6 @@ int dwc3_send_gadget_ep_cmd(struct dwc3_ep *dep, unsigned cmd,
 				 * give a hint to the gadget driver that this is
 				 * the case by returning -EAGAIN.
 				 */
-				dwc3_trace(trace_dwc3_gadget, "bus expiry");
 				ret = -EAGAIN;
 				break;
 			default:
@@ -396,8 +390,6 @@ int dwc3_send_gadget_ep_cmd(struct dwc3_ep *dep, unsigned cmd,
 	} while (--timeout);
 
 	if (timeout == 0) {
-		dwc3_trace(trace_dwc3_gadget,
-				"Command Timed Out");
 		ret = -ETIMEDOUT;
 		cmd_status = -ETIMEDOUT;
 	}
@@ -1168,13 +1160,16 @@ static int __dwc3_gadget_ep_queue(struct dwc3_ep *dep, struct dwc3_request *req)
 
 
 	if (!dep->endpoint.desc) {
-		dwc3_trace(trace_dwc3_gadget, "trying to queue request %p to disabled %s",
+		dwc3_trace(trace_dwc3_gadget,
+				"trying to queue request %p to disabled %s",
 				&req->request, dep->endpoint.name);
 		return -ESHUTDOWN;
 	}
 
 	if (WARN(req->dep != dep, "request %p belongs to '%s'\n",
 				&req->request, req->dep->name)) {
+		dwc3_trace(trace_dwc3_gadget, "request %p belongs to '%s'",
+				&req->request, req->dep->name);
 		return -EINVAL;
 	}
 
@@ -1275,7 +1270,8 @@ static int __dwc3_gadget_ep_queue(struct dwc3_ep *dep, struct dwc3_request *req)
 
 out:
 	if (ret && ret != -EBUSY)
-		dev_dbg(dwc->dev, "%s: failed to kick transfers\n",
+		dwc3_trace(trace_dwc3_gadget,
+				"%s: failed to kick transfers",
 				dep->name);
 	if (ret == -EBUSY)
 		ret = 0;
@@ -1295,7 +1291,7 @@ static int __dwc3_gadget_ep_queue_zlp(struct dwc3 *dwc, struct dwc3_ep *dep)
 	struct usb_request		*request;
 	struct usb_ep			*ep = &dep->endpoint;
 
-	dwc3_trace(trace_dwc3_gadget, "queueing ZLP\n");
+	dwc3_trace(trace_dwc3_gadget, "queueing ZLP");
 	request = dwc3_gadget_ep_alloc_request(ep, GFP_ATOMIC);
 	if (!request)
 		return -ENOMEM;
@@ -1576,7 +1572,7 @@ static int __dwc3_gadget_wakeup(struct dwc3 *dwc)
 
 	speed = reg & DWC3_DSTS_CONNECTSPD;
 	if ((speed == DWC3_DSTS_SUPERSPEED)) {
-		dwc3_trace(trace_dwc3_gadget, "no wakeup on SuperSpeed\n");
+		dwc3_trace(trace_dwc3_gadget, "no wakeup on SuperSpeed");
 		return 0;
 	}
 
@@ -1588,7 +1584,7 @@ static int __dwc3_gadget_wakeup(struct dwc3 *dwc)
 		break;
 	default:
 		dwc3_trace(trace_dwc3_gadget,
-				"can't wakeup from '%s'\n",
+				"can't wakeup from '%s'",
 				dwc3_gadget_link_string(link_state));
 		return -EINVAL;
 	}
@@ -2140,7 +2136,8 @@ static int __dwc3_cleanup_done_trbs(struct dwc3 *dwc, struct dwc3_ep *dep,
 		if (count) {
 			trb_status = DWC3_TRB_SIZE_TRBSTS(trb->size);
 			if (trb_status == DWC3_TRBSTS_MISSED_ISOC) {
-				dwc3_trace(trace_dwc3_gadget, "incomplete IN transfer %s",
+				dwc3_trace(trace_dwc3_gadget,
+						"%s: incomplete IN transfer",
 						dep->name);
 				/*
 				 * If missed isoc occurred and there is
@@ -2338,7 +2335,8 @@ static void dwc3_endpoint_interrupt(struct dwc3 *dwc,
 		dep->resource_index = 0;
 
 		if (usb_endpoint_xfer_isoc(dep->endpoint.desc)) {
-			dwc3_trace(trace_dwc3_gadget, "%s is an Isochronous endpoint",
+			dwc3_trace(trace_dwc3_gadget,
+					"%s is an Isochronous endpoint",
 					dep->name);
 			return;
 		}
@@ -2365,7 +2363,8 @@ static void dwc3_endpoint_interrupt(struct dwc3 *dwc,
 			if (!ret || ret == -EBUSY)
 				return;
 
-			dwc3_trace(trace_dwc3_gadget, "%s: failed to kick transfers",
+			dwc3_trace(trace_dwc3_gadget,
+					"%s: failed to kick transfers",
 					dep->name);
 		}
 
@@ -2386,7 +2385,8 @@ static void dwc3_endpoint_interrupt(struct dwc3 *dwc,
 		case DEPEVT_STREAMEVT_NOTFOUND:
 			/* FALLTHROUGH */
 		default:
-			dwc3_trace(trace_dwc3_gadget, "Couldn't find suitable stream");
+			dwc3_trace(trace_dwc3_gadget,
+					"unable to find suitable stream");
 		}
 		break;
 	case DWC3_DEPEVT_RXTXFIFOEVT:
