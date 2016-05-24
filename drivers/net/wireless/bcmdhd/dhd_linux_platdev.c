@@ -158,7 +158,7 @@ static int wifi_get_external_mac_addr(unsigned char *buf)
 	int i;
 	struct file *fp = NULL;
 	unsigned char c_mac[MAC_ADDRESS_LEN];
-	char fname[] = "/config/wifi/mac.txt";
+	char fname[] = "/oem_config/wifi/mac.txt";
 
 	DHD_TRACE(("%s Enter\n", __func__));
 
