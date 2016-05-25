@@ -125,7 +125,6 @@ ia_css_tdf_debug_dtrace(
 		}
 		ia_css_debug_dtrace(level, row == TDF_BLOCK_SIZE_Y - 1 ? "}\n" : "\n");
 	}
-	ia_css_debug_dtrace(level, "\thres_detail_table\n");
 	ia_css_debug_dtrace(level, "\t%-18s = %4d\t%-18s = %4d\n",
 			    "epsilon_0", config->epsilon_0,
 			    "epsilon_1", config->epsilon_1);

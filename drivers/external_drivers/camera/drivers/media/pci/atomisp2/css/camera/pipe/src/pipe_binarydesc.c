@@ -767,9 +767,9 @@ void ia_css_pipe_get_post_gdc_binarydesc(
 /* lookup table for ISP2.7 pre_de binaries */
 static unsigned int pre_de_isp27_modes[MAX_NUM_PRE_DE_STAGES] =
 {
-	IA_CSS_BINARY_MODE_PRE_DE,
-	IA_CSS_BINARY_MODE_PRE_DE_STAGE1,
-	IA_CSS_BINARY_MODE_PRE_DE_STAGE2
+	IA_CSS_BINARY_MODE_PRE_DE,		/* Up to WB */
+	IA_CSS_BINARY_MODE_PRE_DE_STAGE1,	/* Up to TDF */
+	IA_CSS_BINARY_MODE_PRE_DE_STAGE2	/* Up to BNLM */
 };
 
 void ia_css_pipe_get_pre_de_binarydesc(
