@@ -438,6 +438,8 @@ struct dwc3_event_buffer {
  * @resource_index: Resource transfer index
  * @current_uf: Current uf received through last event parameter
  * @interval: the interval on which the ISOC transfer is started
+ * @allocated_requests: number of requests allocated
+ * @queued_requests: number of requests queued for transfer
  * @name: a human readable name e.g. ep1out-bulk
  * @direction: true for TX, false for RX
  * @stream_capable: true when streams are enabled
@@ -482,6 +484,8 @@ struct dwc3_ep {
 	u8			type;
 	u8			resource_index;
 	u16			current_uf;
+	u32			allocated_requests;
+	u32			queued_requests;
 	u32			interval;
 
 	char			name[20];
