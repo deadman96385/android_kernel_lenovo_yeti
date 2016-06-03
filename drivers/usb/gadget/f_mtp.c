@@ -60,8 +60,8 @@
 #define STATE_ERROR                 4   /* error from completion routine */
 
 /* number of tx and rx requests to allocate */
-#define TX_REQ_MAX 4
-#define RX_REQ_MAX 2
+#define TX_REQ_MAX 8
+#define RX_REQ_MAX 4
 #define INTR_REQ_MAX 5
 
 /* ID for Microsoft MTP OS String */
@@ -741,6 +741,7 @@ static void send_file_work(struct work_struct *data)
 	int xfer, ret, hdr_size;
 	int r = 0;
 	int sendZLP = 0;
+	unsigned int req_count = 0;
 
 	/* read our parameters */
 	smp_rmb();
@@ -810,6 +811,13 @@ static void send_file_work(struct work_struct *data)
 		xfer = ret + hdr_size;
 		hdr_size = 0;
 
+		/* Don't generate interrupt every packet */
+		if ((count > MTP_BULK_TX_BUFFER_SIZE) &&
+		    (req_count % (TX_REQ_MAX/2)))
+			req->no_interrupt = true;
+		else
+			req->no_interrupt = false;
+
 		req->length = xfer;
 		ret = usb_ep_queue(dev->ep_in, req, GFP_KERNEL);
 		if (ret < 0) {
@@ -820,6 +828,7 @@ static void send_file_work(struct work_struct *data)
 		}
 
 		count -= xfer;
+		req_count++;
 
 		/* zero this so we don't try to free it on error exit */
 		req = 0;
