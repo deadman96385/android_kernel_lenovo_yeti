@@ -227,8 +227,8 @@ TRACE_EVENT(suspend_resume,
 		__entry->action = action;
 		__entry->val = val;
 		__entry->start = start;
-	),
-
+ 	),
+ 
 	TP_printk("%s[%u] %s", __entry->action, (unsigned int)__entry->val,
 		(__entry->start)?"begin":"end")
 );
