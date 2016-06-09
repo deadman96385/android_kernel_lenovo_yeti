@@ -1752,14 +1752,8 @@ static int dwc3_gadget_run_stop(struct dwc3 *dwc, int is_on)
 
 	do {
 		reg = dwc3_readl(dwc->regs, DWC3_DSTS);
-		if (is_on) {
-			if (!(reg & DWC3_DSTS_DEVCTRLHLT))
-				break;
-		} else {
-			if (reg & DWC3_DSTS_DEVCTRLHLT)
-				break;
-		}
-	} while (--timeout);
+		reg &= DWC3_DSTS_DEVCTRLHLT;
+	} while (--timeout && !(!is_on ^ !reg));
 
 	if (!timeout)
 		return -ETIMEDOUT;
