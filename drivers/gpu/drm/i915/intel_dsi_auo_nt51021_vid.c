@@ -188,7 +188,7 @@ static int auo_nt51021_get_effect_levels(struct hal_panel_ctrl_data *hal_panel_c
 	return 0;
 }
 static struct lcd_panel_dev auo_nt51021__panel_device = {
-	.name = "NT51021_INX_1920x1200_8",
+	.name = "NT51021_AUO_1920x1200_8",
 	.status = OFF,
 	.set_effect = auo_nt51021_set_effect,
 	.get_current_level = auo_nt51021_get_current_level,
