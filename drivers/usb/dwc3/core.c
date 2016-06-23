@@ -376,6 +376,7 @@ static int dwc3_alloc_event_buffers(struct dwc3 *dwc, unsigned length)
 		return PTR_ERR(evt);
 	}
 	dwc->ev_buf = evt;
+	dwc->ev_low_level = length/2;
 
 	return 0;
 }

@@ -2885,6 +2885,12 @@ static irqreturn_t dwc3_process_event_buf(struct dwc3_event_buffer *evt)
 	if (!(evt->flags & DWC3_EVENT_PENDING))
 		return IRQ_NONE;
 
+	if (left > dwc->ev_low_level) {
+		dwc->ev_low_level = left;
+		dev_err(dwc->dev, "events used %d\n",
+			dwc->ev_low_level/DWC3_EVENT_SIZE);
+	}
+
 	while (left > 0) {
 		union dwc3_event event;
 
