@@ -43,7 +43,7 @@
 #define DWC3_XHCI_RESOURCES_NUM	2
 
 #define DWC3_EVENT_SIZE		4	/* bytes */
-#define DWC3_EVENT_MAX_NUM	64	/* 2 events/endpoint */
+#define DWC3_EVENT_MAX_NUM	(DWC3_TRB_NUM + 4)	/* worst case when all trbs need event */
 #define DWC3_EVENT_BUFFERS_SIZE	(DWC3_EVENT_SIZE * DWC3_EVENT_MAX_NUM)
 #define DWC3_EVENT_TYPE_MASK	0xfe
 
