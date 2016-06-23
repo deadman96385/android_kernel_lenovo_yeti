@@ -233,7 +233,7 @@ struct sst_platform_info cht_platform_data = {
 	.pdata = NULL,
 	.ipc_info = &cht_ipc_info,
 	.lib_info = &cht_lib_dnld_info,
-	.start_recovery_timer = false,
+	.start_recovery_timer = true,
 	.debugfs_data = &cht_debugfs_data,
 };
 

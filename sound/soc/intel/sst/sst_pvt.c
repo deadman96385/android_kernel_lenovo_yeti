@@ -101,6 +101,7 @@ void write_shim_data(struct intel_sst_drv *sst, int addr,
 		break;
 	case SST_MRFLD_PCI_ID:
 	case SST_BYT_PCI_ID:
+	case SST_CHT_PCI_ID:
 		sst_shim_write64(sst->shim, addr, (u64) data);
 		break;
 	}
@@ -174,31 +175,6 @@ void reset_sst_shim(struct intel_sst_drv *sst)
 	sst_shim_write64(sst_drv_ctx->shim, SST_CSR, csr.full);
 }
 
-static void dump_sst_crash_area(void)
-{
-	void __iomem *fw_dump_area;
-	u32 dump_word;
-	u8 i;
-
-	/* dump the firmware SRAM where the exception details are stored */
-	fw_dump_area = ioremap_nocache(SST_EXCE_DUMP_BASE, SST_EXCE_DUMP_SIZE);
-
-	pr_err("Firmware exception dump begins:\n");
-	pr_err("Exception start signature:%#x\n", readl(fw_dump_area + SST_EXCE_DUMP_WORD));
-	pr_err("EXCCAUSE:\t\t\t%#x\n", readl(fw_dump_area + SST_EXCE_DUMP_WORD*2));
-	pr_err("EXCVADDR:\t\t\t%#x\n", readl(fw_dump_area + (SST_EXCE_DUMP_WORD*3)));
-	pr_err("Firmware additional data:\n");
-
-	/* dump remaining FW debug data */
-	for (i = 1; i < (SST_EXCE_DUMP_LEN-4+1); i++) {
-		dump_word = readl(fw_dump_area + (SST_EXCE_DUMP_WORD*3)
-						+ (i*SST_EXCE_DUMP_WORD));
-		pr_err("Data[%d]=%#x\n", i, dump_word);
-	}
-	iounmap(fw_dump_area);
-	pr_err("Firmware exception dump ends\n");
-}
-
 /**
  * dump_ram_area - dumps the iram/dram into a local buff
  *
@@ -227,7 +203,7 @@ void sst_stream_recovery(struct intel_sst_drv *sst)
 	struct stream_info *str_info;
 	u8 i;
 	for (i = 1; i <= sst->info.max_streams; i++) {
-		pr_err("Audio: Stream %d, state %d\n", i, sst->streams[i].status);
+		pr_debug("Audio: Stream %d, state %d\n", i, sst->streams[i].status);
 		if (sst->streams[i].status != STREAM_UN_INIT) {
 			str_info = &sst_drv_ctx->streams[i];
 			if (str_info->pcm_substream)
@@ -283,22 +259,22 @@ static void dump_buffer_fromio(void __iomem *from,
 	u32 val[4];
 
 	if (num_dwords % 4) {
-		pr_err("%s: num_dwords %d not multiple of 4\n",
+		pr_debug("%s: num_dwords %d not multiple of 4\n",
 				__func__, num_dwords);
 		return;
 	}
 
-	pr_err("****** Start *******\n");
-	pr_err("Dump %d dwords, from location %p\n", num_dwords, from);
+	pr_debug("****** Start *******\n");
+	pr_debug("Dump %d dwords, from location %p\n", num_dwords, from);
 
 	for (i = 0; i < num_dwords; ) {
 		val[0] = ioread32(from + (i++ * 4));
 		val[1] = ioread32(from + (i++ * 4));
 		val[2] = ioread32(from + (i++ * 4));
 		val[3] = ioread32(from + (i++ * 4));
-		pr_err("%.8x %.8x %.8x %.8x\n", val[0], val[1], val[2], val[3]);
+		pr_debug("%.8x %.8x %.8x %.8x\n", val[0], val[1], val[2], val[3]);
 	}
-	pr_err("****** End *********\n\n\n");
+	pr_debug("****** End *********\n\n\n");
 }
 
 static void sst_stall_lpe_n_wait(struct intel_sst_drv *sst)
@@ -328,6 +304,9 @@ static void sst_stall_lpe_n_wait(struct intel_sst_drv *sst)
 				sst_reg_read64(dma_reg1, offset)); */
 }
 
+/*	Default LPE interrupt mask values for IMRX Register	*/
+#define LPE_SHIM_IMRX_DEFAULT	0xFFFF0038
+
 #if IS_ENABLED(CONFIG_INTEL_SCU_IPC)
 static void sst_send_scu_reset_ipc(struct intel_sst_drv *sst)
 {
@@ -344,22 +323,32 @@ static void sst_send_scu_reset_ipc(struct intel_sst_drv *sst)
 		dump_sst_shim(sst);
 
 		/* Mask the DMA & SSP interrupts */
-		sst_shim_write64(sst->shim, SST_IMRX, 0xFFFF0038);
+		sst_shim_write64(sst->shim, SST_IMRX, LPE_SHIM_IMRX_DEFAULT);
 	}
 }
 #else
 static void sst_send_scu_reset_ipc(struct intel_sst_drv *sst)
 {
-	pr_debug("%s: do nothing, just return\n", __func__);
+	reset_sst_shim(sst);
+	sst_shim_write64(sst->shim, SST_IMRX, LPE_SHIM_IMRX_DEFAULT);
 }
 #endif
+
+#define IRAM_EVENT_SIZE_MAX	30
+#define DRAM_EVENT_SIZE_MAX	30
+#define DDR_EVENT_SIZE_MAX	65
+#define EVENT_TYPE_SIZE_MAX	30
+#define NUM_EVENT_MAX		5
+#define STREAM_CLOSE_DELAY_MIN	10000
+#define STREAM_CLOSE_DELAY_MAX	12000
 
 #define SRAM_OFFSET_MRFLD	0xc00
 #define NUM_DWORDS		256
 void sst_do_recovery_mrfld(struct intel_sst_drv *sst)
 {
-	char iram_event[30], dram_event[30], ddr_imr_event[65], event_type[30];
-	char *envp[5];
+	char iram_event[IRAM_EVENT_SIZE_MAX], dram_event[DRAM_EVENT_SIZE_MAX];
+	char ddr_imr_event[DDR_EVENT_SIZE_MAX], event_type[EVENT_TYPE_SIZE_MAX];
+	char *envp[NUM_EVENT_MAX];
 	int env_offset = 0;
 
 	/*
@@ -402,7 +391,8 @@ void sst_do_recovery_mrfld(struct intel_sst_drv *sst)
 
 	if (sst->ddr != NULL) {
 		snprintf(ddr_imr_event, sizeof(ddr_imr_event),
-		"DDR_IMR_DUMP_SIZE=%d DDR_IMR_ADDRESS=%p", (sst->ddr_end - sst->ddr_base), sst->ddr);
+			"DDR_IMR_DUMP_SIZE=%d DDR_IMR_ADDRESS=%p",
+			(sst->ddr_end - sst->ddr_base), sst->ddr);
 		envp[env_offset++] = ddr_imr_event;
 	}
 	envp[env_offset] = NULL;
@@ -435,35 +425,109 @@ void sst_do_recovery_mrfld(struct intel_sst_drv *sst)
 	/* Delay is to ensure that the stream is closed before
 	 * powering on DAPM widget
 	 */
-	usleep_range(10000, 12000);
+	usleep_range(STREAM_CLOSE_DELAY_MIN, STREAM_CLOSE_DELAY_MAX);
 }
 
 #define DUMP_SRAM_CHECKPOINT_DWORDS		640
 void sst_do_recovery(struct intel_sst_drv *sst)
 {
+	char iram_event[IRAM_EVENT_SIZE_MAX], dram_event[DRAM_EVENT_SIZE_MAX];
+	char ddr_imr_event[DDR_EVENT_SIZE_MAX], event_type[EVENT_TYPE_SIZE_MAX];
+	char *envp[NUM_EVENT_MAX];
+	int env_offset = 0;
+
 	pr_err("Audio: Intel SST engine encountered an unrecoverable error\n");
-	pr_err("Audio: Dumping LPE firmware debug info...\n");
+	snprintf(event_type, sizeof(event_type), "EVENT_TYPE=SST_CRASHED");
+	envp[env_offset++] = event_type;
+	snprintf(iram_event, sizeof(iram_event), "IRAM_DUMP_SIZE=%d",
+			sst->dump_buf.iram_buf.size);
+	envp[env_offset++] = iram_event;
+	snprintf(dram_event, sizeof(dram_event), "DRAM_DUMP_SIZE=%d",
+			sst->dump_buf.dram_buf.size);
+	envp[env_offset++] = dram_event;
+
+	if (sst->ddr != NULL) {
+		snprintf(ddr_imr_event, sizeof(ddr_imr_event),
+		"DDR_IMR_DUMP_SIZE=%d DDR_IMR_ADDRESS=%p", (sst->ddr_end - sst->ddr_base), sst->ddr);
+		envp[env_offset++] = ddr_imr_event;
+	}
+	envp[env_offset] = NULL;
+	kobject_uevent_env(&sst->dev->kobj, KOBJ_CHANGE, envp);
+	pr_err("SST Crash Uevent Sent!!\n");
+
+	/*
+	 * setting firmware state as RESET so that the firmware will get
+	 * redownloaded on next request.This is because firmare not responding
+	 * for 1 sec is equalant to some unrecoverable error of FW.
+	 */
+	pr_err("Audio: trying to reset the dsp now\n");
+	mutex_lock(&sst->sst_lock);
+	sst->sst_state = SST_RECOVERY;
+	mutex_unlock(&sst->sst_lock);
 
 	dump_stack();
-	pr_err("Audio: Dumping  lpe shim registers...\n");
 	dump_sst_shim(sst);
 
+	mutex_lock(&sst->sst_lock);
+	sst_stall_lpe_n_wait(sst);
+	mutex_unlock(&sst->sst_lock);
+
 	/* dump mailbox and sram */
-	pr_err("Audio: Dumping Mailbox IA to LPE...\n");
+	pr_debug("Audio: Dumping Mailbox IA to LPE...\n");
 	dump_buffer_fromio(sst->ipc_mailbox, NUM_DWORDS);
-	pr_err("Audio: Dumping Mailbox LPE to IA...\n");
+	pr_debug("Audio: Dumping Mailbox LPE to IA...\n");
 	dump_buffer_fromio((sst->ipc_mailbox + sst->mailbox_recv_offset),
-				NUM_DWORDS);
-	pr_err("Audio: Dumping SRAM CHECKPOINT...\n");
+		NUM_DWORDS);
+	pr_debug("Audio: Dumping SRAM CHECKPOINT...\n");
 	dump_buffer_fromio((sst->mailbox +
 			sst->pdata->debugfs_data->checkpoint_offset),
 			DUMP_SRAM_CHECKPOINT_DWORDS);
 
-	if (sst->sst_state == SST_FW_RUNNING &&
-		sst_drv_ctx->pci_id == SST_CLV_PCI_ID)
-		dump_sst_crash_area();
+	if (sst_drv_ctx->ops->set_bypass) {
+		mutex_lock(&sst->sst_lock);
+		sst_drv_ctx->ops->set_bypass(true);
+		dump_ram_area(sst, &(sst->dump_buf), SST_IRAM);
+		dump_ram_area(sst, &(sst->dump_buf), SST_DRAM);
+		sst_drv_ctx->ops->set_bypass(false);
+		mutex_unlock(&sst->sst_lock);
+	}
 
+	/* Send IPC to SCU to power gate and reset the LPE */
+	sst_send_scu_reset_ipc(sst);
+
+	pr_err("reset the pvt id from val %d\n", sst_drv_ctx->pvt_id);
+	spin_lock(&sst_drv_ctx->block_lock);
+	sst_drv_ctx->pvt_id = 0;
+	spin_unlock(&sst_drv_ctx->block_lock);
 	sst_dump_ipc_dispatch_lists(sst_drv_ctx);
+	sst_dump_rx_lists(sst_drv_ctx);
+
+	if (sst_drv_ctx->fw_in_mem) {
+		pr_err("Clearing the cached FW copy...\n");
+		kfree(sst_drv_ctx->fw_in_mem);
+		sst_drv_ctx->fw_in_mem = NULL;
+		sst_memcpy_free_resources();
+		kfree(sst_drv_ctx->fw_sg_list.src);
+		kfree(sst_drv_ctx->fw_sg_list.dst);
+		sst_drv_ctx->fw_sg_list.list_len = 0;
+	}
+
+	mutex_lock(&sst->sst_lock);
+	sst->sst_state = SST_RESET;
+	sst_stream_recovery(sst);
+	mutex_unlock(&sst->sst_lock);
+
+	/* Delay is to ensure that the stream is closed before
+	 * powering on DAPM widget
+	 */
+	usleep_range(STREAM_CLOSE_DELAY_MIN, STREAM_CLOSE_DELAY_MAX);
+
+	env_offset = 0;
+	snprintf(event_type, sizeof(event_type), "EVENT_TYPE=SST_RECOVERY");
+	envp[env_offset++] = event_type;
+	envp[env_offset] = NULL;
+	kobject_uevent_env(&sst->dev->kobj, KOBJ_CHANGE, envp);
+	pr_err("SST Recovery Uevent Sent!!\n");
 
 }
 
