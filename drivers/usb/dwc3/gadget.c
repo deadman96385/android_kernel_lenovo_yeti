@@ -804,15 +804,6 @@ static void dwc3_prepare_one_trb(struct dwc3_ep *dep,
 			length, last ? " last" : "",
 			chain ? " chain" : "");
 
-	/*
-	 * When trying to issue Update Transfer, we can remove LST bit from
-	 * previous TRB and avoid a XferComplete
-	 */
-	if (dep->flags & DWC3_EP_BUSY) {
-		trb = &dep->trb_pool[dep->trb_enqueue - 1];
-		if (trb->ctrl & DWC3_TRB_CTRL_HWO)
-			trb->ctrl &= ~DWC3_TRB_CTRL_LST;
-	}
 
 	trb = &dep->trb_pool[dep->trb_enqueue];
 
