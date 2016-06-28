@@ -61,6 +61,14 @@ struct mmc_queue {
 	unsigned long		cmdqslot;
 	unsigned long		qdepth;
 	atomic_t		active_slots;
+#ifdef CONFIG_MMC_SIMULATE_MAX_SPEED
+	atomic_t max_write_speed;
+	atomic_t max_read_speed;
+	atomic_t cache_size;
+	/* i/o tracking */
+	atomic_long_t cache_used;
+	unsigned long cache_jiffies;
+#endif
 };
 
 extern int mmc_init_queue(struct mmc_queue *, struct mmc_card *, spinlock_t *,
