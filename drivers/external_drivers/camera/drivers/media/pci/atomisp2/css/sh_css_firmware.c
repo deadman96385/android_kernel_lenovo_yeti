@@ -48,10 +48,10 @@ struct fw_param {
 /* Warning: same order as SH_CSS_BINARY_ID_* */
 static struct firmware_header *firmware_header;
 
-/* The string STR(irci_ecr-stable_btns_20160510_20160623_0802) is a place holder
+/* The string STR(irci_ecr-stable_btns_20160510_20160628_1849) is a place holder
  * which will be replaced with the actual RELEASE_VERSION
  * during package generation. Please do not modify  */
-static const char *release_version = STR(irci_ecr-stable_btns_20160510_20160623_0802);
+static const char *release_version = STR(irci_ecr-stable_btns_20160510_20160628_1849);
 
 #define MAX_FW_REL_VER_NAME	300
 static char FW_rel_ver_name[MAX_FW_REL_VER_NAME] = "---";
