@@ -1631,8 +1631,8 @@ void
 intel_attach_pipe_color_correction(struct intel_crtc *intel_crtc)
 {
 	struct clrmgr_reg_request *features;
-	struct drm_crtc *crtc = &intel_crtc->base;
-	struct drm_device *dev = crtc->dev;
+	//struct drm_crtc *crtc = &intel_crtc->base;
+	//struct drm_device *dev = crtc->dev;
 
 	/* Color manager initialized? */
 	if (!intel_crtc->color_status) {
@@ -1662,8 +1662,8 @@ intel_attach_pipe_color_correction(struct intel_crtc *intel_crtc)
 	/* WA: Enable CGM block CSC with Unity Matrix, disabling CGM block on
 	 * the fly leads to display blank-out, So keep CSC always ON
 	 */
-	if (IS_CHERRYVIEW(dev))
-		chv_set_csc(dev, crtc, false);
+	//if (IS_CHERRYVIEW(dev))
+	//	chv_set_csc(dev, crtc, false);
 	kfree(features);
 }
 
