@@ -1929,6 +1929,8 @@ int composite_dev_prepare(struct usb_composite_driver *composite,
 	struct usb_gadget *gadget = cdev->gadget;
 	int ret = -ENOMEM;
 
+	cdev->os_desc_req = NULL;
+
 	/* preallocate control response and buffer */
 	cdev->req = usb_ep_alloc_request(gadget->ep0, GFP_KERNEL);
 	if (!cdev->req)
