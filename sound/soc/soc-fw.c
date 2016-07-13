@@ -1235,10 +1235,11 @@ err_se:
 	kfree(kc);
 
 	/* free values and texts */
-	kfree(se->dvalues);
-	for (i = 0; i < ec->items; i++)
-		kfree(se->dtexts[i]);
-
+	if (se) {
+		kfree(se->dvalues);
+		for (i = 0; i < ec->items; i++)
+			kfree(se->dtexts[i]);
+	}
 	kfree(se);
 
 	return NULL;
