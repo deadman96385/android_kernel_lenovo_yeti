@@ -631,7 +631,7 @@ static int sst_voice_mode_put(struct snd_kcontrol *kcontrol,
 
 	/* disable and enable the voice path
 	   so that the mode change takes effect */
-	if (w->power) {
+	if (w && w->power) {
 		sst_send_speech_path(sst, SST_SWITCH_OFF);
 		sst_send_speech_path(sst, SST_SWITCH_ON);
 
@@ -639,7 +639,8 @@ static int sst_voice_mode_put(struct snd_kcontrol *kcontrol,
 		for (i = 1; i < ARRAY_SIZE(sst_voice_widgets); i++) {
 			w = snd_soc_dapm_find_widget(&platform->dapm,
 						sst_voice_widgets[i], true);
-			sst_send_pipe_module_params(w);
+			if (w)
+				sst_send_pipe_module_params(w);
 		}
 	}
 	return 0;
