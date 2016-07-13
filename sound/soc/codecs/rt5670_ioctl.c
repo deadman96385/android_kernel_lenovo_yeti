@@ -105,7 +105,7 @@ int rt5670_ioctl_common(struct snd_hwdep *hw, struct file *file,
 
 	switch (cmd) {
 	case RT_SET_CODEC_HWEQ_IOCTL:
-		if (eq_mode[*buf] == *(buf + 1))
+		if ((* buf > EQ_CH_NUM) && (eq_mode[*buf] == *(buf + 1)))
 			break;
 		eq_mode[*buf] = *(buf + 1);
 		rt5670_update_eqmode(codec, eq_mode[*buf], *buf);
