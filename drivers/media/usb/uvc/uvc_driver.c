@@ -158,6 +158,21 @@ static struct uvc_format_desc uvc_fmts[] = {
 		.guid		= UVC_GUID_FORMAT_INVI,
 		.fcc		= V4L2_PIX_FMT_INVI,
 	},
+	{
+		.name		= "Depth data 16-bit (D16)",
+		.guid		= UVC_GUID_FORMAT_D16,
+		.fcc		= V4L2_PIX_FMT_Z16,
+	},
+	{
+		.name		= "Luminosity data 16-bit (L16)",
+		.guid		= UVC_GUID_FORMAT_L16,
+		.fcc		= V4L2_PIX_FMT_Y16,
+	},
+	{
+		.name		= "Luminosity data 8-bit (L8)",
+		.guid		= UVC_GUID_FORMAT_L8,
+		.fcc		= V4L2_PIX_FMT_GREY,
+	},
 };
 
 /* ------------------------------------------------------------------------
