@@ -95,6 +95,30 @@ static int ishtp_release(struct inode *inode, struct file *file)
 	 */
 	if ((dev->dev_state == ISHTP_DEV_ENABLED) &&
 			(cl->state == ISHTP_CL_CONNECTED)) {
+		int tx_list_empty = 0;
+		unsigned long	tx_flags;
+
+		/*
+		 * Check tx_list to see if all messages are sent
+		 */
+		spin_lock_irqsave(&cl->tx_list_spinlock, tx_flags);
+		tx_list_empty = list_empty(&cl->tx_list.list);
+		spin_unlock_irqrestore(&cl->tx_list_spinlock, tx_flags);
+
+		/*
+		 * if tx_list not empty, wait for all messages are sent done.
+		 * because of flow control for each message, the best way is
+		 * waiting for messages be sent instead of force flushing them.
+		 */
+		if (!tx_list_empty) {
+			int ret;
+			ret = wait_event_timeout(cl->wait,
+					list_empty(&cl->tx_list.list),
+					10 * HZ);
+			if (ret <= 0)
+				dev_err(dev->devc, "wating for send list empty timeout.\n");
+		}
+
 		cl->state = ISHTP_CL_DISCONNECTING;
 		rets = ishtp_cl_disconnect(cl);
 	}
