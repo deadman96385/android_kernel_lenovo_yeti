@@ -837,6 +837,7 @@ static int verity_parse_opt_args(struct dm_arg_set *as, struct dm_verity *v)
 int verity_ctr(struct dm_target *ti, unsigned argc, char **argv)
 {
 	struct dm_verity *v;
+	struct dm_arg_set as;
 	unsigned int num;
 	unsigned long long num_ll;
 	int r;
@@ -984,15 +985,17 @@ int verity_ctr(struct dm_target *ti, unsigned argc, char **argv)
 		}
 	}
 
-	if (argc > 10) {
-		if (sscanf(argv[10], "%d%c", &num, &dummy) != 1 ||
-		    num < DM_VERITY_MODE_EIO ||
-		    num > DM_VERITY_MODE_RESTART) {
-			ti->error = "Invalid mode";
-			r = -EINVAL;
+	argv += 10;
+	argc -= 10;
+
+	/* Optional parameters */
+	if (argc) {
+		as.argc = argc;
+		as.argv = argv;
+
+		r = verity_parse_opt_args(&as, v);
+		if (r < 0)
 			goto bad;
- 		}
-		v->mode = num;
 	}
 
 	v->hash_per_block_bits =
