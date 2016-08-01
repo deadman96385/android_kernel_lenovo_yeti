@@ -1748,29 +1748,11 @@ static int dwc3_gadget_pullup(struct usb_gadget *g, int is_on)
 {
 	struct dwc3		*dwc = gadget_to_dwc(g);
 	unsigned long		flags;
-	int			irq;
 	int			ret;
 
 	is_on = !!is_on;
 
 	pm_runtime_get_sync(dwc->dev);
-
-	/**
-	 * WORKAROUND: The dwc3 controller doesn't issue disconnect.
-	 * Thus gadget dissconnect callback is not invoked when do
-	 * soft dissconnect. Call dissconnect here to workaround
-	 * this issue.
-	 */
-	if (!is_on && dwc->gadget_driver && dwc->gadget_driver->disconnect) {
-		if (dwc->gadget.speed != USB_SPEED_UNKNOWN) {
-			dwc3_trace(trace_dwc3_gadget, "fake dissconnect event");
-			irq = platform_get_irq(to_platform_device(dwc->dev), 0);
-			disable_irq(irq);
-			dwc->gadget_driver->disconnect(&dwc->gadget);
-			dwc->gadget.speed = USB_SPEED_UNKNOWN;
-			enable_irq(irq);
-		}
-	}
 
 	spin_lock_irqsave(&dwc->lock, flags);
 	ret = dwc3_gadget_run_stop(dwc, is_on);
