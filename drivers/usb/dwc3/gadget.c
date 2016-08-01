@@ -1706,6 +1706,7 @@ static int dwc3_gadget_run_stop(struct dwc3 *dwc, int is_on)
 {
 	u32			reg;
 	u32			timeout = 500;
+	int			ret = 0;
 
 	reg = dwc3_readl(dwc->regs, DWC3_DCTL);
 	if (is_on) {
@@ -1732,14 +1733,15 @@ static int dwc3_gadget_run_stop(struct dwc3 *dwc, int is_on)
 	} while (--timeout && !(!is_on ^ !reg));
 
 	if (!timeout)
-		return -ETIMEDOUT;
+		ret = -ETIMEDOUT;
 
-	dwc3_trace(trace_dwc3_gadget, "gadget %s data soft-%s",
+	dwc3_trace(trace_dwc3_gadget, "gadget %s data soft-%s %s",
 			dwc->gadget_driver
 			? dwc->gadget_driver->function : "no-function",
-			is_on ? "connect" : "disconnect");
+			is_on ? "connect" : "disconnect",
+			ret ? "failed" : "success");
 
-	return 0;
+	return ret;
 }
 
 static int dwc3_gadget_pullup(struct usb_gadget *g, int is_on)
