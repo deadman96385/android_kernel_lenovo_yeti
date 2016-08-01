@@ -577,6 +577,22 @@ static void dwc3_disable_multi_packet(struct dwc3 *dwc)
 	}
 }
 
+#define C2S(x) case x: return #x
+static inline const char *get_phy_events(enum usb_phy_events event)
+{
+	switch (event) {
+	C2S(USB_EVENT_NONE);
+	C2S(USB_EVENT_VBUS);
+	C2S(USB_EVENT_ID);
+	C2S(USB_EVENT_CHARGER);
+	C2S(USB_EVENT_ENUMERATED);
+	C2S(USB_EVENT_DRIVE_VBUS);
+	default:
+	return "unknown";
+	}
+}
+#undef C2S
+
 static int dwc3_handle_otg_notification(struct notifier_block *nb,
 		unsigned long event, void *data)
 {
@@ -584,6 +600,8 @@ static int dwc3_handle_otg_notification(struct notifier_block *nb,
 	unsigned long flags;
 	int state = NOTIFY_DONE;
 	static int last_value = -1;
+
+	dwc3_trace(trace_dwc3_core, "DWC3 OTG Notify %s\n", get_phy_events(event));
 
 	switch (event) {
 	case USB_EVENT_VBUS:
@@ -937,6 +955,7 @@ static int dwc3_suspend_common(struct device *dev)
 	}
 
 	dev_info(dev, "%s\n", __func__);
+	dwc3_trace(trace_dwc3_core, "%s", __func__);
 
 	spin_lock_irqsave(&dwc->lock, flags);
 
@@ -980,6 +999,7 @@ static int dwc3_resume_common(struct device *dev)
 		return 0;
 	}
 
+	dwc3_trace(trace_dwc3_core, "%s", __func__);
 	dev_info(dev, "%s\n", __func__);
 
 	usb_phy_init(dwc->usb3_phy);
