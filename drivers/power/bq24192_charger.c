@@ -19,6 +19,7 @@
  * Author: Raj Pandey <raj.pandey@intel.com>
  */
 
+#include <linux/time.h>
 #include <linux/module.h>
 #include <linux/err.h>
 #include <linux/init.h>
@@ -1391,8 +1392,16 @@ static int bq24192_usb_set_property(struct power_supply *psy,
 						struct bq24192_chip,
 						usb);
 	int ret = 0;
+	struct timespec ts;
 
 	dev_dbg(&chip->client->dev, "%s %d\n", __func__, psp);
+	if(psp == POWER_SUPPLY_PROP_ENABLE_CHARGING){
+        	get_monotonic_boottime(&ts);
+		if(ts.tv_sec == 2){
+			msleep(1000);
+			dev_info(&chip->client->dev,"boottime %d sec, %d nsec.\n",ts.tv_sec,ts.tv_nsec);
+		}
+	}
 
 	mutex_lock(&chip->event_lock);
 
