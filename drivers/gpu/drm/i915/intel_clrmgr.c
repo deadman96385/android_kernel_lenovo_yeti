@@ -1269,7 +1269,6 @@ bool intel_clrmgr_set_pipe_property(struct intel_crtc *intel_crtc,
 		struct clrmgr_regd_prop *cp, uint64_t value)
 {
 	bool ret = false;
-	struct lut_info *info;
 
 	/* Sanity */
 	if (!cp || !cp->property || !value) {
@@ -1280,17 +1279,10 @@ bool intel_clrmgr_set_pipe_property(struct intel_crtc *intel_crtc,
 	DRM_DEBUG_DRIVER("Property %s len:%d\n",
 				cp->property->name, cp->property->num_values);
 
-	info = kmalloc(sizeof(struct lut_info), GFP_KERNEL);
-	if (!info) {
-		DRM_ERROR("Out of memory\n");
-		return false;
-	}
-
-	info = (struct lut_info *) (uintptr_t) value;
-
 	/* call the corresponding set property */
 	if (cp->set_property) {
-		if (!cp->set_property((void *)intel_crtc, cp, info)) {
+		if (!cp->set_property((void *)intel_crtc,
+				cp, (struct lut_info *) (uintptr_t) value)) {
 			DRM_ERROR("Set property for %s failed\n",
 						cp->property->name);
 			return ret;
