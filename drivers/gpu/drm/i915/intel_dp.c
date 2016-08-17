@@ -1116,6 +1116,7 @@ intel_dp_compute_config(struct intel_encoder *encoder,
 			DRM_DEBUG_KMS("using min %02x link bw per VBT\n",
 				      bws[min_clock]);
 		}
+		kfree(edid);
 	} else
 		min_lane_count = max_lane_count;
 	/*

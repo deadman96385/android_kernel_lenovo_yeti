@@ -1436,7 +1436,7 @@ bool intel_dsi_init(struct drm_device *dev)
 	DRM_DEBUG_KMS("\n");
 
 	/* There is no detection method for MIPI so rely on VBT */
-	if (!dev_priv->vbt.has_mipi)
+	if ( !IS_VALLEYVIEW(dev) || !dev_priv->vbt.has_mipi )
 		return false;
 
 	intel_dsi = kzalloc(sizeof(*intel_dsi), GFP_KERNEL);
@@ -1452,13 +1452,7 @@ bool intel_dsi_init(struct drm_device *dev)
 	intel_encoder = &intel_dsi->base;
 	encoder = &intel_encoder->base;
 	intel_dsi->attached_connector = intel_connector;
-
-	if (IS_VALLEYVIEW(dev)) {
-		dev_priv->mipi_mmio_base = VLV_MIPI_BASE;
-	} else {
-		DRM_ERROR("Unsupported Mipi device to reg base");
-		return false;
-	}
+	dev_priv->mipi_mmio_base = VLV_MIPI_BASE;
 
 	connector = &intel_connector->base;
 
