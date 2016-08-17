@@ -129,8 +129,10 @@ int intel_edp_drrs_init(struct i915_drrs *drrs,
 
 	if (intel_dp->drrs_ops->init) {
 		ret = intel_dp->drrs_ops->init(intel_encoder);
-		if (ret < 0)
+		if (ret < 0) {
+			kfree(downclock_mode);
 			return ret;
+		}
 	}
 
 	DRM_DEBUG("eDP DRRS modes:\n");
