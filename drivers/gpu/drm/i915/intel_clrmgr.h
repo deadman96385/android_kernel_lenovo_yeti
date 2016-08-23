@@ -216,7 +216,7 @@ struct lut_info {
 	bool enable;
 	u32 len;
 	void *data;
-};
+} __attribute__((packed, aligned(8)));
 
 /*
 * clrmgr_regd_propery structure
