@@ -2731,6 +2731,9 @@ vlv_kick_power_seqeuencer_for_dp(struct intel_dp *intel_dp,
 	struct drm_i915_private *dev_priv = dev->dev_private;
 	uint32_t DP;
 
+	if (!is_edp(intel_dp))
+		return;
+
 	intel_dp->pipe = pipe;
 
 	/* Preserve the BIOS-computed detected bit. This is
@@ -2787,6 +2790,9 @@ static void vlv_unstuck_power_sequencer(struct intel_dp *intel_dp)
 		tmp = enc_to_intel_dp(&encoder->base);
 
 		if (tmp->pipe != pipe)
+			continue;
+
+		if (!is_edp(tmp))
 			continue;
 
 		DRM_DEBUG_KMS("pipe %c power sequencer previously in use on port %c\n",
