@@ -225,16 +225,17 @@ static void	process_recv(void *recv_buf, size_t data_len)
 			report_type = HID_INPUT_REPORT;
 do_get_report:
 			/* Get index of device that matches this id */
-			for (i = 0; i < num_hid_devices; ++i)
-				if (recv_msg->hdr.device_id ==
-						hid_devices[i].dev_id)
-					if (hid_sensor_hubs[i] != NULL) {
-						hid_input_report(
-							hid_sensor_hubs[i],
-							report_type, payload,
-							payload_len, 0);
-						break;
-					}
+			if (hid_devices)
+				for (i = 0; i < num_hid_devices; ++i)
+					if (recv_msg->hdr.device_id ==
+					    hid_devices[i].dev_id)
+						if (hid_sensor_hubs[i] != NULL) {
+							hid_input_report(
+								hid_sensor_hubs[i],
+								report_type, payload,
+								payload_len, 0);
+							break;
+						}
 			get_report_done = 1;
 			if (waitqueue_active(&ishtp_hid_wait))
 				wake_up(&ishtp_hid_wait);
@@ -248,14 +249,15 @@ do_get_report:
 
 		case HOSTIF_PUBLISH_INPUT_REPORT:
 			report_type = HID_INPUT_REPORT;
-			for (i = 0; i < num_hid_devices; ++i)
-				if (recv_msg->hdr.device_id ==
-						hid_devices[i].dev_id)
-					if (hid_sensor_hubs[i] != NULL)
-						hid_input_report(
-							hid_sensor_hubs[i],
-							report_type, payload,
-							payload_len, 0);
+			if (hid_devices)
+				for (i = 0; i < num_hid_devices; ++i)
+					if (recv_msg->hdr.device_id ==
+					    hid_devices[i].dev_id)
+						if (hid_sensor_hubs[i] != NULL)
+							hid_input_report(
+								hid_sensor_hubs[i],
+								report_type, payload,
+								payload_len, 0);
 			break;
 
 		case HOSTIF_PUBLISH_INPUT_REPORT_LIST:
@@ -272,17 +274,18 @@ do_get_report:
 				payload_len = report_len -
 					sizeof(struct hostif_msg_hdr);
 
-				for (i = 0; i < num_hid_devices; ++i)
-					if (recv_msg->hdr.device_id ==
-							hid_devices[i].dev_id &&
-							hid_sensor_hubs[i] !=
-							NULL) {
-						hid_input_report(
-							hid_sensor_hubs[i],
-							report_type,
-							payload, payload_len,
-							0);
-					}
+				if (hid_devices)
+					for (i = 0; i < num_hid_devices; ++i)
+						if (recv_msg->hdr.device_id ==
+						    hid_devices[i].dev_id &&
+						    hid_sensor_hubs[i] !=
+						    NULL) {
+							hid_input_report(
+								hid_sensor_hubs[i],
+								report_type,
+								payload, payload_len,
+								0);
+						}
 
 				reports += sizeof(uint16_t) + report_len;
 			}
