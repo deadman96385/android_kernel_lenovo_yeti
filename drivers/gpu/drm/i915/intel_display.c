@@ -12845,21 +12845,23 @@ static int __intel_set_mode(struct drm_crtc *crtc,
 			to_intel_encoder(connector->encoder)->connectors_active = true;
 			dev_priv->display.crtc_enable(&intel_crtc->base);
 
-			if (!intel_crtc->active) {
-				ret = -EINVAL;
-				intel_crtc->skip_check_state = true;
-			}
 
 			/*
 			 * if DP display was used might have to retry if
 			 * link training failed
 			 */
 			if (!intel_crtc->active &&
-			   (intel_pipe_has_type(crtc, INTEL_OUTPUT_DISPLAYPORT)
-			   || intel_pipe_has_type(crtc, INTEL_OUTPUT_EDP))) {
+			   (intel_pipe_has_type(connector->encoder->crtc,
+				INTEL_OUTPUT_DISPLAYPORT)
+			   || intel_pipe_has_type(connector->encoder->crtc,
+				INTEL_OUTPUT_EDP))){
 				intel_set_mode_dp(intel_crtc);
 			}
 
+			if (!intel_crtc->active) {
+				ret = -EINVAL;
+				intel_crtc->skip_check_state = true;
+			}
 			/*
 			 * As we are updating crtc active state before
 			 * connector's DPMS state (which will be done by
