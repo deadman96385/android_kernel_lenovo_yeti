@@ -424,8 +424,10 @@ static int intel_logical_memset_stolen_obj_hw(struct drm_i915_gem_object *obj)
 		vm = &dev_priv->gtt.base;
 
 	ringbuf = ctx->engine[ring->id].ringbuf;
-	if (!ringbuf)
+	if (!ringbuf) {
 		DRM_ERROR("No ring obj");
+		return -EINVAL;
+	}
 
 	ret = i915_gem_object_pin(obj, vm, 0, PAGE_SIZE, 0);
 	if (ret) {
