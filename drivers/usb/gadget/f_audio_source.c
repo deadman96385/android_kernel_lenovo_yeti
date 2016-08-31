@@ -819,6 +819,11 @@ static int audio_pcm_playback_trigger(struct snd_pcm_substream *substream,
 	return ret;
 }
 
+static void audio_free(struct usb_function *f)
+{
+	/* Nothing to do here */
+}
+
 static struct audio_dev _audio_dev = {
 	.func = {
 		.name = "audio_source",
@@ -827,6 +832,7 @@ static struct audio_dev _audio_dev = {
 		.set_alt = audio_set_alt,
 		.setup = audio_setup,
 		.disable = audio_disable,
+		.free_func = audio_free,
 	},
 	.lock = __SPIN_LOCK_UNLOCKED(_audio_dev.lock),
 	.idle_reqs = LIST_HEAD_INIT(_audio_dev.idle_reqs),
