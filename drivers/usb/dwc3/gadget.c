@@ -726,6 +726,7 @@ static int __dwc3_gadget_ep_disable(struct dwc3_ep *dep)
 	dep->comp_desc = NULL;
 	dep->type = 0;
 	dep->flags = 0;
+	dep->queued_requests = 0;
 
 	return 0;
 }
