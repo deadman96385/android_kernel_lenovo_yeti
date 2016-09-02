@@ -1393,13 +1393,18 @@ intel_hdmi_detect_audio(struct drm_connector *connector)
 	enum intel_display_power_domain power_domain;
 	struct edid *edid;
 	bool has_audio = false;
-
+	int ret;
+	struct i2c_adapter *adapter = NULL;
 	power_domain = intel_display_port_power_domain(intel_encoder);
 	intel_display_power_get(dev_priv, power_domain);
 
-	edid = drm_get_edid(connector,
-			    intel_gmbus_get_adapter(dev_priv,
-						    intel_hdmi->ddc_bus));
+	adapter = intel_gmbus_get_adapter(dev_priv, intel_hdmi->ddc_bus);
+	if (!adapter) {
+		ret = -ENOMEM;
+		goto exit_func;
+	}
+	edid = drm_get_edid(connector, adapter);
+
 	if (edid) {
 		if (edid->input & DRM_EDID_INPUT_DIGITAL)
 			has_audio = drm_detect_monitor_audio(edid);
@@ -1409,6 +1414,8 @@ intel_hdmi_detect_audio(struct drm_connector *connector)
 	intel_display_power_put(dev_priv, power_domain);
 
 	return has_audio;
+exit_func:
+	return ret;
 }
 
 static int
