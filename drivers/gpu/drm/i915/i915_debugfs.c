@@ -3003,7 +3003,7 @@ static int i915_scheduler_info(struct seq_file *m, void *unused)
 	struct i915_scheduler_stats *stats = scheduler->stats;
 	struct i915_scheduler_stats_nodes node_stats[I915_NUM_RINGS];
 	struct intel_engine_cs *ring;
-	char   str[50 * (I915_NUM_RINGS + 1)], name[50], *ptr;
+	char   str[50 * (I915_NUM_RINGS + 1)], name[52], *ptr;
 	int ret, i, r;
 
 	ret = mutex_lock_interruptible(&dev->mode_config.mutex);
