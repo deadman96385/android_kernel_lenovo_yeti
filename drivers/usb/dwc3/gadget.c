@@ -2986,9 +2986,22 @@ static irqreturn_t dwc3_check_event_buf(struct dwc3_event_buffer *evt)
 	struct dwc3 *dwc = evt->dwc;
 	u32 count;
 	u32 reg;
+	u32 timeout = 500;
 
-	count = dwc3_readl(dwc->regs, DWC3_GEVNTCOUNT(0));
-	count &= DWC3_GEVNTCOUNT_MASK;
+	do {
+		count = dwc3_readl(dwc->regs, DWC3_GEVNTCOUNT(0));
+		count &= DWC3_GEVNTCOUNT_MASK;
+		if (count <= DWC3_EVENT_BUFFERS_SIZE)
+			break;
+	} while (timeout--);
+
+	if (!timeout) {
+		dwc3_trace(trace_dwc3_gadget,
+			"Event Count register read failed");
+		dwc3_writel(dwc->regs, DWC3_GEVNTCOUNT(0), 0);
+		return IRQ_NONE;
+	}
+
 	if (!count)
 		return IRQ_NONE;
 
