@@ -2123,8 +2123,12 @@ static int __dwc3_cleanup_done_trbs(struct dwc3 *dwc, struct dwc3_ep *dep,
 	dep->queued_requests--;
 	trace_dwc3_complete_trb(dep, trb);
 
-	if ((trb->ctrl & DWC3_TRB_CTRL_HWO) && status != -ESHUTDOWN)
+	if ((trb->ctrl & DWC3_TRB_CTRL_HWO) && status != -ESHUTDOWN) {
+		dev_err(dwc->dev, "%s's TRB (%p) still owned by HW\n",
+				dep->name, trb);
 		return 1;
+	}
+
 	count = trb->size & DWC3_TRB_SIZE_MASK;
 
 	if (dep->direction) {
