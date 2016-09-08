@@ -140,6 +140,9 @@ static int sdhci_acpi_probe_slot(struct platform_device *pdev)
 
 	host = c->host;
 	host->mmc->qos = kzalloc(sizeof(struct pm_qos_request), GFP_KERNEL);
+	if (!host->mmc->qos)
+		return -ENOMEM;
+
 	pm_qos_add_request(host->mmc->qos, PM_QOS_CPU_DMA_LATENCY,
 					PM_QOS_DEFAULT_VALUE);
 
@@ -187,8 +190,10 @@ static int sdhci_acpi_remove_slot(struct platform_device *pdev)
 
 	host = c->host;
 
-	if (host->mmc && host->mmc->qos)
+	if (host->mmc && host->mmc->qos) {
+		pm_qos_remove_request(host->mmc->qos);
 		kfree(host->mmc->qos);
+	}
 
 	return 0;
 }
