@@ -800,6 +800,11 @@ static int dwc3_probe(struct platform_device *pdev)
 	if (dwc->dr_mode == USB_DR_MODE_UNKNOWN)
 		dwc->dr_mode = USB_DR_MODE_OTG;
 
+	/* Setup same OTG caps we had when g_android was used */
+	dwc->otg_caps.otg_rev = 0x0200;
+	dwc->otg_caps.hnp_support = false;
+	dwc->otg_caps.srp_support = false;
+
 	switch (dwc->dr_mode) {
 	case USB_DR_MODE_PERIPHERAL:
 		dwc3_set_mode(dwc, DWC3_GCTL_PRTCAP_DEVICE);

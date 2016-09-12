@@ -818,6 +818,7 @@ struct dwc3 {
 
 	bool			connected;
 
+	struct usb_otg_caps	otg_caps;
 	unsigned int		quirks;
 };
 
