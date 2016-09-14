@@ -97,6 +97,10 @@ struct mtp_dev {
 
 	int state;
 
+	struct usb_os_desc_table	os_desc_table[1];
+	struct usb_os_desc              os_desc;
+	char                            ext_compat_id[16];
+
 	/* synchronize access to our device file */
 	atomic_t open_excl;
 	/* to enforce only one ioctl at a time */
@@ -1361,6 +1365,12 @@ mtp_function_bind(struct usb_configuration *c, struct usb_function *f)
 		mtp_superspeed_out_comp_desc.bMaxBurst = max_out_burst;
 	}
 
+	if (cdev->use_os_string) {
+		f->os_desc_table = &dev->os_desc_table;
+		f->os_desc_n = 1;
+		f->os_desc_table[0].os_desc = &dev->os_desc;
+	}
+
 	DBG(cdev, "%s speed %s: IN/%s, OUT/%s\n",
 			gadget_is_superspeed(c->cdev->gadget) ? "super" :
 			gadget_is_dualspeed(c->cdev->gadget) ? "dual" : "full",
@@ -1389,6 +1399,7 @@ mtp_function_unbind(struct usb_configuration *c, struct usb_function *f)
 	while ((req = mtp_req_get(dev, &dev->intr_idle)))
 		mtp_request_free(req, dev->ep_intr);
 	dev->state = STATE_OFFLINE;
+	f->os_desc_n = 0;
 }
 
 static int mtp_function_set_alt(struct usb_function *f,
@@ -1664,6 +1675,10 @@ struct usb_function_instance *alloc_inst_mtp_ptp(bool mtp_config)
 		}
 	} else
 		fi_mtp->dev = _mtp_dev;
+
+	INIT_LIST_HEAD(&fi_mtp->dev->os_desc.ext_prop);
+	memcpy(fi_mtp->dev->ext_compat_id, "MTP", 3);
+	fi_mtp->dev->os_desc.ext_compat_id = fi_mtp->dev->ext_compat_id;
 
 	config_group_init_type_name(&fi_mtp->func_inst.group,
 					"", &mtp_func_type);
