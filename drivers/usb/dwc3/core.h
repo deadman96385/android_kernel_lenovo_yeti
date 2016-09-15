@@ -813,7 +813,8 @@ struct dwc3 {
 	atomic_t		suspend_depth;
 
 	struct delayed_work	watchdog;
-	int			dpm_pulled_down;
+
+	bool			connected;
 
 	unsigned int		quirks;
 };

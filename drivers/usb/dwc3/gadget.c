@@ -2525,17 +2525,14 @@ static void dwc3_gadget_disconnect_interrupt(struct dwc3 *dwc)
 	dwc->setup_packet_pending = false;
 	usb_gadget_set_state(&dwc->gadget, USB_STATE_NOTATTACHED);
 
-	if (dwc->runtime_suspend) {
-		pm_runtime_mark_last_busy(dwc->dev);
-		pm_runtime_put_autosuspend(dwc->dev);
-		dwc3_set_phy_dpm_pulldown(dwc, 1);
-		dwc->dpm_pulled_down = 1;
-	}
+	dwc->connected = false;
 }
 
 static void dwc3_gadget_reset_interrupt(struct dwc3 *dwc)
 {
 	u32			reg;
+
+	dwc->connected = true;
 
 	/*
 	 * WORKAROUND: DWC3 revisions <1.88a have an issue which

@@ -609,10 +609,7 @@ static int dwc3_handle_otg_notification(struct notifier_block *nb,
 		if (last_value != event) {
 			dev_info(dwc->dev, "DWC3 OTG Notify USB_EVENT_VBUS\n");
 			last_value = event;
-			if (dwc->dpm_pulled_down) {
-				dwc3_set_phy_dpm_pulldown(dwc, 0);
-				dwc->dpm_pulled_down = 0;
-			}
+			dwc3_set_phy_dpm_pulldown(dwc, 0);
 			pm_runtime_get(dwc->dev);
 			state = NOTIFY_OK;
 		}
@@ -623,6 +620,9 @@ static int dwc3_handle_otg_notification(struct notifier_block *nb,
 		if (last_value != event) {
 			dev_info(dwc->dev, "DWC3 OTG Notify USB_EVENT_NONE\n");
 			last_value = event;
+			pm_runtime_mark_last_busy(dwc->dev);
+			pm_runtime_put_autosuspend(dwc->dev);
+			dwc3_set_phy_dpm_pulldown(dwc, 1);
 			state = NOTIFY_OK;
 		}
 		spin_unlock_irqrestore(&dwc->lock, flags);
@@ -977,8 +977,6 @@ static int dwc3_suspend_common(struct device *dev)
 
 	dwc3_suspend_usb2_phy(dwc, true);
 
-	dwc->dpm_pulled_down = 0;
-
 	spin_unlock_irqrestore(&dwc->lock, flags);
 
 	usb_phy_shutdown(dwc->usb3_phy);
@@ -1052,8 +1050,30 @@ static int dwc3_resume_common(struct device *dev)
 
 #ifdef CONFIG_PM_RUNTIME
 
+static int dwc3_runtime_checks(struct dwc3 *dwc)
+{
+	switch (dwc->dr_mode) {
+	case USB_DR_MODE_PERIPHERAL:
+	case USB_DR_MODE_OTG:
+		if (dwc->connected)
+			return -EBUSY;
+		break;
+	case USB_DR_MODE_HOST:
+	default:
+		/* do nothing */
+		break;
+	}
+
+	return 0;
+}
+
 static int dwc3_runtime_suspend(struct device *dev)
 {
+	struct dwc3     *dwc = dev_get_drvdata(dev);
+
+	if (dwc3_runtime_checks(dwc))
+		return -EBUSY;
+
 	return dwc3_suspend_common(dev);
 }
 
