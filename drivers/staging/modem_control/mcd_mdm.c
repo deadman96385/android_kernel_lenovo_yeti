@@ -124,7 +124,8 @@ int mcd_mdm_cold_boot(void *data)
  */
 int mcd_mdm_warm_reset(void *data, int rst)
 {
-	struct mdm_ctrl_mdm_data *mdm_data = data;
+	struct mdm_info *mdm = data;
+	struct mdm_ctrl_mdm_data *mdm_data = mdm->pdata->modem_data;
 
 	if (rst == INVALID_GPIO)
 		return -EINVAL;
