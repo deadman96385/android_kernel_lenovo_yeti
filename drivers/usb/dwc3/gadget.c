@@ -2115,7 +2115,8 @@ static void dwc3_gadget_free_endpoints(struct dwc3 *dwc)
 
 static int __dwc3_cleanup_done_trbs(struct dwc3 *dwc, struct dwc3_ep *dep,
 		struct dwc3_request *req, struct dwc3_trb *trb,
-		const struct dwc3_event_depevt *event, int status)
+		const struct dwc3_event_depevt *event, int status,
+		int chain)
 {
 	unsigned int		count;
 	unsigned int		s_pkt = 0;
@@ -2123,6 +2124,19 @@ static int __dwc3_cleanup_done_trbs(struct dwc3 *dwc, struct dwc3_ep *dep,
 
 	dep->queued_requests--;
 	trace_dwc3_complete_trb(dep, trb);
+
+       /*
+	* If we're in the middle of series of chained TRBs and we
+	* receive a short transfer along the way, DWC3 will skip
+	* through all TRBs including the last TRB in the chain
+	* where CHN bit is zero. DWC3 will also avoid clearing HWO
+	* bit and SW has to do it manually.
+	*
+	* We're going to do that here to avoid problems of HW trying
+	* to use bogus TRBs for transfers.
+	*/
+	if (chain && (trb->ctrl & DWC3_TRB_CTRL_HWO))
+		trb->ctrl &= ~DWC3_TRB_CTRL_HWO;
 
 	if ((trb->ctrl & DWC3_TRB_CTRL_HWO) && status != -ESHUTDOWN) {
 		dev_err(dwc->dev, "%s's TRB (%p) still owned by HW\n",
@@ -2198,10 +2212,13 @@ static int dwc3_cleanup_done_reqs(struct dwc3 *dwc, struct dwc3_ep *dep,
 	int			ret;
 
 	do {
+		int chain;
+
 		req = next_request(&dep->started_list);
 		if (WARN_ON_ONCE(!req))
 			return 1;
 
+		chain = req->request.num_mapped_sgs > 0;
 		i = 0;
 		do {
 			slot = req->first_trb_index + i;
@@ -2211,7 +2228,7 @@ static int dwc3_cleanup_done_reqs(struct dwc3 *dwc, struct dwc3_ep *dep,
 			trb = &dep->trb_pool[slot];
 
 			ret = __dwc3_cleanup_done_trbs(dwc, dep, req, trb,
-					event, status);
+					event, status, chain);
 			if (ret)
 				break;
 		}while (++i < req->request.num_mapped_sgs);
