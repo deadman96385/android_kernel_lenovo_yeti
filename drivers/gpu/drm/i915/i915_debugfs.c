@@ -3012,10 +3012,10 @@ static int i915_scheduler_info(struct seq_file *m, void *unused)
 
 #define PRINT_VAR(name, fmt, var)					\
 	do {								\
-		sprintf(str, "%-22s", name);				\
+		snprintf(str, 50, "%-22s", name);				\
 		ptr = str + strlen(str);				\
 		for_each_ring(ring, dev_priv, r) {			\
-			sprintf(ptr, " %10" fmt, var);			\
+			snprintf(ptr, 50, " %10" fmt, var);			\
 			ptr += strlen(ptr);				\
 		}							\
 		seq_printf(m, "%s\n", str);				\
@@ -3057,7 +3057,7 @@ static int i915_scheduler_info(struct seq_file *m, void *unused)
 		i915_scheduler_query_stats(ring, node_stats + ring->id);
 
 	for (i = 0; i < (i915_sqs_MAX + 1); i++) {
-		sprintf(name, "  %s", i915_scheduler_queue_status_str(i));
+		snprintf(name, 50, "  %s", i915_scheduler_queue_status_str(i));
 		PRINT_VAR(name, "d", node_stats[r].counts[i]);
 	}
 	seq_putc(m, '\n');
