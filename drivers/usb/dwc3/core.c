@@ -619,10 +619,15 @@ static int dwc3_handle_otg_notification(struct notifier_block *nb,
 		spin_lock_irqsave(&dwc->lock, flags);
 		if (last_value != event) {
 			dev_info(dwc->dev, "DWC3 OTG Notify USB_EVENT_NONE\n");
-			last_value = event;
 			pm_runtime_mark_last_busy(dwc->dev);
-			pm_runtime_put_autosuspend(dwc->dev);
+			/*
+			 * RVP workaround: guard against bad USB_EVENT_NONE
+			 * during kernel boot
+			 */
+			if (last_value != -1)
+				pm_runtime_put_autosuspend(dwc->dev);
 			dwc3_set_phy_dpm_pulldown(dwc, 1);
+			last_value = event;
 			state = NOTIFY_OK;
 		}
 		spin_unlock_irqrestore(&dwc->lock, flags);
