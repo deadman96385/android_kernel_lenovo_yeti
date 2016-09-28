@@ -1366,7 +1366,7 @@ mtp_function_bind(struct usb_configuration *c, struct usb_function *f)
 	}
 
 	if (cdev->use_os_string) {
-		f->os_desc_table = &dev->os_desc_table;
+		f->os_desc_table = &dev->os_desc_table[0];
 		f->os_desc_n = 1;
 		f->os_desc_table[0].os_desc = &dev->os_desc;
 	}
