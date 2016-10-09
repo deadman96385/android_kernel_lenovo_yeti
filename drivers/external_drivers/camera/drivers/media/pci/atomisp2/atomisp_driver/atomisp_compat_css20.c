@@ -1,7 +1,7 @@
 /*
  * Support for Clovertrail PNW Camera Imaging ISP subsystem.
  *
- * Copyright (c) 2013 Intel Corporation. All Rights Reserved.
+ * Copyright (c) 2016 Intel Corporation. All Rights Reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License version
@@ -4341,7 +4341,8 @@ void atomisp_css_set_shading_table(struct atomisp_sub_device *asd,
 			struct atomisp_css_shading_table *table)
 {
 	if (asd->params.config.shading_table != NULL)
-		atomisp_css_shading_table_free(asd->params.config.shading_table);
+		atomisp_css_shading_table_free(
+			asd->params.config.shading_table);
 	asd->params.config.shading_table = table;
 }
 
