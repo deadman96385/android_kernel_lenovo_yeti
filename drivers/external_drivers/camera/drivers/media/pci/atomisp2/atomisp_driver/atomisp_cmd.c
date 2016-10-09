@@ -3886,6 +3886,7 @@ int atomisp_cp_lsc_table(struct atomisp_sub_device *asd,
 		if (copy_from_compatible(shading_table->data[i],
 			st.data[i], len_table, from_user)) {
 			atomisp_css_shading_table_free(shading_table);
+			dev_err(asd->isp->dev, "shading table copy failed!");
 			return -EFAULT;
 		}
 
@@ -3925,9 +3926,6 @@ set_lsc:
 	css_param->update_flag.shading_table =
 		(struct atomisp_shading_table *) shading_table;
 	asd->params.sc_en = shading_table != NULL;
-
-	if (old_table)
-		atomisp_css_shading_table_free(old_table);
 
 	return 0;
 }
