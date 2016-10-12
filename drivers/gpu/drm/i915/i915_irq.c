@@ -3867,12 +3867,14 @@ void i915_hangcheck_sample(struct work_struct *work)
 	head = I915_READ_HEAD(ring) & HEAD_ADDR;
 	tail = I915_READ_TAIL(ring) & TAIL_ADDR;
 	acthd = intel_ring_get_active_head(ring);
-	empty = list_empty(&ring->request_list);
 	seqno = ring->get_seqno(ring, false);
 
 	i915_get_extra_instdone(dev, instdone, ring);
 	instdone_cmp = (memcmp(hc->prev_instdone,
 		instdone, sizeof(instdone)) == 0) ? 1 : 0;
+
+	mutex_lock(&dev->struct_mutex);
+	empty = list_empty(&ring->request_list);
 
 	if (!empty) {
 		/* Examine the request list to see where the HW has got to
@@ -3887,6 +3889,7 @@ void i915_hangcheck_sample(struct work_struct *work)
 		* The driver may not have cleaned up the request list yet */
 		pending_work = 0;
 	}
+	mutex_unlock(&dev->struct_mutex);
 
 	idle = ((head == tail) && (pending_work == 0));
 
