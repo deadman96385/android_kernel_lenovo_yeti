@@ -804,10 +804,7 @@ static int i915_perfmon_open(
 	struct drm_i915_file_private *file_priv = file->driver_priv;
 	int ret = 0;
 
-	if (!capable(CAP_SYS_ADMIN))
-		ret = -EACCES;
-	else
-		file_priv->perfmon.opened = true;
+	file_priv->perfmon.opened = true;
 
 	return ret;
 }
