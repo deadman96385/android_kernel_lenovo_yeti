@@ -656,45 +656,34 @@ static ssize_t ffs_epfile_io(struct file *file,
 
 		spin_unlock_irq(&epfile->ffs->eps_lock);
 
-		if (unlikely(ret < 0))
-			goto out;
-
-		if (unlikely(wait_for_completion_interruptible(&done))) {
-			/* Wait for another 100ms to avoid data lost */
-			if (wait_for_completion_timeout(&done, HZ / 10))
-				goto done;
-
-			/*
-			 * To avoid race condition with ffs_epfile_io_complete,
-			 * dequeue the request first, then check status.
-			 * usb_ep_dequeue API should guarantee no race condition
-			 * with req->complete callback.
-			 */
-
+		if (unlikely(ret < 0)) {
+			/* nop */
+		} else if (unlikely(
+			   wait_for_completion_interruptible(&done))) {
+			ret = -EINTR;
 			usb_ep_dequeue(ep->ep, req);
-			interrupted = true;
+		} else {
+			/*
+			 * XXX We may end up silently droping data
+			 * here.  Since data_len (i.e. req->length) may
+			 * be bigger than len (after being rounded up
+			 * to maxpacketsize), we may end up with more
+			 * data then user space has space for.
+			 */
+			ret = ep->status;
+			if (read && ret > 0) {
+				ret = min_t(size_t, ret, len);
+
+				if (unlikely(copy_to_user(buf, data, ret)))
+					ret = -EFAULT;
+			}
 		}
-done:
-		/*
-		 * XXX We may end up silently droping data here.
-		 * Since data_len (i.e. req->length) may be bigger
-		 * than len (after being rounded up to maxpacketsize),
-		 * we may end up with more data then user space has
-		 * space for.
-		 */
-		ret = ep->status < 0 && interrupted ? -EINTR : ep->status;
-		if (read && ret > 0) {
-			if (ret > len) {
-				pr_err("%s read overflow\n", __func__);
-				ret = -EOVERFLOW;
-			} else if (unlikely(copy_to_user(buf, data,
-					  min_t(size_t, ret, len))))
-				ret = -EFAULT;
-		}
+		kfree(data);
 	}
 
-out:
 	mutex_unlock(&epfile->mutex);
+	return ret;
+
 error:
 	kfree(data);
 	return ret;
