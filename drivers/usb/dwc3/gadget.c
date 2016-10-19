@@ -2135,7 +2135,6 @@ static int __dwc3_cleanup_done_trbs(struct dwc3 *dwc, struct dwc3_ep *dep,
 	unsigned int		s_pkt = 0;
 	unsigned int		trb_status;
 
-	dep->queued_requests--;
 	trace_dwc3_complete_trb(dep, trb);
 
        /*
@@ -2154,8 +2153,10 @@ static int __dwc3_cleanup_done_trbs(struct dwc3 *dwc, struct dwc3_ep *dep,
 	if ((trb->ctrl & DWC3_TRB_CTRL_HWO) && status != -ESHUTDOWN) {
 		dev_err(dwc->dev, "%s's TRB (%p) still owned by HW\n",
 				dep->name, trb);
-		return 1;
+		return 2;
 	}
+
+	dep->queued_requests--;
 
 	count = trb->size & DWC3_TRB_SIZE_MASK;
 
@@ -2246,7 +2247,8 @@ static int dwc3_cleanup_done_reqs(struct dwc3 *dwc, struct dwc3_ep *dep,
 				break;
 		}while (++i < req->request.num_mapped_sgs);
 
-		dwc3_gadget_giveback(dep, req, status);
+		if (ret!=2)
+			dwc3_gadget_giveback(dep, req, status);
 
 		if (ret)
 			break;
