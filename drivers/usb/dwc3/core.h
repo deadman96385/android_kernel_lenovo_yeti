@@ -398,6 +398,7 @@ struct dwc3_trb;
  * @flags: flags related to this event buffer
  * @dma: dma_addr_t
  * @dwc: pointer to DWC controller
+ * @wait_end_transfer: wait_queue_head_t for waiting on End Transfer complete
  */
 struct dwc3_event_buffer {
 	void			*buf;
@@ -452,6 +453,8 @@ struct dwc3_ep {
 	struct list_head	pending_list;
 	struct list_head	started_list;
 
+	wait_queue_head_t       wait_end_transfer;
+
 	spinlock_t		lock;
 	void __iomem		*regs;
 
@@ -468,6 +471,7 @@ struct dwc3_ep {
 #define DWC3_EP_BUSY		(1 << 4)
 #define DWC3_EP_PENDING_REQUEST	(1 << 5)
 #define DWC3_EP_MISSED_ISOC	(1 << 6)
+#define DWC3_EP_END_TRANSFER_PENDING (1 << 7)
 
 	/* This last one is specific to EP0 */
 #define DWC3_EP0_DIR_IN		(1 << 31)
@@ -886,6 +890,9 @@ struct dwc3_event_depevt {
 #define DEPEVT_TRANSFER_BUS_EXPIRY	2
 
 	u32	parameters:16;
+
+/* For Command Complete Events */
+#define DEPEVT_PARAMETER_CMD(n) (((n) & (0xf << 8)) >> 8)
 } __packed;
 
 /**

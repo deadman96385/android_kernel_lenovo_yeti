@@ -654,6 +654,8 @@ static int __dwc3_gadget_ep_enable(struct dwc3_ep *dep,
 		reg |= DWC3_DALEPENA_EP(dep->number);
 		dwc3_writel(dwc->regs, DWC3_DALEPENA, reg);
 
+		init_waitqueue_head(&dep->wait_end_transfer);
+
 		if (usb_endpoint_xfer_control(desc))
 			return 0;
 
@@ -1960,6 +1962,7 @@ static int dwc3_gadget_stop(struct usb_gadget *g,
 	struct dwc3		*dwc = gadget_to_dwc(g);
 	unsigned long		flags;
 	int			irq;
+	int                     epnum;
 
 	pm_runtime_get_sync(dwc->dev);
 
@@ -1968,6 +1971,20 @@ static int dwc3_gadget_stop(struct usb_gadget *g,
 	dwc3_gadget_disable_irq(dwc);
 	__dwc3_gadget_ep_disable(dwc->eps[0]);
 	__dwc3_gadget_ep_disable(dwc->eps[1]);
+
+	for (epnum = 2; epnum < DWC3_ENDPOINTS_NUM; epnum++) {
+		struct dwc3_ep  *dep = dwc->eps[epnum];
+
+		if (!(dep->flags & DWC3_EP_ENABLED))
+			continue;
+
+		if (!(dep->flags & DWC3_EP_END_TRANSFER_PENDING))
+			continue;
+
+		wait_event_lock_irq(dep->wait_end_transfer,
+				!(dep->flags & DWC3_EP_END_TRANSFER_PENDING),
+				dwc->lock);
+	}
 
 	dwc->gadget_driver	= NULL;
 
@@ -2349,6 +2366,7 @@ static void dwc3_endpoint_interrupt(struct dwc3 *dwc,
 {
 	struct dwc3_ep		*dep;
 	u8			epnum = event->endpoint_number;
+	u8                      cmd;
 
 	dep = dwc->eps[epnum];
 
@@ -2423,6 +2441,12 @@ static void dwc3_endpoint_interrupt(struct dwc3 *dwc,
 		dwc3_trace(trace_dwc3_gadget, "%s FIFO Overrun", dep->name);
 		break;
 	case DWC3_DEPEVT_EPCMDCMPLT:
+		cmd = DEPEVT_PARAMETER_CMD(event->parameters);
+
+		if (cmd == DWC3_DEPCMD_ENDTRANSFER) {
+			dep->flags &= ~DWC3_EP_END_TRANSFER_PENDING;
+			wake_up(&dep->wait_end_transfer);
+		}
 		dwc3_trace(trace_dwc3_gadget, "Endpoint Command Complete");
 		break;
 	}
@@ -2464,7 +2488,8 @@ static void dwc3_stop_active_transfer(struct dwc3 *dwc, u32 epnum, bool force)
 
 	dep = dwc->eps[epnum];
 
-	if (!dep->resource_index)
+	if ((dep->flags & DWC3_EP_END_TRANSFER_PENDING) ||
+			!dep->resource_index)
 		return;
 
 	/*
@@ -2495,7 +2520,10 @@ static void dwc3_stop_active_transfer(struct dwc3 *dwc, u32 epnum, bool force)
 	WARN_ON_ONCE(ret);
 	dep->resource_index = 0;
 	dep->flags &= ~DWC3_EP_BUSY;
-	udelay(100);
+	if (dwc->revision < DWC3_REVISION_260A) {
+		dep->flags |= DWC3_EP_END_TRANSFER_PENDING;
+		udelay(100);
+	}
 }
 
 static void dwc3_stop_active_transfers(struct dwc3 *dwc)
@@ -2508,7 +2536,6 @@ static void dwc3_stop_active_transfers(struct dwc3 *dwc)
 		dep = dwc->eps[epnum];
 		if (!dep)
 			continue;
-
 		if (!(dep->flags & DWC3_EP_ENABLED))
 			continue;
 
