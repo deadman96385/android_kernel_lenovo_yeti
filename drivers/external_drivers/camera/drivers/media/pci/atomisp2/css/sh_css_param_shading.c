@@ -361,6 +361,8 @@ ia_css_shading_table_alloc(
 	me->height        = height;
 	me->sensor_width  = 0;
 	me->sensor_height = 0;
+	me->alloc_width   = width;
+	me->alloc_height  = height;
 	me->fraction_bits = 0;
 	for (i = 0; i < IA_CSS_SC_NUM_COLORS; i++) {
 		me->data[i] =

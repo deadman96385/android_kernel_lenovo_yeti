@@ -3920,12 +3920,31 @@ int atomisp_cp_lsc_table(struct atomisp_sub_device *asd,
 		}
 	}
 
+	if (old_table != NULL &&
+		old_table->alloc_width >= shading_table->width &&
+		old_table->alloc_height >= shading_table->height) {
+
+		old_table->width = shading_table->width;
+		old_table->height = shading_table->height;
+		old_table->sensor_width = shading_table->sensor_width;
+		old_table->sensor_height = shading_table->sensor_height;
+		old_table->fraction_bits = shading_table->fraction_bits;
+		old_table->enable = shading_table->enable;
+		for (i = 0; i < ATOMISP_NUM_SC_COLORS; i++)
+			memcpy(old_table->data[i], shading_table->data[i], len_table);
+		atomisp_css_shading_table_free(shading_table);
+		return 0;
+	}
+
 set_lsc:
 	/* set LSC to CSS */
 	css_param->shading_table = shading_table;
 	css_param->update_flag.shading_table =
 		(struct atomisp_shading_table *) shading_table;
 	asd->params.sc_en = shading_table != NULL;
+
+	if (old_table)
+		atomisp_css_shading_table_free(old_table);
 
 	return 0;
 }

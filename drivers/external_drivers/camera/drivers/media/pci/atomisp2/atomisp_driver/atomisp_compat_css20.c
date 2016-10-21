@@ -4340,9 +4340,6 @@ struct atomisp_css_shading_table *atomisp_css_shading_table_alloc(
 void atomisp_css_set_shading_table(struct atomisp_sub_device *asd,
 			struct atomisp_css_shading_table *table)
 {
-	if (asd->params.config.shading_table != NULL)
-		atomisp_css_shading_table_free(
-			asd->params.config.shading_table);
 	asd->params.config.shading_table = table;
 }
 

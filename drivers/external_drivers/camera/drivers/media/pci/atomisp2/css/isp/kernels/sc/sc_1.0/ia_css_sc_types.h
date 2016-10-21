@@ -79,6 +79,8 @@ struct ia_css_shading_table {
 				u8.0, [0,81] */
 	uint32_t height; /**< Number of lines of data points per color.
 				u8.0, [0,61] */
+	uint32_t alloc_width;
+	uint32_t alloc_height;
 	uint32_t fraction_bits; /**< Bits of fractional part in the data
 				points.
 				u8.0, [0,13] */
