@@ -917,7 +917,14 @@ static u32 perf_event_pid(struct perf_event *event, struct task_struct *p)
 	if (event->parent)
 		event = event->parent;
 
-	return task_tgid_nr_ns(p, event->ns);
+	/*
+	 *It is possible the task already got unhashed, in which case we
+	 *cannot determine the current->group_leader/real_parent.
+	 *
+	 *Also, report -1 to indicate unhashed, so as not to confused with
+	 *0 for the idle task.
+	 */
+	return pid_alive(p) ? task_tgid_nr_ns(p, event->ns) : ~0;
 }
 
 static u32 perf_event_tid(struct perf_event *event, struct task_struct *p)
@@ -928,7 +935,7 @@ static u32 perf_event_tid(struct perf_event *event, struct task_struct *p)
 	if (event->parent)
 		event = event->parent;
 
-	return task_pid_nr_ns(p, event->ns);
+	return pid_alive(p) ? task_pid_nr_ns(p, event->ns) : ~0;
 }
 
 /*
