@@ -3021,7 +3021,7 @@ static irqreturn_t dwc3_check_event_buf(struct dwc3_event_buffer *evt)
 		count &= DWC3_GEVNTCOUNT_MASK;
 		if (count <= DWC3_EVENT_BUFFERS_SIZE)
 			break;
-	} while (timeout--);
+	} while (--timeout);
 
 	if (!timeout) {
 		dwc3_trace(trace_dwc3_gadget,
