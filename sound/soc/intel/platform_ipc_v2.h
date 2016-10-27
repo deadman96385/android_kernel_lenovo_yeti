@@ -407,7 +407,7 @@ struct snd_sst_tstamp {
 	u64 bytes_decoded;
 	u64 bytes_copied;
 	u32 sampling_frequency;
-	u32 channel_peak[8];
+	u32 reserved;
 } __packed;
 
 /* SST to IA memory read debug message  */
