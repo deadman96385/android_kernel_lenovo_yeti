@@ -821,25 +821,38 @@ int sst_send_sync_msg(int ipc, int str_id)
 
 static inline int sst_calc_tstamp(struct pcm_stream_info *info,
 		struct snd_pcm_substream *substream,
-		struct snd_sst_tstamp *fw_tstamp)
+		volatile struct snd_sst_tstamp __iomem *fw_tstamp)
 {
 	size_t delay_bytes, delay_frames;
 	size_t buffer_sz;
 	u32 pointer_bytes, pointer_samples;
+	u64 hw_counter;
+	u64 rb_counter;
 
-	pr_debug("mrfld ring_buffer_counter %llu in bytes\n",
-			fw_tstamp->ring_buffer_counter);
-	pr_debug("mrfld hardware_counter %llu in bytes\n",
-			 fw_tstamp->hardware_counter);
-	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
-		delay_bytes = (size_t) (fw_tstamp->ring_buffer_counter -
-					fw_tstamp->hardware_counter);
-	else
-		delay_bytes = (size_t) (fw_tstamp->hardware_counter -
-					fw_tstamp->ring_buffer_counter);
+	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
+		/*
+		 * FW/Kernel synchronization requires playback stream to
+		 * read first hardware counter.
+		 */
+		hw_counter = fw_tstamp->hardware_counter;
+		rb_counter = fw_tstamp->ring_buffer_counter;
+
+		delay_bytes = (size_t) (rb_counter - hw_counter);
+	} else {
+		/*
+		 * FW/Kernel synchronization requires capture stream to
+		 * read first ring buffer counter.
+		 */
+		rb_counter = fw_tstamp->ring_buffer_counter;
+		hw_counter = fw_tstamp->hardware_counter;
+
+		delay_bytes = (size_t) (hw_counter - rb_counter);
+	}
+	pr_debug("mrfld ring_buffer_counter %llu in bytes\n", rb_counter);
+	pr_debug("mrfld hardware_counter %llu in bytes\n", hw_counter);
 	delay_frames = bytes_to_frames(substream->runtime, delay_bytes);
 	buffer_sz = snd_pcm_lib_buffer_bytes(substream);
-	div_u64_rem(fw_tstamp->ring_buffer_counter, buffer_sz, &pointer_bytes);
+	div_u64_rem(rb_counter, buffer_sz, &pointer_bytes);
 	pointer_samples = bytes_to_samples(substream->runtime, pointer_bytes);
 
 	pr_debug("pcm delay %zu in bytes\n", delay_bytes);
@@ -856,7 +869,7 @@ static int sst_read_timestamp(struct pcm_stream_info *info)
 {
 	struct stream_info *stream;
 	struct snd_pcm_substream *substream;
-	struct snd_sst_tstamp fw_tstamp;
+	volatile struct snd_sst_tstamp __iomem *fw_tstamp;
 	unsigned int str_id;
 
 	str_id = info->str_id;
@@ -868,11 +881,11 @@ static int sst_read_timestamp(struct pcm_stream_info *info)
 		return -EINVAL;
 	substream = stream->pcm_substream;
 
-	memcpy_fromio(&fw_tstamp,
-		((void *)(sst_drv_ctx->mailbox + sst_drv_ctx->tstamp)
-			+ (str_id * sizeof(fw_tstamp))),
-		sizeof(fw_tstamp));
-	return sst_calc_tstamp(info, substream, &fw_tstamp);
+	fw_tstamp =
+		(volatile void __iomem *)(sst_drv_ctx->mailbox + sst_drv_ctx->tstamp)
+			+ (str_id * sizeof(*fw_tstamp));
+
+	return sst_calc_tstamp(info, substream, fw_tstamp);
 }
 
 /*
