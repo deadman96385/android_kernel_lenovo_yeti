@@ -3851,7 +3851,6 @@ void i915_hangcheck_sample(struct work_struct *work)
 	enum context_submission_status status = CONTEXT_SUBMISSION_STATUS_OK;
 	struct intel_ring_hangcheck *hc =
 		container_of(work, typeof(*hc), work.work);
-	unsigned long flags;
 
 	if (!i915.enable_hangcheck || !hc)
 		return;
@@ -3877,8 +3876,6 @@ void i915_hangcheck_sample(struct work_struct *work)
 	mutex_lock(&dev->struct_mutex);
 	empty = list_empty(&ring->request_list);
 
-	spin_lock_irqsave(&ring->reqlist_lock, flags);
-	empty = list_empty(&ring->request_list);
 	if (!empty) {
 		/* Examine the request list to see where the HW has got to
 		* (Only call ring_last_request when the list is non-empty)*/
@@ -3909,7 +3906,6 @@ void i915_hangcheck_sample(struct work_struct *work)
 		      (unsigned int) hc->last_seqno,
 		      (long int) hc->last_seqno,
 		      (idle ? "true" : "false"));
-	spin_unlock_irqrestore(&ring->reqlist_lock, flags);
 
 	/*
 	 * ACTHD breaks in some instances by constantly changing even when
