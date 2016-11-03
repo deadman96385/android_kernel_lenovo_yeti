@@ -506,11 +506,23 @@ static irqreturn_t wcove_bcu_intr_thread_handler(int irq, void *dev_data)
 	if (irq_data & VWARNA)
 		wcove_bcu_handle_vwarn_event(dev_data, VWARNA);
 
-	if (irq_data & GSMPULSE)
-		dev_info(info->dev, "GSMPULSE Event has occured\n");
+	if (irq_data & (GSMPULSE | TXPWRTH) && printk_ratelimit()) {
+            if (irq_data & GSMPULSE)
+                dev_info(info->dev, "GSMPULSE Event has occured\n");
 
-	if (irq_data & TXPWRTH)
-		dev_info(info->dev, "TXPWRTH Event has occured\n");
+            if (irq_data & TXPWRTH )
+                dev_info(info->dev, "TXPWRTH Event has occured\n");
+
+            dev_info(info->dev, "Mask for TXPWRTH/GSMPULSE, value 0x%x\n",
+                intel_soc_pmic_readb(MBCUIRQ_REG));
+            dev_info(info->dev, "Status for TXPWRTH/GSMPULSE, value 0x%x\n",
+                intel_soc_pmic_readb(SBCUIRQ_REG));
+            dev_info(info->dev, "For TXPWRTH/GSMPULSE, IRQLVL1_REG 0x%x\n",
+                intel_soc_pmic_readb(IRQLVL1_REG));
+            dev_info(info->dev, "For TXPWRTH/GSMPULSE, Mask MIRQLVL1_REG 0x%x\n",
+                intel_soc_pmic_readb(MIRQLVL1_REG));
+
+        }
 
 	ret = IRQ_HANDLED;
 
