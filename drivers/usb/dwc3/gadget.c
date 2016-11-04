@@ -1405,6 +1405,8 @@ static int dwc3_gadget_ep_dequeue(struct usb_ep *ep,
 	}
 
 out1:
+	if (req->trb)
+		memset(req->trb, 0, sizeof(struct dwc3_trb));
 	/* giveback the request */
 	dwc3_gadget_giveback(dep, req, -ECONNRESET);
 
