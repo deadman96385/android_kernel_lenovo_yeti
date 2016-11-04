@@ -5621,9 +5621,13 @@ ia_css_dvs2_6axis_config_allocate(const struct ia_css_stream *stream)
 		goto err;
 
 	dvs_config->width_y = width_y = params->pipe_dvs_6axis_config[IA_CSS_PIPE_ID_VIDEO]->width_y;
+	dvs_config->alloc_width_y = dvs_config->width_y;
 	dvs_config->height_y = height_y = params->pipe_dvs_6axis_config[IA_CSS_PIPE_ID_VIDEO]->height_y;
+	dvs_config->alloc_height_y = dvs_config->height_y;
 	dvs_config->width_uv = width_uv = params->pipe_dvs_6axis_config[IA_CSS_PIPE_ID_VIDEO]->width_uv;
+	dvs_config->alloc_width_uv = dvs_config->width_uv;
 	dvs_config->height_uv = height_uv = params->pipe_dvs_6axis_config[IA_CSS_PIPE_ID_VIDEO]->height_uv;
+	dvs_config->alloc_height_uv = dvs_config->height_uv;
 	IA_CSS_LOG("table Y: W %d H %d", width_y, height_y);
 	IA_CSS_LOG("table UV: W %d H %d", width_uv, height_uv);
 	dvs_config->xcoords_y = (uint32_t *)sh_css_malloc(width_y * height_y * sizeof(uint32_t));
