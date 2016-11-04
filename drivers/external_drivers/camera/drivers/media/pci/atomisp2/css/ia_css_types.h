@@ -395,6 +395,10 @@ struct ia_css_dvs_6axis_config {
 	uint32_t *ycoords_y;
 	uint32_t *xcoords_uv;
 	uint32_t *ycoords_uv;
+	uint32_t alloc_width_y;
+	uint32_t alloc_height_y;
+	uint32_t alloc_width_uv;
+	uint32_t alloc_height_uv;
 };
 
 /**
