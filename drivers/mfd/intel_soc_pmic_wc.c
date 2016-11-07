@@ -463,8 +463,8 @@ struct intel_pmic_irqregmap whiskey_cove_irqregmap[] = {
 	},
 	{
 		{MIRQLVL1, BCU_IRQ, 1, 0},
-		{BCUIRQ, 0, 0x1F, INTEL_PMIC_REG_W1C},
-		{BCUIRQ, 0, 0x1F, INTEL_PMIC_REG_W1C},
+		{BCUIRQ, 0, 0x7, INTEL_PMIC_REG_W1C},
+		{BCUIRQ, 0, 0x7, INTEL_PMIC_REG_W1C},
 	},
 	{
 		{MIRQLVL1, ADC_IRQ, 1, 0},
