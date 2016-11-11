@@ -585,15 +585,24 @@ irqreturn_t atomisp_isr(int irq, void *dev)
 	unsigned int i;
 	int err;
 
+	pm_runtime_get(isp->dev);
+	if (!pm_runtime_active(isp->dev)) {
+		clear_irq_reg(isp);
+		pm_runtime_put(isp->dev);
+		return IRQ_HANDLED;
+	}
+
 	spin_lock_irqsave(&isp->lock, flags);
 	if (isp->sw_contex.power_state != ATOM_ISP_POWER_UP ||
 	    isp->css_initialized == false) {
 		spin_unlock_irqrestore(&isp->lock, flags);
+		pm_runtime_put(isp->dev);
 		return IRQ_HANDLED;
 	}
 	err = atomisp_css_irq_translate(isp, &irq_infos);
 	if (err) {
 		spin_unlock_irqrestore(&isp->lock, flags);
+		pm_runtime_put(isp->dev);
 		return IRQ_NONE;
 	}
 
@@ -674,11 +683,13 @@ irqreturn_t atomisp_isr(int irq, void *dev)
 	}
 
 	spin_unlock_irqrestore(&isp->lock, flags);
+	pm_runtime_put(isp->dev);
 
 	return IRQ_WAKE_THREAD;
 
 out_nowake:
 	spin_unlock_irqrestore(&isp->lock, flags);
+	pm_runtime_put(isp->dev);
 
 	return IRQ_HANDLED;
 }
@@ -1823,10 +1834,17 @@ irqreturn_t atomisp_isr_thread(int irq, void *isp_ptr)
 
 	dev_dbg(isp->dev, ">%s\n", __func__);
 
+	pm_runtime_get(isp->dev);
+	if (!pm_runtime_active(isp->dev)) {
+		pm_runtime_put(isp->dev);
+		return IRQ_HANDLED;
+	}
+
 	spin_lock_irqsave(&isp->lock, flags);
 
 	if (!atomisp_streaming_count(isp) && !atomisp_is_acc_enabled(isp)) {
 		spin_unlock_irqrestore(&isp->lock, flags);
+		pm_runtime_put(isp->dev);
 		return IRQ_HANDLED;
 	}
 
@@ -1882,6 +1900,7 @@ out:
 			atomisp_css_acc_done(asd);
 	}
 	dev_dbg(isp->dev, "<%s\n", __func__);
+	pm_runtime_put(isp->dev);
 
 	return IRQ_HANDLED;
 }
