@@ -22,12 +22,13 @@ more details.
 #include <stdio.h>
 #endif
 
+extern unsigned int ia_css_debug_trace_level;
 extern int (*sh_css_printf) (const char *fmt, va_list args);
 /* depends on host supplied print function in ia_css_init() */
 STORAGE_CLASS_INLINE void ia_css_print(const char *fmt, ...)
 {
 	va_list ap;
-	if (sh_css_printf) {
+	if (sh_css_printf && ia_css_debug_trace_level > 1) {
 		va_start(ap, fmt);
 		sh_css_printf(fmt, ap);
 		va_end(ap);

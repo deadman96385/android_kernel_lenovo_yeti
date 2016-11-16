@@ -114,7 +114,7 @@ more details.
 #endif
 
 /* Global variable to store the dtrace verbosity level */
-unsigned int ia_css_debug_trace_level = IA_CSS_DEBUG_WARNING;
+unsigned int ia_css_debug_trace_level = IA_CSS_DEBUG_ERROR;
 
 /* Assumes that IA_CSS_STREAM_FORMAT_BINARY_8 is last */
 #define N_IA_CSS_STREAM_FORMAT (IA_CSS_STREAM_FORMAT_BINARY_8+1)
