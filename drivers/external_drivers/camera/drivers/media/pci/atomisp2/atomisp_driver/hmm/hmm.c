@@ -335,6 +335,11 @@ static int load_and_flush_by_kmap(ia_css_ptr virt, void *data, unsigned int byte
 		idx = (virt - bo->start) >> PAGE_SHIFT;
 		offset = (virt - bo->start) - (idx << PAGE_SHIFT);
 
+		if(bo->page_obj[idx].page == NULL) {
+			dev_err(atomisp_dev, "(load_and_flush)hmm buffer object page is null: %d\n", idx);
+			return -EINVAL;
+		}
+
 		src = (char *)kmap(bo->page_obj[idx].page);
 		if (!src) {
 			dev_err(atomisp_dev,
@@ -480,6 +485,11 @@ int hmm_store(ia_css_ptr virt, const void *data, unsigned int bytes)
 		idx = (virt - bo->start) >> PAGE_SHIFT;
 		offset = (virt - bo->start) - (idx << PAGE_SHIFT);
 
+		if(bo->page_obj[idx].page == NULL) {
+			dev_err(atomisp_dev, "(hmm_store)hmm buffer object page is null: %d\n", idx);
+			return -EINVAL;
+		}
+
 		if (in_atomic())
 			des = (char *)kmap_atomic(bo->page_obj[idx].page);
 		else
@@ -563,6 +573,11 @@ int hmm_set(ia_css_ptr virt, int c, unsigned int bytes)
 	while (bytes) {
 		idx = (virt - bo->start) >> PAGE_SHIFT;
 		offset = (virt - bo->start) - (idx << PAGE_SHIFT);
+
+		if(bo->page_obj[idx].page == NULL) {
+			dev_err(atomisp_dev, "(hmm_set)hmm buffer object page is null: %d\n", idx);
+			return -EINVAL;
+		}
 
 		des = (char *)kmap(bo->page_obj[idx].page);
 		if (!des) {
