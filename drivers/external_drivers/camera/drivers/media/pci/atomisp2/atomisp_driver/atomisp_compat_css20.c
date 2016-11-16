@@ -1333,8 +1333,11 @@ int atomisp_css_start(struct atomisp_sub_device *asd,
 	if (atomisp_streaming_count(isp)) {
 		dev_dbg(isp->dev, "skip start sp\n");
 	} else {
-		if (!sh_css_hrt_system_is_idle())
-			dev_err(isp->dev, "CSS HW not idle before starting SP\n");
+		if (!sh_css_hrt_system_is_idle()) {
+                        dev_err(isp->dev, "CSS HW not idle before starting SP\n");
+                        ret = -EINVAL;
+                        goto start_err;
+                }
 		if (ia_css_start_sp() != IA_CSS_SUCCESS) {
 			dev_err(isp->dev, "start sp error.\n");
 			ret = -EINVAL;
