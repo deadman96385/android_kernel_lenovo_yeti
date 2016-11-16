@@ -3021,6 +3021,43 @@ static irqreturn_t dwc3_process_event_buf(struct dwc3_event_buffer *evt)
 
 		event.raw = *(u32 *) (evt->buf + evt->lpos);
 
+		if (event.raw == 0x0) {
+			int i;
+			u32 ev;
+
+			dev_err(dwc->dev, "none event received, seems lpos is wrong count %d left %d!\n",
+				evt->count, left);
+
+			for (i = 0; i < DWC3_EVENT_BUFFERS_SIZE; i += 4) {
+				ev = *(u32 *)(evt->buf + i);
+				dev_err(dwc->dev, "evt[%d]: 0x%08x (%s) %s\n",
+					i, ev, dwc3_decode_event(ev),
+					i == evt->lpos ? "<-- lpos":"");
+				dwc3_trace(trace_dwc3_gadget, "evt[%d]: 0x%08x (%s) %s",
+					   i, ev, dwc3_decode_event(ev),
+					   i == evt->lpos ? "<-- lpos":"");
+			}
+
+			i = evt->lpos;
+			do {
+				ev = *(u32 *) (evt->buf + i);
+				if (ev != 0) {
+					dev_err(dwc->dev, "found new fpos %d, recover\n", i);
+					dwc3_trace(trace_dwc3_gadget,
+						   "found new fpos %d, recover",
+						   i);
+					evt->lpos = i;
+					event.raw = ev;
+					i = 0;
+					break;
+				}
+				i = (i + 4) % DWC3_EVENT_BUFFERS_SIZE;
+			} while (i != evt->lpos);
+
+			if (i == evt->lpos)
+				dev_err(dwc->dev, "fpos fatall\n");
+		}
+
 		dwc3_process_event_entry(dwc, &event);
 
 		/*
@@ -3032,6 +3069,7 @@ static irqreturn_t dwc3_process_event_buf(struct dwc3_event_buffer *evt)
 		 * boundary so I worry about that once we try to handle
 		 * that.
 		 */
+		*(u32 *) (evt->buf + evt->lpos) = 0x0;
 		evt->lpos = (evt->lpos + 4) % DWC3_EVENT_BUFFERS_SIZE;
 		left -= 4;
 
