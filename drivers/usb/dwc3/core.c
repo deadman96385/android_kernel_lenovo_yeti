@@ -584,7 +584,7 @@ static int dwc3_handle_otg_notification(struct notifier_block *nb,
 		if (last_value != event) {
 			dev_info(dwc->dev, "DWC3 OTG Notify USB_EVENT_VBUS\n");
 			last_value = event;
-			if (!dwc->connected)
+			if (!dwc->connected && pm_runtime_suspended(dwc->dev))
 				pm_runtime_get(dwc->dev);
 			state = NOTIFY_OK;
 		}
@@ -594,6 +594,8 @@ static int dwc3_handle_otg_notification(struct notifier_block *nb,
 		spin_lock_irqsave(&dwc->lock, flags);
 		if (last_value != event) {
 			dev_info(dwc->dev, "DWC3 OTG Notify USB_EVENT_NONE\n");
+			if (!dwc->connected && pm_runtime_active(dwc->dev))
+				pm_runtime_put(dwc->dev);
 			last_value = event;
 			state = NOTIFY_OK;
 		}
