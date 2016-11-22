@@ -649,6 +649,7 @@ static int __dwc3_gadget_ep_enable(struct dwc3_ep *dep,
 		dep->comp_desc = comp_desc;
 		dep->type = usb_endpoint_type(desc);
 		dep->flags |= DWC3_EP_ENABLED;
+		dep->flags &= ~DWC3_EP_END_TRANSFER_PENDING;
 
 		reg = dwc3_readl(dwc->regs, DWC3_DALEPENA);
 		reg |= DWC3_DALEPENA_EP(dep->number);
@@ -728,7 +729,7 @@ static int __dwc3_gadget_ep_disable(struct dwc3_ep *dep)
 	dep->endpoint.desc = NULL;
 	dep->comp_desc = NULL;
 	dep->type = 0;
-	dep->flags = 0;
+	dep->flags &= DWC3_EP_END_TRANSFER_PENDING;
 	dep->queued_requests = 0;
 
 	return 0;
@@ -801,10 +802,6 @@ static int dwc3_gadget_ep_disable(struct usb_ep *ep)
 					"%s is already disabled\n",
 					dep->name))
 		return 0;
-
-	if (dep->flags & DWC3_EP_END_TRANSFER_PENDING)
-		wait_event(dep->wait_end_transfer,
-				!(dep->flags & DWC3_EP_END_TRANSFER_PENDING));
 
 	spin_lock_irqsave(&dwc->lock, flags);
 	ret = __dwc3_gadget_ep_disable(dep);
@@ -1994,17 +1991,17 @@ static int dwc3_gadget_stop(struct usb_gadget *g,
 	__dwc3_gadget_ep_disable(dwc->eps[1]);
 
 	for (epnum = 2; epnum < DWC3_ENDPOINTS_NUM; epnum++) {
-		struct dwc3_ep	*dep = dwc->eps[epnum];
+		struct dwc3_ep  *dep = dwc->eps[epnum];
 
-		if (!(dep->flags & DWC3_EP_ENABLED))
+		if (!dep)
 			continue;
 
 		if (!(dep->flags & DWC3_EP_END_TRANSFER_PENDING))
 			continue;
 
 		wait_event_lock_irq(dep->wait_end_transfer,
-				!(dep->flags & DWC3_EP_END_TRANSFER_PENDING),
-				dwc->lock);
+				    !(dep->flags & DWC3_EP_END_TRANSFER_PENDING),
+				    dwc->lock);
 	}
 
 	dwc->gadget_driver	= NULL;
@@ -2393,7 +2390,8 @@ static void dwc3_endpoint_interrupt(struct dwc3 *dwc,
 
 	dep = dwc->eps[epnum];
 
-	if (!(dep->flags & DWC3_EP_ENABLED))
+	if (!(dep->flags & DWC3_EP_ENABLED) &&
+	    !(dep->flags & DWC3_EP_END_TRANSFER_PENDING))
 		return;
 
 	if (epnum == 0 || epnum == 1) {
@@ -2466,7 +2464,7 @@ static void dwc3_endpoint_interrupt(struct dwc3 *dwc,
 
 		if (cmd == DWC3_DEPCMD_ENDTRANSFER) {
 			dep->flags &= ~DWC3_EP_END_TRANSFER_PENDING;
-			wake_up_all(&dep->wait_end_transfer);
+			wake_up(&dep->wait_end_transfer);
 		}
 		break;
 	case DWC3_DEPEVT_RXTXFIFOEVT:
@@ -2512,7 +2510,7 @@ static void dwc3_stop_active_transfer(struct dwc3 *dwc, u32 epnum, bool force)
 	dep = dwc->eps[epnum];
 
 	if ((dep->flags & DWC3_EP_END_TRANSFER_PENDING) ||
-			!dep->resource_index)
+	    !dep->resource_index)
 		return;
 
 	/*
