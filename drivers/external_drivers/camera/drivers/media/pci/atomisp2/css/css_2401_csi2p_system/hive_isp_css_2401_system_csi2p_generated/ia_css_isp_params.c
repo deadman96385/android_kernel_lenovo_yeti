@@ -1128,8 +1128,7 @@ ia_css_process_sc(
 
 			ia_css_sc_encode((struct sh_css_isp_sc_params *)
 					&stage->binary->mem_params.params[IA_CSS_PARAM_CLASS_PARAM][IA_CSS_ISP_DMEM].address[offset],
-					&params->sc_config,
-size);
+					(params->sc_config_remote ? &params->sc_config_remote : &params->sc_config),size);
 			params->isp_params_changed = true;
 			params->isp_mem_params_changed[pipe_id][stage->stage_num][IA_CSS_ISP_DMEM] = true;
 
