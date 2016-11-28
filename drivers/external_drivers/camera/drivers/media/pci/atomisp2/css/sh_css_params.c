@@ -2859,7 +2859,6 @@ sh_css_init_isp_params_from_config(struct ia_css_pipe *pipe,
 	assert(pipe != NULL);
 
 	IA_CSS_ENTER_PRIVATE("pipe=%p, config=%p, params=%p", pipe, config, params);
-
 	ia_css_set_configs(params, config);
 
 #if defined(IS_ISP_2500_SYSTEM)
@@ -2872,8 +2871,10 @@ sh_css_init_isp_params_from_config(struct ia_css_pipe *pipe,
 	sh_css_set_ee_config(params, config->ee_config);
 	sh_css_set_baa_config(params, config->baa_config);
 	if ((pipe->mode < IA_CSS_PIPE_ID_NUM) &&
-			(params->pipe_dvs_6axis_config[pipe->mode]))
-			sh_css_set_pipe_dvs_6axis_config(pipe, params, config->dvs_6axis_config);
+		(params->pipe_dvs_6axis_config[pipe->mode])) {
+		sh_css_set_pipe_dvs_6axis_config(pipe, params, config->dvs_6axis_config);
+	}
+
 	sh_css_set_dz_config(params, config->dz_config);
 	sh_css_set_motion_vector(params, config->motion_vector);
 	sh_css_update_shading_table_status(pipe_in, params);
@@ -3337,6 +3338,7 @@ sh_css_create_isp_params(struct ia_css_stream *stream,
 	succ &= (ddr_ptrs->macc_tbl != mmgr_NULL);
 #endif
 
+	params->sc_config_remote = NULL;
 	*isp_params_out = params;
 	return err;
 }
@@ -4501,9 +4503,10 @@ sh_css_params_write_to_ddr_internal(
 						return err;
 					}
 					/* set sc_config to isp */
-					params->sc_config = (struct ia_css_shading_table *)params->sc_table;
+					params->sc_config_remote =
+                                          (struct ia_css_shading_table *)params->sc_table;
 					ia_css_kernel_process_param[IA_CSS_SC_ID](pipe_id, stage, params);
-					params->sc_config = NULL;
+					params->sc_config_remote = NULL;
 				} else {
 					/* generate the identical shading table */
 					if (params->sc_config) {

@@ -64,6 +64,7 @@ struct ia_css_isp_parameters {
 	const struct ia_css_morph_table   *morph_table;
 	const struct ia_css_shading_table *sc_table;
 	struct ia_css_shading_table *sc_config;
+	struct ia_css_shading_table *sc_config_remote;
 	struct ia_css_macc_table    macc_table;
 	struct ia_css_gamma_table   gc_table;
 	struct ia_css_ctc_table     ctc_table;
