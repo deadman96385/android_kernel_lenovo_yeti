@@ -417,6 +417,7 @@ struct atomisp_sub_device {
 	bool re_trigger_capture;
 	unsigned int preview_exp_id;
 	unsigned int postview_exp_id;
+	struct mutex data_mutex;
 };
 
 extern const struct atomisp_in_fmt_conv atomisp_in_fmt_conv[];

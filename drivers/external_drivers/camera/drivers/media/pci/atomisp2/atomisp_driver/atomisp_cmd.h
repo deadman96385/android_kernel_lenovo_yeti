@@ -403,7 +403,7 @@ bool atomisp_is_vf_pipe(struct atomisp_video_pipe *pipe);
 void atomisp_apply_css_parameters(
 				struct atomisp_sub_device *asd,
 				struct atomisp_css_params *css_param);
-void atomisp_free_css_parameters(struct atomisp_css_params *css_param);
+void atomisp_free_css_parameters(struct atomisp_sub_device *asd, struct atomisp_css_params *css_param);
 
 void atomisp_handle_parameter_and_buffer(struct atomisp_video_pipe *pipe);
 

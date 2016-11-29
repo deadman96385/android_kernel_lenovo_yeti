@@ -18,6 +18,8 @@ more details.
 /*! \file */
 
 /* Forward declaration to break mutual dependency */
+#include <linux/mutex.h>
+
 struct ia_css_isp_parameters;
 
 #include <type_support.h>
@@ -96,8 +98,8 @@ struct ia_css_isp_parameters {
 	struct ia_css_anr_config    anr_config;
 	struct ia_css_ce_config     ce_config;
 	struct ia_css_formats_config     formats_config;
-/* ---- deprecated: replaced with pipe_dvs_6axis_config---- */
-	struct ia_css_dvs_6axis_config  *dvs_6axis_config;
+/* ---- deprecated: replaced with pipe_dvs_6axis_config
+	struct ia_css_dvs_6axis_config  *dvs_6axis_config;   ---- */
 	struct ia_css_ecd_config    ecd_config;
 	struct ia_css_ynr_config    ynr_config;
 	struct ia_css_yee_config    yee_config;
@@ -177,6 +179,7 @@ struct ia_css_isp_parameters {
 	struct sh_css_ddr_address_map_size ddr_ptrs_size;
 	struct ia_css_frame *output_frame; /**< Output frame the config is to be applied to (optional) */
 	uint32_t isp_parameters_id; /**< Unique ID to track which config was actually applied to a particular frame */
+	struct mutex data_mutex;
 };
 
 void
