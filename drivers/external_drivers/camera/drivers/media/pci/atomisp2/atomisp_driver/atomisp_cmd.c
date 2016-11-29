@@ -810,7 +810,7 @@ void atomisp_flush_params_queue(struct atomisp_video_pipe *pipe)
 		param = list_entry(pipe->per_frame_params.next,
 				struct atomisp_css_params_with_list, list);
 		list_del(&param->list);
-		atomisp_free_css_parameters(&param->params);
+		atomisp_free_css_parameters(pipe->asd, &param->params);
 		atomisp_kernel_free(param);
 	}
 }
@@ -1143,11 +1143,13 @@ void atomisp_buf_done(struct atomisp_sub_device *asd, int error,
 
 		/* free the parameters */
 		if (pipe->frame_params[vb->i]) {
-			if (asd->params.dvs_6axis ==
-			    pipe->frame_params[vb->i]->params.dvs_6axis)
+			if (asd->params.dvs_6axis == pipe->frame_params[vb->i]->params.dvs_6axis){
+			    mutex_lock(&asd->data_mutex);
 				asd->params.dvs_6axis = NULL;
-			atomisp_free_css_parameters(
-				&pipe->frame_params[vb->i]->params);
+				mutex_unlock(&asd->data_mutex);
+			}
+
+			atomisp_free_css_parameters(asd, &pipe->frame_params[vb->i]->params);
 			atomisp_kernel_free(pipe->frame_params[vb->i]);
 			pipe->frame_params[vb->i] = NULL;
 		}
@@ -1241,11 +1243,14 @@ void atomisp_buf_done(struct atomisp_sub_device *asd, int error,
 			 * per-frame parameters are taken after previous
 			 * buffers in CSS got processed.
 			 */
-			if (asd->params.dvs_6axis)
-				atomisp_css_set_dvs_6axis(asd,
-					asd->params.dvs_6axis);
-			else
+			if (asd->params.dvs_6axis) {
+				mutex_lock(&asd->data_mutex);
+				atomisp_css_set_dvs_6axis(asd, asd->params.dvs_6axis);
+				mutex_unlock(&asd->data_mutex);
+			} else {
 				asd->params.css_update_params_needed = false;
+			}
+
 			/* The update flag should not be cleaned here
 			 * since it is still going to be used to make up
 			 * following per-frame parameters.
@@ -2342,7 +2347,7 @@ int atomisp_formats(struct atomisp_sub_device *asd, int flag,
 
 void atomisp_free_internal_buffers(struct atomisp_sub_device *asd)
 {
-	atomisp_free_css_parameters(&asd->params.css_param);
+	atomisp_free_css_parameters(asd, &asd->params.css_param);
 
 	if (asd->raw_output_frame) {
 		atomisp_css_frame_free(asd->raw_output_frame);
@@ -3374,8 +3379,11 @@ void atomisp_apply_css_parameters(
 	if (css_param->update_flag.anr_thres)
 		atomisp_css_set_anr_thres(asd, &css_param->anr_thres);
 
-	if (css_param->update_flag.shading_table)
+	if (css_param->update_flag.shading_table) {
+		mutex_lock(&asd->data_mutex);
 		atomisp_css_set_shading_table(asd, css_param->shading_table);
+		mutex_unlock(&asd->data_mutex);
+	}
 
 	if (css_param->update_flag.morph_table && asd->params.gdc_cac_en)
 		atomisp_css_set_morph_table(asd, css_param->morph_table);
@@ -3389,8 +3397,11 @@ void atomisp_apply_css_parameters(
 			atomisp_css_set_dvs2_coefs(asd, css_param->dvs2_coeff);
 	}
 
-	if (css_param->update_flag.dvs_6axis_config)
+	if (css_param->update_flag.dvs_6axis_config) {
+		mutex_lock(&asd->data_mutex);
 		atomisp_css_set_dvs_6axis(asd, css_param->dvs_6axis);
+		mutex_unlock(&asd->data_mutex);
+	}
 
 	/* Add some parameters for isp2.7 */
 	if (css_param->update_flag.dpc2_config)
@@ -3838,7 +3849,7 @@ int atomisp_cp_general_isp_parameters(struct atomisp_sub_device *asd,
 	return 0;
 }
 
-int atomisp_cp_lsc_table(struct atomisp_sub_device *asd,
+int atomisp_cp_lsc_table_internal(struct atomisp_sub_device *asd,
 			struct atomisp_shading_table *source_st,
 			struct atomisp_css_params *css_param,
 			bool from_user)
@@ -3848,15 +3859,6 @@ int atomisp_cp_lsc_table(struct atomisp_sub_device *asd,
 	struct atomisp_css_shading_table *shading_table;
 	struct atomisp_css_shading_table *old_table;
 	struct atomisp_shading_table st;
-
-	if (!source_st)
-		return 0;
-
-	if (!css_param)
-		return -EINVAL;
-
-	if (!from_user && css_param->update_flag.shading_table)
-		return 0;
 
 	if (copy_from_compatible(&st, source_st,
 				 sizeof(struct atomisp_shading_table),
@@ -3968,6 +3970,27 @@ set_lsc:
 	return 0;
 }
 
+int atomisp_cp_lsc_table(struct atomisp_sub_device *asd,
+			struct atomisp_shading_table *source_st,
+			struct atomisp_css_params *css_param,
+			bool from_user)
+{
+	int ret = 0;
+	if (!source_st)
+		return 0;
+
+	if (!css_param)
+		return -EINVAL;
+
+	if (!from_user && css_param->update_flag.shading_table)
+		return 0;
+
+	mutex_lock(&asd->data_mutex);
+	ret = atomisp_cp_lsc_table_internal(asd, source_st, css_param, from_user);
+	mutex_unlock(&asd->data_mutex);
+	return ret;
+}
+
 int atomisp_css_cp_dvs2_coefs(struct atomisp_sub_device *asd,
 			      struct ia_css_dvs2_coefficients *coefs,
 			      struct atomisp_css_params *css_param,
@@ -4045,7 +4068,7 @@ int atomisp_css_cp_dvs2_coefs(struct atomisp_sub_device *asd,
 	return 0;
 }
 
-int atomisp_cp_dvs_6axis_config(struct atomisp_sub_device *asd,
+int atomisp_cp_dvs_6axis_config_internal(struct atomisp_sub_device *asd,
 			struct atomisp_dvs_6axis_config *source_6axis_config,
 			struct atomisp_css_params *css_param,
 			bool from_user)
@@ -4146,6 +4169,18 @@ error:
 	return ret;
 }
 
+int atomisp_cp_dvs_6axis_config(struct atomisp_sub_device *asd,
+			struct atomisp_dvs_6axis_config *user_6axis_config,
+			struct atomisp_css_params *css_param,
+			bool from_user)
+{
+	int ret = 0;
+	mutex_lock(&asd->data_mutex);
+	ret = atomisp_cp_dvs_6axis_config_internal(asd, user_6axis_config, css_param, from_user);
+	mutex_unlock(&asd->data_mutex);
+	return ret;
+}
+
 int atomisp_cp_morph_table(struct atomisp_sub_device *asd,
 				struct atomisp_morph_table *source_morph_table,
 				struct atomisp_css_params *css_param,
@@ -4232,8 +4267,9 @@ int atomisp_makeup_css_parameters(struct atomisp_sub_device *asd,
 	return ret;
 }
 
-void atomisp_free_css_parameters(struct atomisp_css_params *css_param)
+void atomisp_free_css_parameters(struct atomisp_sub_device *asd, struct atomisp_css_params *css_param)
 {
+	mutex_lock(&asd->data_mutex);
 	if (css_param->dvs_6axis) {
 		ia_css_dvs2_6axis_config_free(css_param->dvs_6axis);
 		css_param->dvs_6axis = NULL;
@@ -4250,6 +4286,7 @@ void atomisp_free_css_parameters(struct atomisp_css_params *css_param)
 		ia_css_morph_table_free(css_param->morph_table);
 		css_param->morph_table = NULL;
 	}
+	mutex_unlock(&asd->data_mutex);
 }
 
 /*
@@ -4414,7 +4451,7 @@ int atomisp_set_parameters(struct video_device *vdev,
 
 apply_parameter_failed:
 	if (css_param)
-		atomisp_free_css_parameters(css_param);
+		atomisp_free_css_parameters(asd, css_param);
 	if (param)
 		atomisp_kernel_free(param);
 
@@ -6215,7 +6252,7 @@ int atomisp_set_fmt_file(struct video_device *vdev, struct v4l2_format *f)
 	return 0;
 }
 
-int atomisp_set_shading_table(struct atomisp_sub_device *asd,
+int atomisp_set_shading_table_internal(struct atomisp_sub_device *asd,
 		struct atomisp_shading_table *user_shading_table)
 {
 	struct atomisp_css_shading_table *shading_table;
@@ -6273,6 +6310,19 @@ out:
 	if (free_table != NULL)
 		atomisp_css_shading_table_free(free_table);
 
+	return ret;
+}
+
+int atomisp_set_shading_table(struct atomisp_sub_device *asd,
+		struct atomisp_shading_table *user_shading_table)
+{
+	int ret = 0;
+	if(!asd || !user_shading_table)
+		return -EINVAL;
+
+	mutex_lock(&asd->data_mutex);
+	ret = atomisp_set_shading_table_internal(asd, user_shading_table);
+	mutex_unlock(&asd->data_mutex);
 	return ret;
 }
 

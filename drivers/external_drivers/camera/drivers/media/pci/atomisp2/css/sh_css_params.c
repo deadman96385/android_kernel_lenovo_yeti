@@ -2866,6 +2866,7 @@ sh_css_init_isp_params_from_config(struct ia_css_pipe *pipe,
 	assert(pipe != NULL);
 
 	IA_CSS_ENTER_PRIVATE("pipe=%p, config=%p, params=%p", pipe, config, params);
+	mutex_lock(&params->data_mutex);
 	ia_css_set_configs(params, config);
 
 #if defined(IS_ISP_2500_SYSTEM)
@@ -2907,6 +2908,7 @@ sh_css_init_isp_params_from_config(struct ia_css_pipe *pipe,
 	 * available */
 	sh_css_set_dp_config(pipe, params, config->dp_config);
 	ia_css_set_param_exceptions(pipe, params);
+	mutex_unlock(&params->data_mutex);
 
 	if (IA_CSS_SUCCESS ==
 		sh_css_select_dp_10bpp_config(pipe, &is_dp_10bpp)) {
@@ -3346,6 +3348,7 @@ sh_css_create_isp_params(struct ia_css_stream *stream,
 #endif
 
 	params->sc_config_remote = NULL;
+	mutex_init(&params->data_mutex);
 	*isp_params_out = params;
 	return err;
 }
@@ -3866,6 +3869,7 @@ ia_css_stream_isp_parameters_uninit(struct ia_css_stream *stream)
 		return;
 	}
 
+	mutex_lock(&params->data_mutex);
 	/* free existing ddr_ptr maps */
 	for (i = 0; i < IA_CSS_PIPE_ID_NUM; i++)
 	{
@@ -3905,6 +3909,8 @@ ia_css_stream_isp_parameters_uninit(struct ia_css_stream *stream)
 		}
 	}
 
+	mutex_unlock(&params->data_mutex);
+	mutex_destroy(&params->data_mutex);
 	sh_css_free(params);
 	if (per_frame_params)
 		sh_css_free(per_frame_params);
@@ -5087,12 +5093,14 @@ sh_css_invalidate_params(struct ia_css_stream *stream)
 	params->motion_config_changed = true;
 
 	/*Free up theDVS table memory blocks before recomputing new table  */
+	mutex_lock(&params->data_mutex);
 	for (i = 0; i < IA_CSS_PIPE_ID_NUM; i++) {
 		if (params->pipe_dvs_6axis_config[i])
 			free_dvs_6axis_table(&(params->pipe_dvs_6axis_config[i]));
 			params->pipe_dvs_6axis_config_changed[i] = true;
 	}
 
+	mutex_unlock(&params->data_mutex);
 	IA_CSS_LEAVE_PRIVATE("void");
 }
 

@@ -1611,8 +1611,10 @@ void atomisp_css_free_stat_buffers(struct atomisp_sub_device *asd)
 	}
 
 	if (asd->params.css_param.dvs_6axis) {
+		mutex_lock(&asd->data_mutex);
 		ia_css_dvs2_6axis_config_free(asd->params.css_param.dvs_6axis);
 		asd->params.css_param.dvs_6axis = NULL;
+		mutex_unlock(&asd->data_mutex);
 	}
 
 	for (i = 0; i < ATOMISP_METADATA_TYPE_NUM; i++) {
@@ -2431,7 +2433,8 @@ int atomisp_css_stop(struct atomisp_sub_device *asd,
 	atomisp_flush_params_queue(&asd->video_out_vf);
 	atomisp_flush_params_queue(&asd->video_out_preview);
 	atomisp_flush_params_queue(&asd->video_out_video_capture);
-	atomisp_free_css_parameters(&asd->params.css_param);
+	atomisp_free_css_parameters(asd, &asd->params.css_param);
+
 	memset(&asd->params.css_param, 0, sizeof(asd->params.css_param));
 	return 0;
 }
