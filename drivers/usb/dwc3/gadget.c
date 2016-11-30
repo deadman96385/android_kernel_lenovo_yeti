@@ -3127,6 +3127,15 @@ static irqreturn_t dwc3_check_event_buf(struct dwc3_event_buffer *evt)
 	if (!timeout) {
 		dwc3_trace(trace_dwc3_gadget,
 			"Event Count register read failed");
+		dev_err(dwc->dev, "Event Count register read failed\n");
+		dev_err(dwc->dev, "- DWC3_GEVENTCOUNT(0): 0x%x\n",
+			dwc3_readl(dwc->regs, DWC3_GEVNTCOUNT(0)));
+		dev_err(dwc->dev, "- DWC3_GEVNTADRLO(0): 0x%x\n",
+			dwc3_readl(dwc->regs, DWC3_GEVNTADRLO(0)));
+		dev_err(dwc->dev, "- DWC3_GEVNTADRHI(0): 0x%x\n",
+			dwc3_readl(dwc->regs, DWC3_GEVNTADRHI(0)));
+		dev_err(dwc->dev, "- DWC3_GEVNTSIZ(0): 0x%x\n",
+			dwc3_readl(dwc->regs, DWC3_GEVNTSIZ(0)));
 		dwc3_writel(dwc->regs, DWC3_GEVNTCOUNT(0), 0);
 		return IRQ_NONE;
 	}
