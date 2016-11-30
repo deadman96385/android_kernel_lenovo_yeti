@@ -43,7 +43,10 @@ static void ctc_gradient(
 
 	assert(y0 >= 0 && y0 <= max_dydx);
 	assert(y1 >= 0 && y1 <= max_dydx);
-	assert(x0 < x1);
+        if (WARN_ON(x0 >= x1)) {
+            IA_CSS_ERROR("%s: x0 %d, x1 %d\n", __func__, x0, x1);
+            return;
+        }
 	assert(dydx != NULL);
 	assert(shift != NULL);
 
