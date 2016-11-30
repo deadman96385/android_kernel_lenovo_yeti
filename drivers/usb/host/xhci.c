@@ -4926,6 +4926,7 @@ int xhci_gen_setup(struct usb_hcd *hcd, xhci_get_quirks_t get_quirks)
 	xhci_dbg(xhci, "Called HCD init\n");
 	return 0;
 error:
+	wakeup_source_trash(&xhci->ssic_wake_lock);
 	kfree(xhci);
 	return retval;
 }
