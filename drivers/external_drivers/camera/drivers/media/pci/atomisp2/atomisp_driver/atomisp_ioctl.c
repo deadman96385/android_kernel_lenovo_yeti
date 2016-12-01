@@ -2082,9 +2082,9 @@ int __atomisp_streamoff(struct file *file, void *fh, enum v4l2_buf_type type)
 
 	if (first_streamoff) {
 		/* if other streams are running, should not disable watch dog */
-		rt_mutex_unlock(&isp->mutex);
 		atomisp_wdt_stop(asd, true);
 
+		rt_mutex_unlock(&isp->mutex);
 		/*
 		 * must stop sending pixels into GP_FIFO before stop
 		 * the pipeline.

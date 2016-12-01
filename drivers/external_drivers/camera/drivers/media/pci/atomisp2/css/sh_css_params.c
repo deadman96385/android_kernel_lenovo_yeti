@@ -2515,8 +2515,16 @@ sh_css_set_pipe_dvs_6axis_config(const struct ia_css_pipe *pipe,
 		return;
 	assert(params != NULL);
 	assert(pipe != NULL);
-	assert(dvs_config->height_y == dvs_config->height_uv);
-	assert((dvs_config->width_y - 1) == 2 * (dvs_config->width_uv - 1));
+	if (dvs_config->height_y != dvs_config->height_uv ||
+		(dvs_config->width_y - 1) != 2 * (dvs_config->width_uv - 1)) {
+		IA_CSS_ERROR("%s: dvs_config->height_y %u, dvs_config->height_uv %u,\
+			dvs_config->width_y %u, dvs_config->width_uv %u\n",
+			__func__, dvs_config->height_y, dvs_config->height_uv,
+			dvs_config->width_y, dvs_config->width_uv);
+		WARN_ON(1);
+		return;
+	}
+
 	assert(pipe->mode < IA_CSS_PIPE_ID_NUM);
 
 	IA_CSS_ENTER_PRIVATE("dvs_config=%p", dvs_config);
