@@ -1524,6 +1524,7 @@ void atomisp_wdt_work(struct work_struct *work)
 		rt_mutex_unlock(&isp->mutex);
 		return;
 	}
+	atomic_set(&isp->wdt_work_queued, 0);
 
 	if (!atomisp_streaming_count(isp)) {
 		atomic_set(&isp->wdt_work_queued, 0);
@@ -1671,7 +1672,6 @@ void atomisp_wdt_work(struct work_struct *work)
 	}
 	atomisp_set_stop_timeout(ATOMISP_CSS_STOP_TIMEOUT_US);
 	dev_err(isp->dev, "timeout recovery handling done\n");
-	atomic_set(&isp->wdt_work_queued, 0);
 
 	rt_mutex_unlock(&isp->mutex);
 }
