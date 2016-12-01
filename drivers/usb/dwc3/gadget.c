@@ -1983,13 +1983,7 @@ static int dwc3_gadget_stop(struct usb_gadget *g,
 	int			epnum;
 
 	pm_runtime_get_sync(dwc->dev);
-
 	spin_lock_irqsave(&dwc->lock, flags);
-
-	dwc3_gadget_disable_irq(dwc);
-	__dwc3_gadget_ep_disable(dwc->eps[0]);
-	__dwc3_gadget_ep_disable(dwc->eps[1]);
-
 	for (epnum = 2; epnum < DWC3_ENDPOINTS_NUM; epnum++) {
 		struct dwc3_ep  *dep = dwc->eps[epnum];
 
@@ -2004,6 +1998,9 @@ static int dwc3_gadget_stop(struct usb_gadget *g,
 				    dwc->lock);
 	}
 
+	dwc3_gadget_disable_irq(dwc);
+	__dwc3_gadget_ep_disable(dwc->eps[0]);
+	__dwc3_gadget_ep_disable(dwc->eps[1]);
 	dwc->gadget_driver	= NULL;
 
 	spin_unlock_irqrestore(&dwc->lock, flags);
