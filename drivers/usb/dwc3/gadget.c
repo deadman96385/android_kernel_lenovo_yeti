@@ -2546,7 +2546,12 @@ static void dwc3_stop_active_transfer(struct dwc3 *dwc, u32 epnum, bool force)
 	WARN_ON_ONCE(ret);
 	dep->resource_index = 0;
 	dep->flags &= ~DWC3_EP_BUSY;
-	dep->flags |= DWC3_EP_END_TRANSFER_PENDING;
+
+	if(!ret)
+		dep->flags |= DWC3_EP_END_TRANSFER_PENDING;
+	else
+		dev_err(dwc->dev, "failed to send ep[%s], cmd=0x%x, ret=0x%x\n", dep->name, cmd, ret);
+
 	udelay(100);
 }
 
