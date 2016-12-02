@@ -156,6 +156,7 @@ extern void console_unblank(void);
 void console_suspend_slow(void);
 void console_restore_slow(void);
 
+extern void console_flush_on_panic(void);
 extern struct tty_driver *console_device(int *);
 extern void console_stop(struct console *);
 extern void console_start(struct console *);

@@ -1109,25 +1109,25 @@ static int xpad_init_input(struct usb_xpad *xpad)
 	input_dev = input_allocate_device();
 	if (!input_dev)
 		return -ENOMEM;
-
-	xpad->dev = input_dev;
+ 
+ 	xpad->dev = input_dev;
 	input_dev->name = xpad->name;
-	input_dev->phys = xpad->phys;
+ 	input_dev->phys = xpad->phys;
 	usb_to_input_id(xpad->udev, &input_dev->id);
 	input_dev->dev.parent = &xpad->intf->dev;
-
-	input_set_drvdata(input_dev, xpad);
-
-	input_dev->open = xpad_open;
-	input_dev->close = xpad_close;
+ 
+ 	input_set_drvdata(input_dev, xpad);
+ 
+ 	input_dev->open = xpad_open;
+ 	input_dev->close = xpad_close;
 
 	__set_bit(EV_KEY, input_dev->evbit);
-
-	if (!(xpad->mapping & MAP_STICKS_TO_NULL)) {
+ 
+ 	if (!(xpad->mapping & MAP_STICKS_TO_NULL)) {
 		__set_bit(EV_ABS, input_dev->evbit);
-		/* set up axes */
-		for (i = 0; xpad_abs[i] >= 0; i++)
-			xpad_set_up_abs(input_dev, xpad_abs[i]);
+ 		/* set up axes */
+ 		for (i = 0; xpad_abs[i] >= 0; i++)
+ 			xpad_set_up_abs(input_dev, xpad_abs[i]);
 	}
 
 	/* set up standard buttons */
