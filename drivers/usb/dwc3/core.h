@@ -826,6 +826,8 @@ struct dwc3 {
 
 	bool			connected;
 
+	bool			recovery_needed;
+
 	struct usb_otg_caps	otg_caps;
 	unsigned int		quirks;
 };

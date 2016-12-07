@@ -1557,6 +1557,8 @@ static void dwc3_gadget_watchdog(struct work_struct *work)
 	dev_info(dwc->dev, "%s: controller in bad state. reset via watchdog.\n",
 		__func__);
 
+	dwc->connected = false;
+
 	ret = pm_runtime_put_sync(dwc->dev);
 	if (ret)
 		dev_err(dwc->dev, "%s: sw watchdog failed to suspend controller: err = %d\n",
@@ -1851,6 +1853,15 @@ static int dwc3_gadget_start(struct usb_gadget *g,
 	int			ret = 0;
 	int			irq;
 	u32			reg;
+
+	/* Try to reset core as a workaround */
+	if (dwc->recovery_needed) {
+		dev_err(dwc->dev, "xxx: core recovery needed.\n");
+		dwc->connected = false;
+		pm_runtime_put_sync(dwc->dev);
+		pm_runtime_get_sync(dwc->dev);
+		dwc->recovery_needed = false;
+	}
 
 	pm_runtime_get_sync(dwc->dev);
 
@@ -2549,8 +2560,17 @@ static void dwc3_stop_active_transfer(struct dwc3 *dwc, u32 epnum, bool force)
 
 	if(!ret)
 		dep->flags |= DWC3_EP_END_TRANSFER_PENDING;
-	else
+	else {
 		dev_err(dwc->dev, "failed to send ep[%s], cmd=0x%x, ret=0x%x\n", dep->name, cmd, ret);
+		/*
+		 * HACK: It seems that if command fails, the core
+		 * refues to accept any other commands and is in some
+		 * kind of stuck state. Run power management cycle
+		 * using watchdog in case this happens. This workaround
+		 * seems to restore the core to sanity.
+		 */
+		dwc->recovery_needed = true;
+	}
 
 	udelay(100);
 }
@@ -2680,21 +2700,12 @@ static void dwc3_gadget_reset_interrupt(struct dwc3 *dwc)
 	dwc3_writel(dwc->regs, DWC3_DCFG, reg);
 
 	/*
-	 * HACK: When coming from USB RESET EVENT from host, TUSB121x phy may
-	 * become unstable and hang. The current way to know when we reach this
-	 * hw issue is by raising a time out if it takes too long to receive
-	 * first ep0 interrupt afterwards.
-	 *
-	 * In order to do that, we start a sw watchdog from here. It will be
-	 * disabled after usb gadget enters into configured state. If it times
-	 * out, we'll soft reset the OTG controller, which makes usb phy stable
-	 * again.
-	 *
-	 * In case TUSB121x phy is not used, this watchdog will create no harm
-	 * since we're not expecting it to be ever triggered.
+	 * HACK: It seems sometimes dwc3 hangs and fails to
+	 * receive commands, which end up with timeout.
+	 * Perform a power management cycle using this watchdog
+	 * to restore dwc3 to sane state.
 	 */
-	if (dwc->ulpi_phy)
-		dwc3_gadget_kick_dog(dwc);
+	dwc3_gadget_kick_dog(dwc);
 
 	if (dwc->gadget_driver && dwc->gadget_driver->reset) {
 		spin_unlock(&dwc->lock);
