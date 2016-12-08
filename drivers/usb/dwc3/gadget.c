@@ -1992,6 +1992,7 @@ static int dwc3_gadget_stop(struct usb_gadget *g,
 	unsigned long		flags;
 	int			irq;
 	int			epnum;
+	long			ret;
 
 	pm_runtime_get_sync(dwc->dev);
 	spin_lock_irqsave(&dwc->lock, flags);
@@ -2004,9 +2005,18 @@ static int dwc3_gadget_stop(struct usb_gadget *g,
 		if (!(dep->flags & DWC3_EP_END_TRANSFER_PENDING))
 			continue;
 
-		wait_event_lock_irq(dep->wait_end_transfer,
-				    !(dep->flags & DWC3_EP_END_TRANSFER_PENDING),
-				    dwc->lock);
+		ret = wait_event_interruptible_lock_irq_timeout(
+				dep->wait_end_transfer,
+				!(dep->flags & DWC3_EP_END_TRANSFER_PENDING),
+				dwc->lock,
+				3 * HZ);
+		if (ret <= 0) {
+			dev_err(dwc->dev,
+				"Waiting DWC3_EP_END_TRANSFER_PENDING %ld\n",
+				ret);
+			dep->flags &= ~DWC3_EP_END_TRANSFER_PENDING;
+			dwc->recovery_needed = true;
+		}
 	}
 
 	dwc3_gadget_disable_irq(dwc);
