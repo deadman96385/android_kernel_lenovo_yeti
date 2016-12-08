@@ -3072,21 +3072,26 @@ static irqreturn_t dwc3_process_event_buf(struct dwc3_event_buffer *evt)
 			i = evt->lpos;
 			do {
 				ev = *(u32 *) (evt->buf + i);
+				dev_err(dwc->dev, "evt[%d]: 0x%08x (%s)\n",
+					i, ev, dwc3_decode_event(ev));
 				if (ev != 0) {
-					dev_err(dwc->dev, "found new fpos %d, recover\n", i);
+					dev_err(dwc->dev, "found new lpos %d, recover\n", i);
 					dwc3_trace(trace_dwc3_gadget,
-						   "found new fpos %d, recover",
+						   "found new lpos %d, recover",
 						   i);
 					evt->lpos = i;
 					event.raw = ev;
-					i = 0;
+					i = evt->lpos + 1;
 					break;
 				}
 				i = (i + 4) % DWC3_EVENT_BUFFERS_SIZE;
 			} while (i != evt->lpos);
 
-			if (i == evt->lpos)
+			if (i == evt->lpos) {
 				dev_err(dwc->dev, "fpos fatall\n");
+				ret = IRQ_NONE;
+				goto out;
+			}
 		}
 
 		dwc3_process_event_entry(dwc, &event);
@@ -3111,6 +3116,7 @@ static irqreturn_t dwc3_process_event_buf(struct dwc3_event_buffer *evt)
 	evt->flags &= ~DWC3_EVENT_PENDING;
 	ret = IRQ_HANDLED;
 
+out:
 	/* Unmask interrupt */
 	reg = dwc3_readl(dwc->regs, DWC3_GEVNTSIZ(0));
 	reg &= ~DWC3_GEVNTSIZ_INTMASK;
