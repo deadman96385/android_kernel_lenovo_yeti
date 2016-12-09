@@ -1841,27 +1841,12 @@ int i915_driver_load(struct drm_device *dev, unsigned long flags)
 		goto out_mtrrfree;
 	}
 
-	/*
-	 * Create a dedicated, high-priority work queue for the retire work
-	 * handler to reduce the probability of blocking the hang checker
-	 * during scenarios of high system load.
-	 */
-	dev_priv->retire_work_wq = alloc_ordered_workqueue("i915_retire_work", WQ_HIGHPRI);
-	if (dev_priv->retire_work_wq == NULL) {
-		DRM_ERROR("Failed to create retire work workqueue.\n");
-		ret = -ENOMEM;
-		destroy_workqueue(dev_priv->wq);
-		goto out_mtrrfree;
-	}
-
-
 	/* Create separate work queue for HPD works */
 	dev_priv->hpdwq = alloc_ordered_workqueue("i915_hpd", 0);
 	if (dev_priv->hpdwq == NULL) {
 		DRM_ERROR("Failed to create hpd workqueue.\n");
 		ret = -ENOMEM;
 		destroy_workqueue(dev_priv->wq);
-		destroy_workqueue(dev_priv->retire_work_wq);
 		goto out_mtrrfree;
 	}
 
@@ -1977,7 +1962,6 @@ out_gem_unload:
 	intel_teardown_mchbar(dev);
 	pm_qos_remove_request(&dev_priv->pm_qos);
 	destroy_workqueue(dev_priv->wq);
-	destroy_workqueue(dev_priv->retire_work_wq);
 	destroy_workqueue(dev_priv->hpdwq);
 out_mtrrfree:
 	arch_phys_wc_del(dev_priv->gtt.mtrr);
@@ -2064,8 +2048,6 @@ int i915_driver_unload(struct drm_device *dev)
 	i915_destroy_error_state(dev);
 
 	i915_hangcheck_cleanup(dev_priv);
-	cancel_delayed_work_sync(&dev_priv->mm.retire_work);
-	destroy_workqueue(dev_priv->retire_work_wq);
 
 	if (dev->pdev->msi_enabled)
 		pci_disable_msi(dev->pdev);

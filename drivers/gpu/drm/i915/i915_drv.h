@@ -1773,7 +1773,6 @@ struct drm_i915_private {
 	struct workqueue_struct *wq;
 	struct workqueue_struct *hpdwq;
 	struct workqueue_struct *flipwq;
-	struct workqueue_struct *retire_work_wq;
 
 	/* Display functions */
 	struct drm_i915_display_funcs display;
