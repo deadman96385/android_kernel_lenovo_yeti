@@ -1853,10 +1853,14 @@ static int dwc3_gadget_start(struct usb_gadget *g,
 	int			ret = 0;
 	int			irq;
 	u32			reg;
+	int try_count = 0;
 
+core_reset:
 	/* Try to reset core as a workaround */
 	if (dwc->recovery_needed) {
-		dev_err(dwc->dev, "xxx: core recovery needed.\n");
+		try_count++;
+		dev_err(dwc->dev, "xxx: core recovery needed. try_count = %d\n",
+					try_count);
 		dwc->connected = false;
 		pm_runtime_put_sync(dwc->dev);
 		pm_runtime_get_sync(dwc->dev);
@@ -1943,16 +1947,36 @@ static int dwc3_gadget_start(struct usb_gadget *g,
 	ret = __dwc3_gadget_ep_enable(dep, &dwc3_gadget_ep0_desc, NULL, false,
 			false);
 	if (ret) {
-		dev_err(dwc->dev, "failed to enable %s\n", dep->name);
-		goto err2;
+		dev_err(dwc->dev, "failed to enable %s, try_count = %d\n",
+					dep->name, try_count);
+		/* have 100 chances to reset core */
+		if (try_count < 100) {
+			dwc->gadget_driver = NULL;
+			spin_unlock_irqrestore(&dwc->lock, flags);
+			free_irq(irq, dwc->ev_buf);
+			pm_runtime_put_autosuspend(dwc->dev);
+			dwc->recovery_needed = true;
+			goto core_reset;
+		}else
+			goto err2;
 	}
 
 	dep = dwc->eps[1];
 	ret = __dwc3_gadget_ep_enable(dep, &dwc3_gadget_ep0_desc, NULL, false,
 			false);
 	if (ret) {
-		dev_err(dwc->dev, "failed to enable %s\n", dep->name);
-		goto err3;
+		dev_err(dwc->dev, "failed to enable %s, try_count = %d\n",
+					dep->name, try_count);
+		if (try_count < 100) {
+			__dwc3_gadget_ep_disable(dwc->eps[0]);
+			dwc->gadget_driver = NULL;
+			spin_unlock_irqrestore(&dwc->lock, flags);
+			free_irq(irq, dwc->ev_buf);
+			pm_runtime_put_autosuspend(dwc->dev);
+			dwc->recovery_needed = true;
+			goto core_reset;
+		}else
+			goto err3;
 	}
 
 	/* begin to receive SETUP packets */
