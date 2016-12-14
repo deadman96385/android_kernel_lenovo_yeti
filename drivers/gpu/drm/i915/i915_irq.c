@@ -3319,7 +3319,7 @@ void i915_handle_error(struct drm_device *dev, struct intel_ring_hangcheck *hc,
 	va_list args;
 	char error_msg[80];
 
-	if (hc) {
+	if (hc && !(atomic_read(&hc->flags) & DRM_I915_HANGCHECK_IGNORE_SCHED)) {
 		struct intel_engine_cs *ring = &dev_priv->ring[hc->ringid];
 
 		if (!i915_scheduler_is_ring_flying(ring)) {

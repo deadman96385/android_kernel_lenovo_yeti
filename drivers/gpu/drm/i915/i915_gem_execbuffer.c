@@ -1537,6 +1537,13 @@ i915_gem_do_execbuffer(struct drm_device *dev, void *data,
 			ring = &dev_priv->ring[ring_id];
 		} else
 			ring = &dev_priv->ring[VCS];
+
+		/*
+		 * Warn if we're submitting to the VCS but the HuC has failed to
+		 * load
+		 */
+		WARN_ONCE(dev_priv->huc_load_fail,
+			  "submitting to VCS after HuC load failed");
 	} else
 		ring = &dev_priv->ring[(args->flags & I915_EXEC_RING_MASK) - 1];
 

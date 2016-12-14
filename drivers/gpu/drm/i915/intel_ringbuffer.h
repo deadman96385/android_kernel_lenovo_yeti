@@ -231,6 +231,7 @@ struct intel_ring_hangcheck {
 #define DRM_I915_HANGCHECK_HUNG 	0x01 /* This ring has hung */
 #define DRM_I915_HANGCHECK_RESET 	0x02 /* Request to reset this ring */
 #define DRM_I915_HANGCHECK_RESETTING 	0x04 /* Ring reset is imminent */
+#define DRM_I915_HANGCHECK_IGNORE_SCHED 0x08 /* ignore scheduler fly status */
 	atomic_t flags;
 
 	/* Keep a record of the last time the ring was reset */

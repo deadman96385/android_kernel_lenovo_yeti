@@ -2016,6 +2016,9 @@ struct drm_i915_private {
 
 	struct i915_scheduler *scheduler;
 
+	/* Flag to record asynchronous HuC load failure */
+	bool huc_load_fail;
+
 	/* Abstract the submission mechanism (legacy ringbuffer or execlists) away */
 	struct {
 		int (*alloc_request)(struct intel_engine_cs *ring,
