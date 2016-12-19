@@ -903,6 +903,10 @@ int rndis_register(void (*resp_avail)(void *v), void *v)
 			rndis_per_dev_params[i].used = 1;
 			rndis_per_dev_params[i].resp_avail = resp_avail;
 			rndis_per_dev_params[i].v = v;
+			rndis_per_dev_params[i].state = RNDIS_UNINITIALIZED;
+			rndis_per_dev_params[i].media_state
+					= RNDIS_MEDIA_STATE_DISCONNECTED;
+			INIT_LIST_HEAD(&(rndis_per_dev_params[i].resp_queue));
 			pr_debug("%s: configNr = %d\n", __func__, i);
 			return i;
 		}
