@@ -16,6 +16,10 @@
 #include <linux/atomisp_gmin_platform.h>
 #include <asm/spid.h>
 
+#include "atomisp_gmin_pmic_regs.h"
+#include "platform_ar1335.h"
+#include "platform_ov8858.h"
+#include "platform_ov2740.h"
 #define MAX_SUBDEVS 8
 //#define DEBUG
 
@@ -29,6 +33,7 @@ EXPORT_SYMBOL(spid);
 #define DEVNAME_PMIC_AXP "INT33F4:00"
 #define DEVNAME_PMIC_TI  "INT33F5:00"
 #define DEVNAME_PMIC_CRYSTALCOVE "INT33FD:00"
+#define DEVNAME_PMIC_WHISKEYCOVE "INT34D3:00:6e"
 
 /* Should be defined in vlv2_plat_clock API, isn't: */
 #define VLV2_CLK_PLL_19P2MHZ 1
@@ -75,6 +80,14 @@ EXPORT_SYMBOL(spid);
 #define CRYSTAL_ON      0x63
 #define CRYSTAL_OFF     0x62
 
+/*Whiskey Cove reg*/
+#define WCOVE_V1P8SX_CTRL	0x57
+#define WCOVE_V2P8SX_CTRL	0x5d
+#define WCOVE_CTRL_MASK		0x7
+#define WCOVE_CTRL_ENABLE	0x2
+#define WCOVE_CTRL_DISABLE	0x0
+
+
 struct gmin_subdev {
 	struct v4l2_subdev *subdev;
 	int clock_num;
@@ -83,16 +96,12 @@ struct gmin_subdev {
 	struct gpio_desc *gpio1;
 	struct regulator *v1p8_reg;
 	struct regulator *v2p8_reg;
-	struct regulator *v1p2_reg;
-	struct regulator *v2p8_vcm_reg;
 	enum atomisp_camera_port csi_port;
 	unsigned int csi_lanes;
 	enum atomisp_input_format csi_fmt;
 	enum atomisp_bayer_order csi_bayer;
 	bool v1p8_on;
 	bool v2p8_on;
-	bool v1p2_on;
-	bool v2p8_vcm_on;
 	int eldo1_sel_reg, eldo1_1p8v, eldo1_ctrl_shift;
 	int eldo2_sel_reg, eldo2_1p8v, eldo2_ctrl_shift;
 };
@@ -100,7 +109,7 @@ struct gmin_subdev {
 static struct gmin_subdev gmin_subdevs[MAX_SUBDEVS];
 
 static enum { PMIC_UNSET = 0, PMIC_REGULATOR, PMIC_AXP, PMIC_TI ,
-	PMIC_CRYSTALCOVE } pmic_id;
+	PMIC_CRYSTALCOVE, PMIC_WHISKEYCOVE} pmic_id;
 
 /* The atomisp uses type==0 for the end-of-list marker, so leave space. */
 static struct intel_v4l2_subdev_table pdata_subdevs[MAX_SUBDEVS+1];
@@ -158,23 +167,6 @@ EXPORT_SYMBOL_GPL(atomisp_get_platform_data);
 
 static int af_power_ctrl(struct v4l2_subdev *subdev, int flag)
 {
-	struct gmin_subdev *gs = find_gmin_subdev(subdev);
-
-	if (gs && gs->v2p8_vcm_on == flag)
-		return 0;
-	gs->v2p8_vcm_on = flag;
-
-	/*
-	 * The power here is used for dw9817,
-	 * regulator is from rear sensor
-	*/
-	if (gs->v2p8_vcm_reg) {
-		if (flag)
-			return regulator_enable(gs->v2p8_vcm_reg);
-		else
-			return regulator_disable(gs->v2p8_vcm_reg);
-	}
-
 	return 0;
 }
 
@@ -290,8 +282,6 @@ int atomisp_gmin_remove_subdev(struct v4l2_subdev *sd)
 			if (pmic_id == PMIC_REGULATOR) {
 				regulator_put(gmin_subdevs[i].v1p8_reg);
 				regulator_put(gmin_subdevs[i].v2p8_reg);
-				regulator_put(gmin_subdevs[i].v1p2_reg);
-				regulator_put(gmin_subdevs[i].v2p8_vcm_reg);
 			}
 			gmin_subdevs[i].subdev = NULL;
 		}
@@ -369,6 +359,10 @@ static struct gmin_subdev *gmin_subdev_add(struct v4l2_subdev *subdev)
 			pmic_id = PMIC_TI;
 		else if (i2c_dev_exists(DEVNAME_PMIC_CRYSTALCOVE))
 			pmic_id = PMIC_CRYSTALCOVE;
+/*
+		else if (i2c_dev_exists(DEVNAME_PMIC_WHISKEYCOVE))
+			pmic_id = PMIC_WHISKEYCOVE;
+*/
 		else
 			pmic_id = PMIC_REGULATOR;
 	}
@@ -387,6 +381,7 @@ static struct gmin_subdev *gmin_subdev_add(struct v4l2_subdev *subdev)
 		"gmin: initializing atomisp module subdev data.PMIC ID %d\n",
 		pmic_id);
 
+#if 0
 	gmin_subdevs[i].subdev = subdev;
 	gmin_subdevs[i].clock_num = gmin_get_var_int(dev, "CamClk", 0);
 	/*WA:CHT requires XTAL clock as PLL is not stable.*/
@@ -428,8 +423,6 @@ static struct gmin_subdev *gmin_subdev_add(struct v4l2_subdev *subdev)
 	if (pmic_id == PMIC_REGULATOR) {
 		gmin_subdevs[i].v1p8_reg = regulator_get(dev, "V1P8SX");
 		gmin_subdevs[i].v2p8_reg = regulator_get(dev, "V2P8SX");
-		gmin_subdevs[i].v1p2_reg = regulator_get(dev, "V1P2A");
-		gmin_subdevs[i].v2p8_vcm_reg = regulator_get(dev, "VPROG4B");
 
 		/* Note: ideally we would initialize v[12]p8_on to the
 		 * output of regulator_is_enabled(), but sadly that
@@ -438,7 +431,7 @@ static struct gmin_subdev *gmin_subdev_add(struct v4l2_subdev *subdev)
 		 * "unbalanced disable" WARNing if we try to disable
 		 * it. */
 	}
-
+#endif
 	return &gmin_subdevs[i];
 }
 
@@ -550,7 +543,7 @@ static int axp_v1p2_off(void)
 	return axp_regulator_set(FLDO2_SEL_REG, FLDO2_1P2V, FLDO2_CTRL3_REG,
 				 FLDO2_CTRL3_SHIFT, false);
 }
-
+#if 0
 int gmin_v1p2_ctrl(struct v4l2_subdev *subdev, int on)
 {
 	struct gmin_subdev *gs = find_gmin_subdev(subdev);
@@ -577,7 +570,7 @@ int gmin_v1p2_ctrl(struct v4l2_subdev *subdev, int on)
 
 	return -EINVAL;
 }
-
+#endif
 static int axp_v1p5_on(void)
 {
 	return axp_regulator_set(ELDO1_SEL_REG, ELDO1_1P6V, ELDO_CTRL_REG,
@@ -630,6 +623,7 @@ int gmin_v1p8_ctrl(struct v4l2_subdev *subdev, int on)
 		gpio_set_value(v1p8_gpio, on);
 
 	if (gs->v1p8_reg) {
+		pr_info("regulator v1p8 op\n");
 		if (on)
 			return regulator_enable(gs->v1p8_reg);
 		else
@@ -660,6 +654,15 @@ int gmin_v1p8_ctrl(struct v4l2_subdev *subdev, int on)
 								CRYSTAL_OFF);
 	}
 
+	if (pmic_id == PMIC_WHISKEYCOVE) {
+		int val = intel_soc_pmic_readb(WCOVE_V1P8SX_CTRL);
+		if (on)
+			return intel_soc_pmic_writeb(WCOVE_V1P8SX_CTRL,
+				(val & ~WCOVE_CTRL_MASK) | WCOVE_CTRL_ENABLE);
+		else
+			return intel_soc_pmic_writeb(WCOVE_V1P8SX_CTRL,
+				(val & ~WCOVE_CTRL_MASK) | WCOVE_CTRL_DISABLE);
+	}
 	return -EINVAL;
 }
 
@@ -714,6 +717,16 @@ int gmin_v2p8_ctrl(struct v4l2_subdev *subdev, int on)
 			return intel_soc_pmic_writeb(CRYSTAL_2P8V_REG, CRYSTAL_ON);
 		else
 			return intel_soc_pmic_writeb(CRYSTAL_2P8V_REG, CRYSTAL_OFF);
+	}
+
+	if (pmic_id == PMIC_WHISKEYCOVE) {
+		int val = intel_soc_pmic_readb(WCOVE_V2P8SX_CTRL);
+		if (on)
+			return intel_soc_pmic_writeb(WCOVE_V2P8SX_CTRL,
+				(val & ~WCOVE_CTRL_MASK) | WCOVE_CTRL_ENABLE);
+		else
+			return intel_soc_pmic_writeb(WCOVE_V2P8SX_CTRL,
+				(val & ~WCOVE_CTRL_MASK) | WCOVE_CTRL_DISABLE);
 	}
 
 	return -EINVAL;
@@ -776,7 +789,7 @@ static struct camera_sensor_platform_data gmin_plat = {
 	.gpio1_ctrl = gmin_gpio1_ctrl,
 	.v1p8_ctrl = gmin_v1p8_ctrl,
 	.v2p8_ctrl = gmin_v2p8_ctrl,
-	.v1p2_ctrl = gmin_v1p2_ctrl,
+	//.v1p2_ctrl = gmin_v1p2_ctrl,
 	.v1p5_ctrl = gmin_v1p5_ctrl,
 	.flisclk_ctrl = gmin_flisclk_ctrl,
 	.platform_init = gmin_platform_init,
@@ -791,13 +804,30 @@ struct camera_sensor_platform_data *gmin_camera_platform_data(
 		enum atomisp_bayer_order csi_bayer)
 {
 	struct gmin_subdev *gs = find_gmin_subdev(subdev);
+	struct i2c_client *client = v4l2_get_subdevdata(subdev);
+        void * info = NULL;
 
 	if (!gs)
 		return NULL;
 	gs->csi_fmt = csi_format;
 	gs->csi_bayer = csi_bayer;
 
-	return &gmin_plat;
+	if(client) {
+                printk("yangsy client name:%s\n", client->name);
+                if (!strncmp(client->name, "INT33FB", strlen("INT33FB"))) {
+                        /*back ar1335 camera*/
+                        printk("%s %d ov8858 sensor found:%lx \r\n", __func__, __LINE__, (unsigned long int)ov8858_platform_data);
+                        gs->csi_port = ATOMISP_CAMERA_PORT_PRIMARY;
+                        return ov8858_platform_data(info);
+                } else if (!strncmp(client->name, "INT33BE", strlen("INT33BE"))) {
+                        /*front ov5693 camera*/
+                        printk("%s %d ov2740 sensor found:%lx \r\n", __func__, __LINE__, (unsigned long int)ov2740_platform_data);
+                        gs->csi_port = ATOMISP_CAMERA_PORT_SECONDARY;
+                        return ov2740_platform_data(info);
+                }
+                return &gmin_plat;
+       } else
+		return &gmin_plat;
 }
 EXPORT_SYMBOL_GPL(gmin_camera_platform_data);
 
@@ -946,6 +976,66 @@ int camera_sensor_csi(struct v4l2_subdev *sd, u32 port,
         return 0;
 }
 EXPORT_SYMBOL_GPL(camera_sensor_csi);
+
+int camera_set_pmic_power(enum camera_pmic_pin pin, bool flag)
+{
+	u8 reg_addr[CAMERA_POWER_NUM] = {VPROG_1P8V, VPROG_2P8V, VPROG4D, VPROG5B, VPROG_1P2SX, VPROG_1P2A, VPROG_3P3A};
+	u8 reg_value[2] = {VPROG_DISABLE, VPROG_ENABLE};
+	int val;
+	static DEFINE_MUTEX(mutex_power);
+	int ret = 0;
+
+	if (pin >= CAMERA_POWER_NUM)
+			return -EINVAL;
+
+	printk("%s %d pin:%d flag:%d\r\n", __func__, __LINE__, pin, flag);
+	if (pin == CAMERA_VPROG4D) {
+			printk("set VPROG4D voltage to 2.8V\r\n");
+			/*VOUT =  0.25 + 51 * 0.05 = 2.8V*/
+			intel_soc_pmic_writeb(VPROG4D_VSEL, 51);
+	}
+
+
+#if 1
+	if (pin == CAMERA_2P8V) {
+                  //      printk("set 2P8V voltage to 2.8V(real is 2.78)\r\n");
+                        /*VOUT =  0.25 + 51 * 0.05 = 2.8V*/
+                        intel_soc_pmic_writeb(0xc7, 51);//real is 2.78 for value 51,huyj3
+        }
+
+#endif
+
+
+	if (pin == CAMERA_VPROG5B) {
+			printk("set VPROG5D voltage to 1.8V\r\n");
+			/*VOUT =  0.25 + 31 * 0.05 = 1.8V*/
+			intel_soc_pmic_writeb(VPROG5B_VSEL, 31);
+	}
+
+	if (pin == CAMERA_1P2SX) {
+			printk("set VPROG_1P2SX voltage to 1.25V\r\n");
+			/*VOUT =  0.25 + 20 * 0.05 = 1.25V*/
+			intel_soc_pmic_writeb(VPROG_1P2SX_VSEL, 20);//real is 1.2 for value 20,huyj3
+	}
+
+	if (pin == CAMERA_1P2A) {
+			printk("set VPROG_1P2A voltage to 1.25V\r\n");
+			/*VOUT =  0.25 + 20 * 0.05 = 1.25V*/
+			intel_soc_pmic_writeb(VPROG_1P2A_VSEL, 20);
+	}
+
+	mutex_lock(&mutex_power);
+	val = intel_soc_pmic_readb(reg_addr[pin]) & 0x3;
+
+	printk("reg:%x value:%x %x flag:%d\r\n", reg_addr[pin], intel_soc_pmic_readb(reg_addr[pin]), val, flag);
+	ret = intel_soc_pmic_writeb(reg_addr[pin], reg_value[flag]);
+
+	mutex_unlock(&mutex_power);
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(camera_set_pmic_power);
+
 
 #ifdef CONFIG_GMIN_INTEL_MID
 /* PCI quirk: The BYT ISP advertises PCI runtime PM but it doesn't
