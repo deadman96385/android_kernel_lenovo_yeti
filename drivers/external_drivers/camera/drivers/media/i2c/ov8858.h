@@ -407,12 +407,12 @@ static struct ov8858_reg ov8858_BasicSettings[] = {
 	{OV8858_8BIT, 0x0103, 0x01}, /* software_reset */
 	{OV8858_8BIT, 0x0100, 0x00}, /* software_standby */
 	/* PLL settings */
-	{OV8858_8BIT, 0x0300, 0x00}, /* pll1_pre_div = /1 */
-	{OV8858_8BIT, 0x0302, 0x27}, /* pll1_multiplier = 39 */
+	{OV8858_8BIT, 0x0300, 0x05}, /* pll1_pre_div = /4 */
+	{OV8858_8BIT, 0x0302, 0xAF}, /* pll1_multiplier = 175 */
 	{OV8858_8BIT, 0x0303, 0x00}, /* pll1_divm = /(1 + 0) */
 	{OV8858_8BIT, 0x0304, 0x03}, /* pll1_div_mipi = /8 */
-	{OV8858_8BIT, 0x030B, 0x00}, /* pll2_pre_div = /1 */
-	{OV8858_8BIT, 0x030D, 0x27}, /* pll2_r_divp = 39 */
+	{OV8858_8BIT, 0x030B, 0x02}, /* pll2_pre_div = /2 */
+	{OV8858_8BIT, 0x030D, 0x4E}, /* pll2_r_divp = 78 */
 	{OV8858_8BIT, 0x030E, 0x00}, /* pll2_r_divs = /1 */
 	{OV8858_8BIT, 0x030F, 0x04}, /* pll2_r_divsp = /(1 + 4) */
 	/* pll2_pre_div0 = /1, pll2_r_divdac = /(1 + 1) */
@@ -657,8 +657,8 @@ static struct ov8858_reg ov8858_BasicSettings[] = {
 	{OV8858_8BIT, 0x3D85, 0x14}, /* OTP_REG85 */
 	{OV8858_8BIT, 0x3D8C, 0x73}, /* OTP_SETTING_STT_ADDRESS */
 	{OV8858_8BIT, 0x3D8D, 0xDE}, /* OTP_SETTING_STT_ADDRESS */
-	{OV8858_8BIT, 0x3F08, 0x08}, /* PSRAM control register */
-	{OV8858_8BIT, 0x3F0A, 0x00}, /* PSRAM control register */
+	{OV8858_8BIT, 0x3F08, 0x10}, /* PSRAM control register */
+	{OV8858_8BIT, 0x3F0A, 0x80}, /* PSRAM control register */
 
 	{OV8858_8BIT, 0x4000, 0xF1}, /* BLC CTRL00 = default */
 	{OV8858_8BIT, 0x4001, 0x00}, /* BLC CTRL01 */
@@ -703,7 +703,7 @@ static struct ov8858_reg ov8858_BasicSettings[] = {
 	{OV8858_8BIT, 0x481F, 0x32}, /* clk_prepare_min = 0x32 */
 	{OV8858_8BIT, 0x4825, 0x3A}, /* lpx_p_min = 0x3A */
 	{OV8858_8BIT, 0x4826, 0x40}, /* hs_prepare_min = 0x40 */
-	{OV8858_8BIT, 0x4837, 0x15}, /* pclk_period = 0x15 */
+	{OV8858_8BIT, 0x4837, 0x14}, /* pclk_period = 0x14 */
 	{OV8858_8BIT, 0x4850, 0x10}, /* LANE SEL01 */
 	{OV8858_8BIT, 0x4851, 0x32}, /* LANE SEL02 */
 
@@ -823,7 +823,7 @@ static const struct ov8858_reg ov8858_8M[] = {
 	{OV8858_8BIT, 0x3830, 0x06}, /* Unknown */
 	{OV8858_8BIT, 0x3836, 0x01}, /* Unknown */
 	{OV8858_8BIT, 0x3D85, 0x14}, /* OTP_REG85 */
-	{OV8858_8BIT, 0x3F08, 0x08}, /* PSRAM control register */
+	{OV8858_8BIT, 0x3F08, 0x10}, /* PSRAM control register */
 	{OV8858_8BIT, 0x4000, 0xF1}, /* BLC CTRL00 = default */
 	{OV8858_8BIT, 0x4001, 0x00}, /* BLC CTRL01 */
 	{OV8858_8BIT, 0x4002, 0x27}, /* BLC offset = 0x27 */
@@ -853,7 +853,7 @@ static const struct ov8858_reg ov8858_8M[] = {
 	{OV8858_8BIT, 0x403D, 0x04}, /* BLC CTRL3D */
 	{OV8858_8BIT, 0x4600, 0x01}, /* Unknown */
 	{OV8858_8BIT, 0x4601, 0x97}, /* Unknown */
-	{OV8858_8BIT, 0x4837, 0x15}, /* pclk_period = 0x15 */
+	{OV8858_8BIT, 0x4837, 0x14}, /* pclk_period = 0x14 */
 	{OV8858_TOK_TERM, 0, 0}
 };
 
@@ -885,7 +885,7 @@ static const struct ov8858_reg ov8858_3276x1848[] = {
 	{OV8858_8BIT, 0x3830, 0x06}, /* Unknown */
 	{OV8858_8BIT, 0x3836, 0x01}, /* Unknown */
 	{OV8858_8BIT, 0x3D85, 0x14}, /* OTP_REG85 */
-	{OV8858_8BIT, 0x3F08, 0x08}, /* PSRAM control register */
+	{OV8858_8BIT, 0x3F08, 0x10}, /* PSRAM control register */
 	{OV8858_8BIT, 0x4000, 0xF1}, /* BLC CTRL00 = default */
 	{OV8858_8BIT, 0x4001, 0x00}, /* BLC CTRL01 */
 	{OV8858_8BIT, 0x4002, 0x27}, /* BLC offset = 0x27 */
@@ -915,7 +915,7 @@ static const struct ov8858_reg ov8858_3276x1848[] = {
 	{OV8858_8BIT, 0x403D, 0x04}, /* BLC CTRL3D */
 	{OV8858_8BIT, 0x4600, 0x01}, /* Unknown */
 	{OV8858_8BIT, 0x4601, 0x97}, /* Unknown */
-	{OV8858_8BIT, 0x4837, 0x15}, /* pclk_period = 0x15 */
+	{OV8858_8BIT, 0x4837, 0x14}, /* pclk_period = 0x14 */
 	{OV8858_TOK_TERM, 0, 0}
 };
 
@@ -947,7 +947,7 @@ static const struct ov8858_reg ov8858_6M[] = {
 	{OV8858_8BIT, 0x3830, 0x06}, /* Unknown */
 	{OV8858_8BIT, 0x3836, 0x01}, /* Unknown */
 	{OV8858_8BIT, 0x3D85, 0x14}, /* OTP_REG85 */
-	{OV8858_8BIT, 0x3F08, 0x08}, /* PSRAM control register */
+	{OV8858_8BIT, 0x3F08, 0x10}, /* PSRAM control register */
 	{OV8858_8BIT, 0x4000, 0xF1}, /* BLC CTRL00 = default */
 	{OV8858_8BIT, 0x4001, 0x00}, /* BLC CTRL01 */
 	{OV8858_8BIT, 0x4002, 0x27}, /* BLC offset = 0x27 */
@@ -977,7 +977,7 @@ static const struct ov8858_reg ov8858_6M[] = {
 	{OV8858_8BIT, 0x403D, 0x04}, /* BLC CTRL3D */
 	{OV8858_8BIT, 0x4600, 0x01}, /* Unknown */
 	{OV8858_8BIT, 0x4601, 0x97}, /* Unknown */
-	{OV8858_8BIT, 0x4837, 0x15}, /* pclk_period = 0x15 */
+	{OV8858_8BIT, 0x4837, 0x14}, /* pclk_period = 0x14 */
 	{OV8858_TOK_TERM, 0, 0}
 };
 
@@ -1163,7 +1163,7 @@ static const struct ov8858_reg ov8858_1640x1232[] = {
 	{OV8858_8BIT, 0x403D, 0x04}, /* BLC CTRL3D */
 	{OV8858_8BIT, 0x4600, 0x00}, /* Unknown */
 	{OV8858_8BIT, 0x4601, 0xCB}, /* Unknown */
-	{OV8858_8BIT, 0x4837, 0x15}, /* pclk_period = 0x15 */
+	{OV8858_8BIT, 0x4837, 0x14}, /* pclk_period = 0x14 */
 	{OV8858_TOK_TERM, 0, 0}
 };
 
@@ -1225,7 +1225,7 @@ static const struct ov8858_reg ov8858_1640x1096[] = {
 	{OV8858_8BIT, 0x403D, 0x04}, /* BLC CTRL3D */
 	{OV8858_8BIT, 0x4600, 0x00}, /* Unknown */
 	{OV8858_8BIT, 0x4601, 0xCB}, /* Unknown */
-	{OV8858_8BIT, 0x4837, 0x15}, /* pclk_period = 0x15 */
+	{OV8858_8BIT, 0x4837, 0x14}, /* pclk_period = 0x14 */
 	{OV8858_TOK_TERM, 0, 0}
 };
 
@@ -1288,7 +1288,7 @@ static const struct ov8858_reg ov8858_1640x926[] = {
 	{OV8858_8BIT, 0x403D, 0x04}, /* BLC CTRL3D */
 	{OV8858_8BIT, 0x4600, 0x00}, /* Unknown */
 	{OV8858_8BIT, 0x4601, 0xCB}, /* Unknown */
-	{OV8858_8BIT, 0x4837, 0x15}, /* pclk_period = 0x15 */
+	{OV8858_8BIT, 0x4837, 0x14}, /* pclk_period = 0x14 */
 	{OV8858_TOK_TERM, 0, 0}
 };
 
