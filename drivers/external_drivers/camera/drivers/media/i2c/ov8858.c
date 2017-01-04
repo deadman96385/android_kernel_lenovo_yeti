@@ -1576,9 +1576,20 @@ static int nearest_resolution_index(struct v4l2_subdev *sd, int w, int h)
 	const struct ov8858_resolution *tmp_res = NULL;
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
 	struct ov8858_device *dev = to_ov8858_sensor(sd);
-	dev_dbg(&client->dev, "%s: w=%d, h=%d\n", __func__, w, h);
 
-	
+	dev_dbg(&client->dev, "%s: w = %d, h = %d.\n", __func__, w, h);
+	if ((dev->curr_res_table == ov8858_res_preview) ||
+		(dev->curr_res_table == ov8858_res_still)) {
+		if (((w == 1336 && h == 1096)) ||
+			((w == 352 && h == 288)) ||
+			((w == 368 && h == 304)) ||
+			((w == 176 && h == 144)) ||
+			((w == 192 && h == 160))) {
+			w = 1632;
+			h = 1224;
+		}
+
+	}
 
 
 
