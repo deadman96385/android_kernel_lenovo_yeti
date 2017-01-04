@@ -2107,8 +2107,11 @@ static int ov8858_s_ctrl(struct v4l2_ctrl *ctrl)
 			dev->curr_res_table = ov8858_res_preview;
 			dev->entries_curr_table =
 					ARRAY_SIZE(ov8858_res_preview);
+            break;
 		}
 
+		dev_dbg(&client->dev, "V4L2_CID_RUN_MODE = %d\n",
+				ctrl->val);
 		dev->fmt_idx = 0;
 		dev->fps_index = 0;
 
