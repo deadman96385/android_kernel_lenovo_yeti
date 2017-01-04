@@ -416,7 +416,12 @@ static int __ov8858_set_exposure(struct v4l2_subdev *sd, int exposure, int gain,
 		return ret;
 
 	ret = ov8858_write_reg(client, OV8858_16BIT, OV8858_LONG_GAIN,
-				gain & 0x07ff);
+				gain & 0x7FF);
+	if (ret)
+		return ret;
+
+	ret = ov8858_write_reg(client, OV8858_16BIT, OV8858_LONG_DIGI_GAIN,
+				dig_gain & 0xFFF);
 	if (ret)
 		return ret;
 
@@ -434,11 +439,12 @@ static int ov8858_set_exposure(struct v4l2_subdev *sd, int exposure, int gain,
 	const struct ov8858_resolution *res;
 	u16 hts, vts;
 	int ret;
+	
 	/* W/A: In CHT_MRD there is a sync problem between the new exposure,
 	 * and the statistics being reported to AE. This delay allows the old
 	 * statistics to be correctly reported before applying a new exposure */
-	if (strcmp(dmi_get_system_info(DMI_BOARD_NAME), CHT_HR_DEV_NAME) != 0)
-		usleep_range(4000, 6000);
+	/*if (strcmp(dmi_get_system_info(DMI_BOARD_NAME), CHT_HR_DEV_NAME) != 0)
+		usleep_range(4000, 6000);*/ //zhanglp2 remove this W/A to align with yeti M codebase
 
 	mutex_lock(&dev->input_lock);
 
@@ -1683,9 +1689,9 @@ static int ov8858_s_mbus_fmt(struct v4l2_subdev *sd,
 	if (!dev->regs)
 		dev->regs = res->regs;
 
-	ret = ov8858_write_reg_array(client, dev->regs);
+	ret = ov8858_write_reg_array(client, dev->regs);	 
 	/* W/A: For MRD, the valid BLC lines are different than in HR
-	 * making the image look green. */
+	 * making the image look green. */	
 	if (strcmp(dmi_get_system_info(DMI_BOARD_NAME), CHT_HR_DEV_NAME) != 0) {
 		if (res->bin_factor_x || res->bin_factor_y)
 			ret = ov8858_write_reg(client, OV8858_8BIT,
@@ -1693,6 +1699,7 @@ static int ov8858_s_mbus_fmt(struct v4l2_subdev *sd,
 		else
 			ret = ov8858_write_reg_array(client, ov8858_BLC_MRD);
 	}
+
 	if (ret)
 		goto out;
 
