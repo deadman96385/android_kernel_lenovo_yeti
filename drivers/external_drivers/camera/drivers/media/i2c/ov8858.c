@@ -1904,11 +1904,9 @@ static int __update_ov8858_device_settings(struct ov8858_device *dev,
 #ifdef CONFIG_EXTERNAL_BTNS_CAMERA
 		dev->vcm_driver = &ov8858_vcms[OV8858_ID_DEFAULT];
 #else
-	/* CHT HR requires the vcm dw9718 and CHT MRD uses the vcm dw9714 */
-	if (strcmp(dmi_get_system_info(DMI_BOARD_NAME), CHT_HR_DEV_NAME) == 0)
-		dev->vcm_driver = &ov8858_vcms[OV8858_SUNNY];
-	else
-		dev->vcm_driver = &ov8858_vcms[OV8858_MRD];
+	
+		dev->vcm_driver = &ov8858_vcms[OV8858_SUNNY]; //for yeti,vcm chip is wv517
+	
 #endif
 	else
 		return -ENODEV;
