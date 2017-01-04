@@ -37,6 +37,8 @@
 #endif
 #include "ov8858_otp.h"
 
+static struct ov8858_resolution *last_res_tab = NULL;
+static int last_res_idx = 0;
 static int otp_flag=0;
 static struct otp_struct ov8858_otp_struct ;
 static int ov8858_i2c_read(struct i2c_client *client, u16 len, u16 addr,
@@ -1099,6 +1101,9 @@ static int power_down(struct v4l2_subdev *sd)
 	
 	dev_dbg(&client->dev, "%s\n", __func__);
 
+	last_res_tab = NULL;
+	last_res_idx = -1;
+
 	udelay(30);//delay after i2c operation stop
 
 	ret = dev->platform_data->flisclk_ctrl(sd, 0);
@@ -1679,7 +1684,7 @@ static int ov8858_s_mbus_fmt(struct v4l2_subdev *sd,
 		goto out;
 	}
 	res = &dev->curr_res_table[dev->fmt_idx];
-	dev_dbg(&client->dev, "%s: selected width = %d, height = %d\n",
+	dev_info(&client->dev, "bingo...%s: selected width = %d, height = %d\n",
 		__func__, res->width, res->height);
 
 	/* Adjust the FPS selection based on the resolution selected */
@@ -1689,9 +1694,14 @@ static int ov8858_s_mbus_fmt(struct v4l2_subdev *sd,
 	if (!dev->regs)
 		dev->regs = res->regs;
 
+	if ((last_res_tab != dev->curr_res_table) ||
+			(last_res_idx != dev->fmt_idx)) {
 	ret = ov8858_write_reg_array(client, dev->regs);	 
+	
+	/*zhanglp2 remove this W/A to align with yeti M codebase*/
 	/* W/A: For MRD, the valid BLC lines are different than in HR
 	 * making the image look green. */	
+#if 0
 	if (strcmp(dmi_get_system_info(DMI_BOARD_NAME), CHT_HR_DEV_NAME) != 0) {
 		if (res->bin_factor_x || res->bin_factor_y)
 			ret = ov8858_write_reg(client, OV8858_8BIT,
@@ -1699,10 +1709,14 @@ static int ov8858_s_mbus_fmt(struct v4l2_subdev *sd,
 		else
 			ret = ov8858_write_reg_array(client, ov8858_BLC_MRD);
 	}
+#endif
 
 	if (ret)
 		goto out;
+	}
 
+	last_res_tab = (struct ov8858_resolution *)(dev->curr_res_table);
+	last_res_idx = dev->fmt_idx;
 	dev->pixels_per_line = res->fps_options[dev->fps_index].pixels_per_line;
 	dev->lines_per_frame = res->fps_options[dev->fps_index].lines_per_frame;
 
