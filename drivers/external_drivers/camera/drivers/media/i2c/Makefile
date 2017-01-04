@@ -40,7 +40,7 @@ obj-$(CONFIG_VIDEO_OV8830)     += ov8830.o
 obj-$(CONFIG_VIDEO_S5K8AAY)    += s5k8aay.o
 obj-$(CONFIG_VIDEO_S5K6B2YX)    += s5k6b2yx.o
 
-ov8858_driver-objs := ov8858.o  wv517.o vcm.o
+ov8858_driver-objs := ov8858.o  wv517.o vcm.o ov8858_otp.o
 obj-$(CONFIG_VIDEO_OV8858)     += ov8858_driver.o
 
 m10mo_isp-objs := m10mo.o m10mo_fw.o m10mo_tables.o m10mo_fw_type2.o m10mo_fw_type1_5.o

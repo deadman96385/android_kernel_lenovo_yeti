@@ -33,7 +33,12 @@
 #include "ov8858_btns.h"
 #else
 #include "ov8858.h"
+
 #endif
+#include "ov8858_otp.h"
+
+static int otp_flag=0;
+static struct otp_struct ov8858_otp_struct ;
 static int ov8858_i2c_read(struct i2c_client *client, u16 len, u16 addr,
 			   u8 *buf)
 {
@@ -482,6 +487,7 @@ static int ov8858_s_exposure(struct v4l2_subdev *sd,
 				exposure->gain[0], exposure->gain[1]);
 }
 
+#if 0
 static int ov8858_priv_int_data_init(struct v4l2_subdev *sd)
 {
 	struct ov8858_device *dev = to_ov8858_sensor(sd);
@@ -697,9 +703,12 @@ error3:
 	return r;
 }
 
+#endif
+
 static int ov8858_g_priv_int_data(struct v4l2_subdev *sd,
 				  struct v4l2_private_int_data *priv)
 {
+#if 0
 	struct ov8858_device *dev = to_ov8858_sensor(sd);
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
 	u32 size = OV8858_OTP_END_ADDR - OV8858_OTP_START_ADDR + 1;
@@ -723,10 +732,10 @@ static int ov8858_g_priv_int_data(struct v4l2_subdev *sd,
 
 	priv->size = size;
 	mutex_unlock(&dev->input_lock);
-
+#endif
 	return 0;
 }
-
+#if 0
 static int update_awb_gain(struct v4l2_subdev *sd)
 {
 	struct ov8858_device *dev = to_ov8858_sensor(sd);
@@ -805,6 +814,7 @@ static int update_lenc(struct v4l2_subdev *sd)
 
 	return ret == 1 ? 0 : -EIO;
 }
+#endif
 
 static int __ov8858_init(struct v4l2_subdev *sd)
 {
@@ -842,15 +852,31 @@ static int __ov8858_init(struct v4l2_subdev *sd)
 	ret = ov8858_write_reg_array(client, ov8858_BasicSettings);
 	if (ret)
 		return ret;
-
+	/*zhanglp2 remove intel default otp sequence,and add yeti's*/
+#if 0 
 	ret = ov8858_priv_int_data_init(sd);
 
 	/* Apply otp awb gain */
 	update_awb_gain(sd);
 
 	/* Apply otp lenc data */
-	update_lenc(sd);
+	update_lenc(sd);	
+#endif
+	if(!otp_flag){
+    /* stream on */
+		ov8858_write_reg(client, OV8858_8BIT, OV8858_STREAM_MODE, 1);
+		mdelay(20);
+	/* read otp */
+		read_otp(client,&ov8858_otp_struct);
+		otp_flag = 1;
+    /* stream off */
+		ov8858_write_reg(client, OV8858_8BIT, OV8858_STREAM_MODE, 0);
+		}
 
+	mdelay(20);
+	/*set otp*/
+	if(otp_flag)
+    		apply_otp(&ov8858_otp_struct);
 	return ret;
 }
 
