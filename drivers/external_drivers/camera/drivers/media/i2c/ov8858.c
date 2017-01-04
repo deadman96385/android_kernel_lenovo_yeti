@@ -1578,6 +1578,26 @@ static int nearest_resolution_index(struct v4l2_subdev *sd, int w, int h)
 	struct ov8858_device *dev = to_ov8858_sensor(sd);
 	dev_dbg(&client->dev, "%s: w=%d, h=%d\n", __func__, w, h);
 
+	
+
+
+
+	if (dev->curr_res_table == ov8858_res_preview) {
+		if (((w == 1280 && h == 720)) ||
+			((w == 1296 && h == 736))) {
+			w = 1640;
+			h = 926;
+		}
+	}
+
+	if (dev->curr_res_table == ov8858_res_still) {
+		if (((w == 1280 && h == 720)) ||
+			((w == 1296 && h == 736))) {
+			w = 3216;
+			h = 1816;
+		}
+	}
+
 	for (i = 0; i < dev->entries_curr_table; i++) {
 		tmp_res = &dev->curr_res_table[i];
 		dist = distance(tmp_res, w, h);
