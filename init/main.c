@@ -42,6 +42,7 @@
 #include <linux/cpuset.h>
 #include <linux/cgroup.h>
 #include <linux/efi.h>
+#include <linux/dmi.h>
 #include <linux/tick.h>
 #include <linux/interrupt.h>
 #include <linux/taskstats_kern.h>
@@ -157,6 +158,28 @@ static int __init set_reset_devices(char *str)
 }
 
 __setup("reset_devices", set_reset_devices);
+
+unsigned int yeti_hw_ver = 0;
+EXPORT_SYMBOL(yeti_hw_ver);
+
+#define EXPECTED_STR_HEAD "YETI-"
+static void __init yeti_set_hardware_version(void)
+{
+	char *str;
+	int len;
+	str = dmi_get_system_info(DMI_PRODUCT_VERSION);
+	if (str == NULL )
+		return;
+	pr_notice("Got version::%s\n", str);
+	len = strlen(str);
+	// string is "YETI-00"  -- evb  "YETI-01" -- evt
+	if (strnicmp(str, EXPECTED_STR_HEAD, strlen(EXPECTED_STR_HEAD)) || strlen(str) < 6)
+		return 1;
+
+	yeti_hw_ver = simple_strtoul(str+strlen(str)-2, NULL, 2);
+	pr_notice("HW version:%d\n", yeti_hw_ver);
+	return 0;
+}
 
 static const char * argv_init[MAX_INIT_ARGS+2] = { "init", NULL, };
 const char * envp_init[MAX_INIT_ENVS+2] = { "HOME=/", "TERM=linux", NULL, };
@@ -516,6 +539,9 @@ asmlinkage void __init start_kernel(void)
 
 	build_all_zonelists(NULL, NULL);
 	page_alloc_init();
+
+	yeti_set_hardware_version();
+
 
 	pr_notice("Kernel command line: %s\n", boot_command_line);
 	parse_early_param();
