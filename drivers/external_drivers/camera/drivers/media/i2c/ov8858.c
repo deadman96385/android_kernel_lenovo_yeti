@@ -42,9 +42,9 @@ static struct otp_struct ov8858_otp_struct ;
 static int ov8858_i2c_read(struct i2c_client *client, u16 len, u16 addr,
 			   u8 *buf)
 {
+	int err = 0;
+	u8 address[2] = {0};
 	struct i2c_msg msg[2];
-	u8 address[2];
-	int err;
 
 	if (!client->adapter) {
 		dev_err(&client->dev, "%s error, no adapter\n", __func__);
@@ -70,6 +70,9 @@ static int ov8858_i2c_read(struct i2c_client *client, u16 len, u16 addr,
 	msg[1].buf = buf;
 
 	err = i2c_transfer(client->adapter, msg, ARRAY_SIZE(msg));
+	if(err <0 )
+		printk("ov8858_i2c_read  err  i2c_addr: 0x%.2x\n",msg[0].addr);
+
 	if (err != 2) {
 		if (err >= 0)
 			err = -EIO;
@@ -132,6 +135,8 @@ static int ov8858_i2c_write(struct i2c_client *client, u16 len, u8 *data)
 	msg.buf = data;
 
 	ret = i2c_transfer(client->adapter, &msg, 1);
+	if(ret<0)
+		printk("ov8858_i2c_write err  i2c_addr: 0x%.2x, reg:0x%.2x,val: 0x%.2x\n",msg.addr,msg.buf[0],msg.buf[1]);
 
 	return ret == num_msg ? 0 : -EIO;
 }
@@ -258,9 +263,9 @@ __ov8858_write_reg_is_consecutive(struct i2c_client *client,
 static int ov8858_write_reg_array(struct i2c_client *client,
 				  const struct ov8858_reg *reglist)
 {
+	int err = 0;
 	const struct ov8858_reg *next = reglist;
 	struct ov8858_write_ctrl ctrl;
-	int err;
 
 	ctrl.index = 0;
 	for (; next->type != OV8858_TOK_TERM; next++) {
