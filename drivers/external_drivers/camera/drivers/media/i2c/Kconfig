@@ -221,6 +221,15 @@ config VIDEO_OV8858
 
          It currently only works with the atomisp driver.
 
+config VIDEO_OV2740
+        tristate "OVT ov2740 sensor support"
+        depends on I2C && VIDEO_V4L2
+        --help---
+         This is a Video4Linux2 sensor-level driver for the
+         OV2740 raw camera
+
+         It currently only works with the atomisp driver.
+
 #
 # Kconfig for flash drivers
 #
