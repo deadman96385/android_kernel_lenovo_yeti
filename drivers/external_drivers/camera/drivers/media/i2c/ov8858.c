@@ -824,10 +824,13 @@ static int __ov8858_init(struct v4l2_subdev *sd)
 
 	dev_dbg(&client->dev, "%s\n", __func__);
 
-#ifndef CONFIG_GMIN_INTEL_MID
-	if (dev->sensor_id == OV8858_ID_DEFAULT)
-		return 0;
-#endif
+/*	if (dev->sensor_id == OV8858_ID_DEFAULT)
+		return 0;*/ 
+	/*sensor spec requires below sequence:
+		powerup--> detect sensor--> delay(T4)( T4 is pll lock timie, only has maxium value,so should no delay )---> mipi data ouput (which is triggered in init_cmd)---> stream on
+		according to above requirement, the sequence should be:
+				powerup--> detect sensor(optional)---> init_cmd(trigger mipi data output)---> stream on
+	*/
 
 	/* Sets the default FPS */
 	dev->fps_index = 0;
@@ -977,16 +980,6 @@ static int __power_ctrl(struct v4l2_subdev *sd, bool flag)
 		return dev->platform_data->power_ctrl(sd, flag);
 
 #ifdef CONFIG_GMIN_INTEL_MID
-	if (dev->platform_data->v1p2_ctrl) {
-		ret = dev->platform_data->v1p2_ctrl(sd, flag);
-		if (ret) {
-			dev_err(&client->dev,
-					"failed to power %s 1.2v power rail\n",
-					flag ? "up" : "down");
-			return ret;
-		}
-	}
-
 	if (dev->platform_data->v2p8_ctrl) {
 		ret = dev->platform_data->v2p8_ctrl(sd, flag);
 		if (ret) {
@@ -1033,32 +1026,21 @@ static int __gpio_ctrl(struct v4l2_subdev *sd, bool flag)
 	if (dev->platform_data->gpio_ctrl)
 		return dev->platform_data->gpio_ctrl(sd, flag);
 
-
-	/*Just to execute specific code  dintinguishing between HR and MRD */
-	if (strcmp(dmi_get_system_info(DMI_BOARD_NAME), CHT_HR_DEV_NAME) == 0) {
 #ifdef CONFIG_GMIN_INTEL_MID
 		if (dev->platform_data->gpio0_ctrl)
 			return dev->platform_data->gpio0_ctrl(sd, flag);
 #endif
-	} else {
-		if (dev->platform_data->gpio0_ctrl) {
-			int ret;
-			ret = dev->platform_data->gpio0_ctrl(sd, flag);
-			if (dev->platform_data->gpio1_ctrl)
-				ret |= dev->platform_data->gpio1_ctrl(sd, flag);
-		return ret;
-		}
-	}
-	dev_err(&client->dev, "failed to find platform gpio callback\n");
 
+	dev_err(&client->dev, "failed to find platform gpio callback!\n");
 	return -EINVAL;
 }
 
 static int power_up(struct v4l2_subdev *sd)
 {
+	int ret = 0;
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
 	struct ov8858_device *dev = to_ov8858_sensor(sd);
-	int ret;
+
 	dev_dbg(&client->dev, "%s\n", __func__);
 
 	/* Enable power */
@@ -1067,20 +1049,21 @@ static int power_up(struct v4l2_subdev *sd)
 		dev_err(&client->dev, "power rail on failed %d.\n", ret);
 		goto fail_power;
 	}
+	/* Release reset */
+	dev_dbg(&client->dev, "%s __gpio_ctrl reset.\n", __func__);
+	ret = __gpio_ctrl(sd, 1);
+	if (ret)
+		goto fail_gpio;
 
 	/* Enable clock */
+	dev_dbg(&client->dev, "%s flisclk_ctrl.\n", __func__);
 	ret = dev->platform_data->flisclk_ctrl(sd, 1);
 	if (ret) {
 		dev_err(&client->dev, "flisclk on failed %d\n", ret);
 		goto fail_clk;
 	}
-
-	/* Release reset */
-	ret = __gpio_ctrl(sd, 1);
-	if (ret) {
-		dev_err(&client->dev, "gpio on failed %d\n", ret);
-		goto fail_gpio;
-	}
+	udelay(430);
+	
 
 	/* Minumum delay is 8192 clock cycles before first i2c transaction,
 	 * which is 1.37 ms at the lowest allowed clock rate 6 MHz */
@@ -1099,19 +1082,25 @@ fail_power:
 
 static int power_down(struct v4l2_subdev *sd)
 {
+	int ret = 0;
 	struct ov8858_device *dev = to_ov8858_sensor(sd);
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
-	int ret;
+	
 	dev_dbg(&client->dev, "%s\n", __func__);
+
+	udelay(30);//delay after i2c operation stop
 
 	ret = dev->platform_data->flisclk_ctrl(sd, 0);
 	if (ret)
 		dev_err(&client->dev, "flisclk off failed\n");
+	udelay(30);
 
+	dev_dbg(&client->dev, "%s __gpio_ctrl.\n", __func__);
 	ret = __gpio_ctrl(sd, 0);
 	if (ret)
 		dev_err(&client->dev, "gpio off failed\n");
 
+	dev_dbg(&client->dev, "%s __power_ctrl.\n", __func__);
 	ret = __power_ctrl(sd, 0);
 	if (ret)
 		dev_err(&client->dev, "power rail off failed.\n");
@@ -1142,6 +1131,8 @@ static int __ov8858_s_power(struct v4l2_subdev *sd, int on)
 				return ret;
 			}
 		}
+
+		msleep(20);
 		return __ov8858_init(sd);
 	}
 
