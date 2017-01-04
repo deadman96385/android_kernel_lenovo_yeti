@@ -422,31 +422,115 @@ static struct mfd_cell whiskey_cove_dev[] = {
 	},
 	{
 		.name = "wcove_regulator",
-		.id = WCOVE_ID_V1P2A + 1,
+		.id = WCOVE_ID_V1P8SX+1,
 		.num_resources = 0,
 		.resources = NULL,
 	},
 	{
 		.name = "wcove_regulator",
-		.id = WCOVE_ID_V1P8SX + 1,
+		.id = WCOVE_ID_V1P2SX+1,
 		.num_resources = 0,
 		.resources = NULL,
 	},
 	{
 		.name = "wcove_regulator",
-		.id = WCOVE_ID_V2P8SX + 1,
+		.id = WCOVE_ID_V1P2A+1,
 		.num_resources = 0,
 		.resources = NULL,
 	},
 	{
 		.name = "wcove_regulator",
-		.id = WCOVE_ID_VPROG4B + 1,
+		.id = WCOVE_ID_V2P8SX+1,
 		.num_resources = 0,
 		.resources = NULL,
 	},
 	{
-		.name = "whiskey_cove_region",
+		.name = "wcove_regulator",
+		.id = WCOVE_ID_VPROG1A+1,
+		.num_resources = 0,
+		.resources = NULL,
 	},
+	{
+		.name = "wcove_regulator",
+		.id = WCOVE_ID_VPROG1B+1,
+		.num_resources = 0,
+		.resources = NULL,
+	},
+	{
+		.name = "wcove_regulator",
+		.id = WCOVE_ID_VPROG1F+1,
+		.num_resources = 0,
+		.resources = NULL,
+	},
+	{
+		.name = "wcove_regulator",
+		.id = WCOVE_ID_VPROG2D+1,
+		.num_resources = 0,
+		.resources = NULL,
+	},
+	{
+		.name = "wcove_regulator",
+		.id = WCOVE_ID_VPROG3A+1,
+		.num_resources = 0,
+		.resources = NULL,
+	},
+	{
+		.name = "wcove_regulator",
+		.id = WCOVE_ID_VPROG3B+1,
+		.num_resources = 0,
+		.resources = NULL,
+	},
+	{
+		.name = "wcove_regulator",
+		.id = WCOVE_ID_VPROG4A+1,
+		.num_resources = 0,
+		.resources = NULL,
+	},
+	{
+		.name = "wcove_regulator",
+		.id = WCOVE_ID_VPROG4B+1,
+		.num_resources = 0,
+		.resources = NULL,
+	},
+	{
+		.name = "wcove_regulator",
+		.id = WCOVE_ID_VPROG4C+1,
+		.num_resources = 0,
+		.resources = NULL,
+	},
+	{
+		.name = "wcove_regulator",
+		.id = WCOVE_ID_VPROG4D+1,
+		.num_resources = 0,
+		.resources = NULL,
+	},
+	{
+		.name = "wcove_regulator",
+		.id = WCOVE_ID_VPROG5A+1,
+		.num_resources = 0,
+		.resources = NULL,
+	},
+	{
+		.name = "wcove_regulator",
+		.id = WCOVE_ID_VPROG5B+1,
+		.num_resources = 0,
+		.resources = NULL,
+	},
+	{
+		.name = "wcove_regulator",
+		.id = WCOVE_ID_VPROG6A+1,
+		.num_resources = 0,
+		.resources = NULL,
+	},
+	{
+		.name = "wcove_regulator",
+		.id = WCOVE_ID_VPROG6B+1,
+		.num_resources = 0,
+		.resources = NULL,
+	},
+	{
+                .name = "whiskey_cove_region",
+        },
 	{NULL, },
 };
 
@@ -654,7 +738,7 @@ static void wc_set_thermal_pdata(void)
 				sizeof(whiskey_cove_thermal_data), 0);
 }
 
-
+#if 0
 /* v1p2a regulator */
 static struct regulator_init_data v1p2a_data = {
 	.constraints = {
@@ -768,7 +852,371 @@ static void wc_set_vprog4b_pdata(void)
 	intel_soc_pmic_set_pdata("wcove_regulator", &wcove_vprog4b_info,
 		sizeof(struct wcove_regulator_info), WCOVE_ID_VPROG4B + 1);
 }
+#endif 
+/***********V1P2A REGUATOR platform data*************/
+static struct regulator_consumer_supply v1p2a_consumer[] = { };
 
+static struct regulator_init_data v1p2a_data = {
+	.constraints = {
+		.name = "V1P2A",
+		.min_uV = 800000,
+		.max_uV = 3400000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS |
+			REGULATOR_CHANGE_VOLTAGE,
+		.valid_modes_mask = REGULATOR_MODE_NORMAL,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(v1p2a_consumer),
+	.consumer_supplies = v1p2a_consumer,
+};
+
+static struct wcove_regulator_info v1p2a_info = {
+	.init_data = &v1p2a_data,
+};
+
+/***********V1P8SX REGUATOR platform data*************/
+static struct regulator_consumer_supply v1p8sx_consumer[] = { };
+
+static struct regulator_init_data v1p8sx_data = {
+	.constraints = {
+		.name = "V1P8SX",
+		.min_uV = 800000,
+		.max_uV = 3400000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS |
+			REGULATOR_CHANGE_VOLTAGE,
+		.valid_modes_mask = REGULATOR_MODE_NORMAL,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(v1p8sx_consumer),
+	.consumer_supplies = v1p8sx_consumer,
+};
+
+static struct wcove_regulator_info v1p8sx_info = {
+	.init_data = &v1p8sx_data,
+};
+/***********V1P2SX REGUATOR platform data*************/
+static struct regulator_consumer_supply v1p2sx_consumer[] = { };
+
+static struct regulator_init_data v1p2sx_data = {
+	.constraints = {
+		.name = "V1P2SX",
+		.min_uV = 800000,
+		.max_uV = 3400000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS |
+			REGULATOR_CHANGE_VOLTAGE,
+		.valid_modes_mask = REGULATOR_MODE_NORMAL,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(v1p2sx_consumer),
+	.consumer_supplies = v1p2sx_consumer,
+};
+
+static struct wcove_regulator_info v1p2sx_info = {
+	.init_data = &v1p2sx_data,
+};
+/***********V2P8SX REGUATOR platform data*************/
+static struct regulator_consumer_supply v2p8sx_consumer[] = { };
+
+static struct regulator_init_data v2p8sx_data = {
+	.constraints = {
+		.name = "V2P8SX",
+		.min_uV = 800000,
+		.max_uV = 3400000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS |
+			REGULATOR_CHANGE_VOLTAGE,
+		.valid_modes_mask = REGULATOR_MODE_NORMAL,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(v2p8sx_consumer),
+	.consumer_supplies = v2p8sx_consumer,
+};
+
+static struct wcove_regulator_info v2p8sx_info = {
+	.init_data = &v2p8sx_data,
+};
+
+/***********VPROG1A REGUATOR platform data*************/
+
+static struct regulator_consumer_supply vprog1a_consumer[] = { };
+
+static struct regulator_init_data vprog1a_data = {
+	.constraints = {
+		.name = "VPROG1A",
+		.min_uV = 1800000,
+		.max_uV = 1800000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS |
+			REGULATOR_CHANGE_VOLTAGE,
+		.valid_modes_mask = REGULATOR_MODE_NORMAL,
+		.always_on = 1,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(vprog1a_consumer),
+	.consumer_supplies = vprog1a_consumer,
+};
+
+static struct wcove_regulator_info vprog1a_info = {
+	.init_data = &vprog1a_data,
+};
+
+/***********VPROG1B REGUATOR platform data*************/
+static struct regulator_consumer_supply vprog1b_consumer[] = { };
+
+static struct regulator_init_data vprog1b_data = {
+	.constraints = {
+		.name = "VPROG1B",
+		.min_uV = 800000,
+		.max_uV = 3400000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS |
+			REGULATOR_CHANGE_VOLTAGE,
+		.valid_modes_mask = REGULATOR_MODE_NORMAL,
+		.always_on = 1,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(vprog1b_consumer),
+	.consumer_supplies = vprog1b_consumer,
+};
+
+static struct wcove_regulator_info vprog1b_info = {
+	.init_data = &vprog1b_data,
+};
+
+/***********VPROG1B REGUATOR platform data*************/
+static struct regulator_consumer_supply vprog1f_consumer[] = { };
+
+static struct regulator_init_data vprog1f_data = {
+	.constraints = {
+		.name = "VPROG1F",
+		.min_uV = 800000,
+		.max_uV = 3400000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS |
+			REGULATOR_CHANGE_VOLTAGE,
+		.valid_modes_mask = REGULATOR_MODE_NORMAL,
+		.always_on = 1,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(vprog1f_consumer),
+	.consumer_supplies = vprog1f_consumer,
+};
+
+static struct wcove_regulator_info vprog1f_info = {
+	.init_data = &vprog1f_data,
+};
+
+/***********VPROG2D REGUATOR platform data*************/
+static struct regulator_consumer_supply vprog2d_consumer[] = { };
+
+static struct regulator_init_data vprog2d_data = {
+	.constraints = {
+		.name = "VPROG2D",
+		.min_uV = 2800000,
+		.max_uV = 2800000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS |
+			REGULATOR_CHANGE_VOLTAGE,
+		.valid_modes_mask = REGULATOR_MODE_NORMAL,
+		.always_on = 1,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(vprog2d_consumer),
+	.consumer_supplies = vprog2d_consumer,
+};
+
+static struct wcove_regulator_info vprog2d_info = {
+	.init_data = &vprog2d_data,
+};
+
+/***********VPROG3A REGUATOR platform data*************/
+static struct regulator_consumer_supply vprog3a_consumer[] = { };
+
+static struct regulator_init_data vprog3a_data = {
+	.constraints = {
+		.name = "VPROG3A",
+		.min_uV = 800000,
+		.max_uV = 3400000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS |
+			REGULATOR_CHANGE_VOLTAGE,
+		.valid_modes_mask = REGULATOR_MODE_NORMAL,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(vprog3a_consumer),
+	.consumer_supplies = vprog3a_consumer,
+};
+
+static struct wcove_regulator_info vprog3a_info = {
+	.init_data = &vprog3a_data,
+};
+
+/***********VPROG3B REGUATOR platform data*************/
+static struct regulator_consumer_supply vprog3b_consumer[] = { };
+
+static struct regulator_init_data vprog3b_data = {
+	.constraints = {
+		.name = "VPROG3B",
+		.min_uV = 800000,
+		.max_uV = 3400000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS |
+			REGULATOR_CHANGE_VOLTAGE,
+		.valid_modes_mask = REGULATOR_MODE_NORMAL,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(vprog3b_consumer),
+	.consumer_supplies = vprog3b_consumer,
+};
+
+static struct wcove_regulator_info vprog3b_info = {
+	.init_data = &vprog3b_data,
+};
+
+/***********VPROG4A REGUATOR platform data*************/
+static struct regulator_consumer_supply vprog4a_consumer[] = { };
+
+static struct regulator_init_data vprog4a_data = {
+	.constraints = {
+		.name = "VPROG4A",
+		.min_uV = 3300000,
+		.max_uV = 3300000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS |
+			REGULATOR_CHANGE_VOLTAGE,
+		.valid_modes_mask = REGULATOR_MODE_NORMAL,
+		.always_on = 1,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(vprog4a_consumer),
+	.consumer_supplies = vprog4a_consumer,
+};
+
+static struct wcove_regulator_info vprog4a_info = {
+	.init_data = &vprog4a_data,
+};
+
+/***********VPROG4B REGUATOR platform data*************/
+static struct regulator_consumer_supply vprog4b_consumer[] = { };
+
+static struct regulator_init_data vprog4b_data = {
+	.constraints = {
+		.name = "VPROG4B",
+		.min_uV = 800000,
+		.max_uV = 3400000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS |
+			REGULATOR_CHANGE_VOLTAGE,
+		.valid_modes_mask = REGULATOR_MODE_NORMAL,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(vprog4b_consumer),
+	.consumer_supplies = vprog4b_consumer,
+};
+
+static struct wcove_regulator_info vprog4b_info = {
+	.init_data = &vprog4b_data,
+};
+
+/***********VPROG4C REGUATOR platform data*************/
+static struct regulator_consumer_supply vprog4c_consumer[] = { };
+
+static struct regulator_init_data vprog4c_data = {
+	.constraints = {
+		.name = "VPROG4C",
+		.min_uV = 800000,
+		.max_uV = 3400000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS |
+			REGULATOR_CHANGE_VOLTAGE,
+		.valid_modes_mask = REGULATOR_MODE_NORMAL,
+		.always_on = 1,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(vprog4c_consumer),
+	.consumer_supplies = vprog4c_consumer,
+};
+
+static struct wcove_regulator_info vprog4c_info = {
+	.init_data = &vprog4c_data,
+};
+
+/***********VPROG4D REGUATOR platform data*************/
+static struct regulator_consumer_supply vprog4d_consumer[] = { };
+
+static struct regulator_init_data vprog4d_data = {
+	.constraints = {
+		.name = "VPROG4D",
+		.min_uV = 800000,
+		.max_uV = 3400000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS |
+			REGULATOR_CHANGE_VOLTAGE,
+		.valid_modes_mask = REGULATOR_MODE_NORMAL,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(vprog4d_consumer),
+	.consumer_supplies = vprog4d_consumer,
+};
+
+static struct wcove_regulator_info vprog4d_info = {
+	.init_data = &vprog4d_data,
+};
+
+/***********VPROG5A REGUATOR platform data*************/
+static struct regulator_consumer_supply vprog5a_consumer[] = { };
+
+static struct regulator_init_data vprog5a_data = {
+	.constraints = {
+		.name = "VPROG5A",
+		.min_uV = 800000,
+		.max_uV = 3400000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS |
+			REGULATOR_CHANGE_VOLTAGE,
+		.valid_modes_mask = REGULATOR_MODE_NORMAL,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(vprog5a_consumer),
+	.consumer_supplies = vprog5a_consumer,
+};
+
+static struct wcove_regulator_info vprog5a_info = {
+	.init_data = &vprog5a_data,
+};
+
+/***********VPROG5B REGUATOR platform data*************/
+static struct regulator_consumer_supply vprog5b_consumer[] = { };
+
+static struct regulator_init_data vprog5b_data = {
+	.constraints = {
+		.name = "VPROG5B",
+		.min_uV = 800000,
+		.max_uV = 3400000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS |
+			REGULATOR_CHANGE_VOLTAGE,
+		.valid_modes_mask = REGULATOR_MODE_NORMAL,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(vprog5b_consumer),
+	.consumer_supplies = vprog5b_consumer,
+};
+
+static struct wcove_regulator_info vprog5b_info = {
+	.init_data = &vprog5b_data,
+};
+
+/***********VPROG6A REGUATOR platform data*************/
+static struct regulator_consumer_supply vprog6a_consumer[] = { };
+
+static struct regulator_init_data vprog6a_data = {
+	.constraints = {
+		.name = "VPROG6A",
+		.min_uV = 800000,
+		.max_uV = 3400000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS |
+			REGULATOR_CHANGE_VOLTAGE,
+		.valid_modes_mask = REGULATOR_MODE_NORMAL,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(vprog6a_consumer),
+	.consumer_supplies = vprog6a_consumer,
+};
+
+static struct wcove_regulator_info vprog6a_info = {
+	.init_data = &vprog6a_data,
+};
+
+/***********VPROG6B REGUATOR platform data*************/
+static struct regulator_consumer_supply vprog6b_consumer[] = { };
+
+static struct regulator_init_data vprog6b_data = {
+	.constraints = {
+		.name = "VPROG6B",
+		.min_uV = 800000,
+		.max_uV = 3400000,
+		.valid_ops_mask = REGULATOR_CHANGE_STATUS |
+			REGULATOR_CHANGE_VOLTAGE,
+		.valid_modes_mask = REGULATOR_MODE_NORMAL,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(vprog6b_consumer),
+	.consumer_supplies = vprog6b_consumer,
+};
+
+static struct wcove_regulator_info vprog6b_info = {
+	.init_data = &vprog6b_data,
+};
 
 static void wc_set_gpio_pdata(void)
 {
@@ -914,10 +1362,54 @@ static void wcove_set_bcu_pdata(void)
 	intel_soc_pmic_set_pdata("wcove_bcu", (void *)&wc_bcu_pdata,
 			sizeof(struct wcove_bcu_platform_data), 0);
 }
-
+static void wcove_set_regulator_pdata(void)
+{
+	intel_soc_pmic_set_pdata("wcove_regulator", &vprog1a_info, sizeof(struct
+				wcove_regulator_info), WCOVE_ID_VPROG1A+1);
+	intel_soc_pmic_set_pdata("wcove_regulator", &vprog1b_info, sizeof(struct
+				wcove_regulator_info), WCOVE_ID_VPROG1B+1);
+	intel_soc_pmic_set_pdata("wcove_regulator", &vprog1f_info, sizeof(struct
+				wcove_regulator_info), WCOVE_ID_VPROG1F+1);
+	intel_soc_pmic_set_pdata("wcove_regulator", &v1p8sx_info, sizeof(struct
+				wcove_regulator_info), WCOVE_ID_V1P8SX+1);
+	intel_soc_pmic_set_pdata("wcove_regulator", &v1p2a_info, sizeof(struct
+				wcove_regulator_info), WCOVE_ID_V1P2A+1);
+	intel_soc_pmic_set_pdata("wcove_regulator", &v1p2sx_info, sizeof(struct
+				wcove_regulator_info), WCOVE_ID_V1P2SX+1);
+	intel_soc_pmic_set_pdata("wcove_regulator", &v2p8sx_info, sizeof(struct
+				wcove_regulator_info), WCOVE_ID_V2P8SX+1);
+	#if 0
+	// set pdata in platform_sdio_regulator.c
+	intel_soc_pmic_set_pdata("wcove_regulator", &vsdio_info, sizeof(struct
+				wcove_regulator_info), WCOVE_ID_VSDIO+1);
+	intel_soc_pmic_set_pdata("wcove_regulator", &v3p3sd_info, sizeof(struct
+				wcove_regulator_info), WCOVE_ID_V3P3SD+1);
+	#endif
+	intel_soc_pmic_set_pdata("wcove_regulator", &vprog2d_info, sizeof(struct
+				wcove_regulator_info), WCOVE_ID_VPROG2D+1);
+	intel_soc_pmic_set_pdata("wcove_regulator", &vprog3a_info, sizeof(struct
+				wcove_regulator_info), WCOVE_ID_VPROG3A+1);
+	intel_soc_pmic_set_pdata("wcove_regulator", &vprog3b_info, sizeof(struct
+				wcove_regulator_info), WCOVE_ID_VPROG3B+1);
+	intel_soc_pmic_set_pdata("wcove_regulator", &vprog4a_info, sizeof(struct
+				wcove_regulator_info), WCOVE_ID_VPROG4A+1);
+	intel_soc_pmic_set_pdata("wcove_regulator", &vprog4b_info, sizeof(struct
+				wcove_regulator_info), WCOVE_ID_VPROG4B+1);
+	intel_soc_pmic_set_pdata("wcove_regulator", &vprog4c_info, sizeof(struct
+				wcove_regulator_info), WCOVE_ID_VPROG4C+1);
+	intel_soc_pmic_set_pdata("wcove_regulator", &vprog4d_info, sizeof(struct
+				wcove_regulator_info), WCOVE_ID_VPROG4D+1);
+	intel_soc_pmic_set_pdata("wcove_regulator", &vprog5a_info, sizeof(struct
+				wcove_regulator_info), WCOVE_ID_VPROG5A+1);
+	intel_soc_pmic_set_pdata("wcove_regulator", &vprog5b_info, sizeof(struct
+				wcove_regulator_info), WCOVE_ID_VPROG5B+1);
+	intel_soc_pmic_set_pdata("wcove_regulator", &vprog6a_info, sizeof(struct
+				wcove_regulator_info), WCOVE_ID_VPROG6A+1);
+	intel_soc_pmic_set_pdata("wcove_regulator", &vprog6b_info, sizeof(struct
+				wcove_regulator_info), WCOVE_ID_VPROG6B+1);	
+}
 static int whiskey_cove_init(void)
 {
-	const char *board_name = dmi_get_system_info(DMI_BOARD_NAME);
 	pr_info("Whiskey Cove: ID 0x%02X, VERSION 0x%02X\n",
 		intel_soc_pmic_readb(CHIPID), intel_soc_pmic_readb(CHIPVER));
 
@@ -925,17 +1417,13 @@ static int whiskey_cove_init(void)
 	wcove_set_bcu_pdata();
 	wc_set_adc_pdata();
 	wc_set_gpio_pdata();
-
-	/* V1P2A is shared with multiple consumer on RVP designs
-	* and is required to be always enabled so skip for RVP
-	*/
-
-	if (board_name && strcmp(board_name, "Cherry Trail Tablet"))
-		wc_set_v1p2_pdata();
-
+#if 0
+	wc_set_v1p2_pdata();
 	wc_set_v1p8_pdata();
 	wc_set_v2p8_pdata();
 	wc_set_vprog4b_pdata();
+#endif
+	wcove_set_regulator_pdata();
 	wc_set_thermal_pdata();
 	wcove_init_done = true;
 
