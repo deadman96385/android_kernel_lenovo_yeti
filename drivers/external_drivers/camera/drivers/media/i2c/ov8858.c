@@ -1902,6 +1902,7 @@ static int ov8858_s_stream(struct v4l2_subdev *sd, int enable)
 		dev->fps_index = 0;
 		dev->fps = 0;
 	}
+	msleep(25);
 out:
 	mutex_unlock(&dev->input_lock);
 	return ret;
