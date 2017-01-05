@@ -565,6 +565,14 @@ config CHRLED_GPLED
 	This option enables charge led and gpled driver. If
 	you are unsure, say N.
 
+config UART_AUDIOJACK_SWITCH
+	bool  "Uart Audio Jack Debug Switch"
+	default y
+	---help---
+	This option enables audiojack debug switch driver. If
+	you are unsure, say N.
+
+
 source "drivers/misc/pwm/Kconfig"
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"

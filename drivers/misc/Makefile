@@ -66,3 +66,4 @@ obj-$(CONFIG_PI3USB30532_MUX)	+= pi3usb30532_mux.o
 obj-$(CONFIG_INTEL_WCOVE_GPIO) 	+= intel_wcove_gpio.o
 obj-$(CONFIG_CHRLED_GPLED)      += charger_gp_led.o
 obj-$(CONFIG_BT_LPM)            += bt_lpm/
+obj-$(CONFIG_UART_AUDIOJACK_SWITCH) += uart_audiojack_sw.o
