@@ -39,7 +39,7 @@
 #define VLV2_CLK_ON      1
 #define VLV2_CLK_OFF     2
 #define OSC_CAM0_CLK 0x0
-#define OSC_CAM1_CLK 0x0
+#define OSC_CAM1_CLK 0x1
 
 
 static int camera_vprog1_on;
@@ -91,14 +91,28 @@ static int ov8858_gpio_ctrl(struct v4l2_subdev *sd, int flag)
 static int ov8858_flisclk_ctrl(struct v4l2_subdev *sd, int flag)
 {
 	int ret = 0;
+	int status = 0;
+
 
 	printk("%s %d new clock flag=%d VLV2_CLK_19P2MHZ:%d\r\n", __func__, __LINE__, flag, VLV2_CLK_19P2MHZ);
 
 	if (flag)
-			ret = vlv2_plat_set_clock_freq(OSC_CAM0_CLK, VLV2_CLK_19P2MHZ);
+		ret = vlv2_plat_set_clock_freq(OSC_CAM0_CLK, VLV2_CLK_19P2MHZ);
+	if(ret){
+		printk("bingo...%s(): set clk freq ret is %d, .\n", __func__, ret);
+		return ret;
+	}
 
-	return vlv2_plat_configure_clock(OSC_CAM0_CLK,
+	ret=vlv2_plat_configure_clock(OSC_CAM0_CLK,
 									 flag ? VLV2_CLK_ON : VLV2_CLK_OFF);
+	//udelay(10);
+
+	status = vlv2_plat_get_clock_status(OSC_CAM0_CLK);
+       // STATUS: 0: undefined; 1: on; 2: off;
+    	printk("bingo...%s(): ret is %d, OSC_CAM0_CLK's status is %d.\n", __func__, ret, status);
+
+    	return ret;
+
 
 }
 

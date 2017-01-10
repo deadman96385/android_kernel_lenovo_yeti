@@ -21,7 +21,6 @@
 #include "platform_ov8858.h"
 #include "platform_ov2740.h"
 #define MAX_SUBDEVS 8
-//#define DEBUG
 
 /* This needs to be initialized at runtime so the various
  * platform-checking macros in spid.h return the correct results.
@@ -56,12 +55,6 @@ EXPORT_SYMBOL(spid);
 #define ELDO2_SEL_REG	0x1a
 #define ELDO2_1P8V	0x16
 #define ELDO2_CTRL_SHIFT 0x01
-#define ELDO1_1P6V      0x12
-
-#define FLDO2_SEL_REG   0x1d
-#define FLDO2_CTRL3_REG 0x13
-#define FLDO2_1P2V      0x0a
-#define FLDO2_CTRL3_SHIFT 0x03
 
 /* TI SND9039 PMIC register hackery */
 #define LDO9_REG	0x49
@@ -532,70 +525,6 @@ static int axp_v2p8_off(void)
 	return axp_regulator_set(ALDO1_SEL_REG, ALDO1_2P8V, ALDO1_CTRL3_REG,
 				 ALDO1_CTRL3_SHIFT, false);
 }
-static int axp_v1p2_on(void)
-{
-	return axp_regulator_set(FLDO2_SEL_REG, FLDO2_1P2V, FLDO2_CTRL3_REG,
-				 FLDO2_CTRL3_SHIFT, true);
-}
-
-static int axp_v1p2_off(void)
-{
-	return axp_regulator_set(FLDO2_SEL_REG, FLDO2_1P2V, FLDO2_CTRL3_REG,
-				 FLDO2_CTRL3_SHIFT, false);
-}
-#if 0
-int gmin_v1p2_ctrl(struct v4l2_subdev *subdev, int on)
-{
-	struct gmin_subdev *gs = find_gmin_subdev(subdev);
-
-	if (gs && gs->v1p2_on == on)
-		return 0;
-	gs->v1p2_on = on;
-
-	if (pmic_id == PMIC_AXP) {
-		if (on)
-			return axp_v1p2_on();
-		else
-			return axp_v1p2_off();
-	}
-
-	if (gs->v1p2_reg) {
-		if (on)
-			return regulator_enable(gs->v1p2_reg);
-		else
-			return regulator_disable(gs->v1p2_reg);
-	}
-
-	/*TODO:v1p2 needs to extend to other PMICs*/
-
-	return -EINVAL;
-}
-#endif
-static int axp_v1p5_on(void)
-{
-	return axp_regulator_set(ELDO1_SEL_REG, ELDO1_1P6V, ELDO_CTRL_REG,
-				 ELDO1_CTRL_SHIFT, true);
-}
-
-static int axp_v1p5_off(void)
-{
-	return axp_regulator_set(ELDO1_SEL_REG, ELDO1_1P6V, ELDO_CTRL_REG,
-				 ELDO1_CTRL_SHIFT, false);
-}
-
-static int gmin_v1p5_ctrl(struct v4l2_subdev *subdev, int on)
-{
-	if (pmic_id == PMIC_AXP) {
-		if (on)
-			return axp_v1p5_on();
-		else
-			return axp_v1p5_off();
-	}
-
-	return -EINVAL;
-}
-
-
 
 int gmin_v1p8_ctrl(struct v4l2_subdev *subdev, int on)
 {
@@ -736,9 +665,6 @@ int gmin_flisclk_ctrl(struct v4l2_subdev *subdev, int on)
 {
 	int ret = 0;
 	struct gmin_subdev *gs = find_gmin_subdev(subdev);
-
-	if (!gs)
-		return -ENODEV;
 	if (on)
 		ret = vlv2_plat_set_clock_freq(gs->clock_num, gs->clock_src);
 	if (ret)
@@ -789,8 +715,6 @@ static struct camera_sensor_platform_data gmin_plat = {
 	.gpio1_ctrl = gmin_gpio1_ctrl,
 	.v1p8_ctrl = gmin_v1p8_ctrl,
 	.v2p8_ctrl = gmin_v2p8_ctrl,
-	//.v1p2_ctrl = gmin_v1p2_ctrl,
-	.v1p5_ctrl = gmin_v1p5_ctrl,
 	.flisclk_ctrl = gmin_flisclk_ctrl,
 	.platform_init = gmin_platform_init,
 	.platform_deinit = gmin_platform_deinit,
@@ -805,28 +729,25 @@ struct camera_sensor_platform_data *gmin_camera_platform_data(
 {
 	struct gmin_subdev *gs = find_gmin_subdev(subdev);
 	struct i2c_client *client = v4l2_get_subdevdata(subdev);
-        void * info = NULL;
-
-	if (!gs)
-		return NULL;
+	void * info = NULL;
 	gs->csi_fmt = csi_format;
 	gs->csi_bayer = csi_bayer;
 
 	if(client) {
-                printk("yangsy client name:%s\n", client->name);
-                if (!strncmp(client->name, "INT33FB", strlen("INT33FB"))) {
-                        /*back ar1335 camera*/
-                        printk("%s %d ov8858 sensor found:%lx \r\n", __func__, __LINE__, (unsigned long int)ov8858_platform_data);
-                        gs->csi_port = ATOMISP_CAMERA_PORT_PRIMARY;
-                        return ov8858_platform_data(info);
-                } else if (!strncmp(client->name, "INT33BE", strlen("INT33BE"))) {
-                        /*front ov5693 camera*/
-                        printk("%s %d ov2740 sensor found:%lx \r\n", __func__, __LINE__, (unsigned long int)ov2740_platform_data);
-                        gs->csi_port = ATOMISP_CAMERA_PORT_SECONDARY;
-                        return ov2740_platform_data(info);
-                }
-                return &gmin_plat;
-       } else
+		printk("yangsy client name:%s\n", client->name);
+		if (!strncmp(client->name, "INT33FB", strlen("INT33FB"))) {
+			/*back ar1335 camera*/
+			printk("%s %d ov8858 sensor found:%lx \r\n", __func__, __LINE__, (unsigned long int)ov8858_platform_data);
+			gs->csi_port = ATOMISP_CAMERA_PORT_PRIMARY;
+			return ov8858_platform_data(info);
+		} else if (!strncmp(client->name, "INT33BE", strlen("INT33BE"))) {
+			/*front ov5693 camera*/
+			printk("%s %d ov2740 sensor found:%lx \r\n", __func__, __LINE__, (unsigned long int)ov2740_platform_data);
+			gs->csi_port = ATOMISP_CAMERA_PORT_SECONDARY;
+			return ov2740_platform_data(info);
+		}
+		return &gmin_plat;
+	} else
 		return &gmin_plat;
 }
 EXPORT_SYMBOL_GPL(gmin_camera_platform_data);
@@ -920,10 +841,8 @@ int gmin_get_config_var(struct device *dev, const char *var, char *out, size_t *
 	kfree(ev);
 	*out_len = efilen;
 
-#ifdef DEBUG
 	if (ret)
  		dev_warn(dev, "Failed to find gmin variable %s\n", var8);
-#endif
 
 	return ret;
 }
@@ -999,8 +918,8 @@ int camera_set_pmic_power(enum camera_pmic_pin pin, bool flag)
 #if 1
 	if (pin == CAMERA_2P8V) {
                   //      printk("set 2P8V voltage to 2.8V(real is 2.78)\r\n");
-                        /*VOUT =  0.25 + 51 * 0.05 = 2.8V*/
-                        intel_soc_pmic_writeb(0xc7, 51);//real is 2.78 for value 51,huyj3
+                        /*VOUT =  0.25 + 53 * 0.05 = 2.9V*/
+                        intel_soc_pmic_writeb(0xc7, 53);//real is 2.78 for value 51,huyj3
         }
 
 #endif
@@ -1014,12 +933,12 @@ int camera_set_pmic_power(enum camera_pmic_pin pin, bool flag)
 
 	if (pin == CAMERA_1P2SX) {
 			printk("set VPROG_1P2SX voltage to 1.25V\r\n");
-			/*VOUT =  0.25 + 20 * 0.05 = 1.25V*/
+			/*VOUT =  0.25 + 21 * 0.05 = 1.3V*/
 			intel_soc_pmic_writeb(VPROG_1P2SX_VSEL, 20);//real is 1.2 for value 20,huyj3
 	}
 
 	if (pin == CAMERA_1P2A) {
-			printk("set VPROG_1P2A voltage to 1.25V\r\n");
+			printk("set VPROG_1P2A voltage to 1.3V\r\n");
 			/*VOUT =  0.25 + 20 * 0.05 = 1.25V*/
 			intel_soc_pmic_writeb(VPROG_1P2A_VSEL, 20);
 	}
