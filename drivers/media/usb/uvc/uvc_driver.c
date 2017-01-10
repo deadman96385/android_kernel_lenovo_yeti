@@ -173,6 +173,11 @@ static struct uvc_format_desc uvc_fmts[] = {
 		.guid		= UVC_GUID_FORMAT_L8,
 		.fcc		= V4L2_PIX_FMT_GREY,
 	},
+	{
+		.name		= "Luminosity data 8-bit (RAW8)",
+		.guid		= UVC_GUID_FORMAT_RAW8,
+		.fcc		= V4L2_PIX_FMT_GREY,
+   },
 };
 
 /* ------------------------------------------------------------------------
