@@ -1714,7 +1714,7 @@ int i915_driver_load(struct drm_device *dev, unsigned long flags)
 	dev_priv->shutdown_in_progress = false;
 	dev_priv->bk_status= false;
 	
-	dev_priv->quick_modeset = true;
+	dev_priv->quick_modeset = false;
 
 	/* copy initial configuration to dev_priv->info */
 	device_info = (struct intel_device_info *)&dev_priv->info;
