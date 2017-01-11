@@ -5428,7 +5428,7 @@ static int valleyview_calc_cdclk(struct drm_i915_private *dev_priv,
 	struct drm_device *dev = dev_priv->dev;
 	struct drm_crtc *crtc;
 	struct intel_encoder *encoder;
-	int new_cdclk;
+	int new_cdclk, cur_cdclk, czclk;
 
 	/*
 	 * Really only a few cases to deal with, as only 4 CDclks are supported:
@@ -5453,6 +5453,17 @@ static int valleyview_calc_cdclk(struct drm_i915_private *dev_priv,
 		 * results in blankout of the display at 266MHz hence
 		 * use 320 MHz always if DP that has audio support is enabled.
 		 */
+		 if (IS_CHERRYVIEW(dev_priv->dev)) {
+		/*
+		 * The existing CHT systems can work only when
+		 * CDclk freq is equal to OR higher than CZclk.
+		 * freq. So, cap the CDclk freq, if required.
+		 */
+			intel_get_cd_cz_clk(dev_priv, &cur_cdclk, &czclk);
+			if (new_cdclk < czclk)
+				new_cdclk = czclk;
+		}
+		 
 		for_each_crtc(dev, crtc) {
 			if (!to_intel_crtc(crtc)->new_enabled)
 				continue;
@@ -13687,7 +13698,7 @@ void set_hdmi_priv(struct drm_device *dev)
 	dev_priv->audio_port = 0;
 #endif
 }
-
+#if 0
 static void intel_setup_outputs_vbt(struct drm_device *dev)
 {
 	struct drm_i915_private *dev_priv = dev->dev_private;
@@ -13740,7 +13751,7 @@ static void intel_setup_outputs_vbt(struct drm_device *dev)
 		}
 	}
 }
-
+#endif
 static void intel_setup_outputs(struct drm_device *dev)
 {
 	struct drm_i915_private *dev_priv = dev->dev_private;
@@ -13800,7 +13811,17 @@ static void intel_setup_outputs(struct drm_device *dev)
 		if (I915_READ(PCH_DP_D) & DP_DETECTED)
 			intel_dp_init(dev, PCH_DP_D, PORT_D);
 	} else if (IS_CHERRYVIEW(dev)) {
+#if 0		/*don't use vbt configuration*/
 		intel_setup_outputs_vbt(dev);
+#else
+		intel_dp_init(dev, VLV_DISPLAY_BASE + DP_C, PORT_C);
+
+
+		intel_dsi_init(dev);
+
+		set_hdmi_priv(dev);
+		intel_hdmi_init(dev, VLV_DISPLAY_BASE + CHV_HDMID, PORT_D);
+#endif
 
 	} else if (IS_VALLEYVIEW(dev)) {
 		/* There is no detection method for MIPI so rely on VBT */
