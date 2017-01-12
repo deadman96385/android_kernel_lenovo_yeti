@@ -329,25 +329,13 @@ config SND_SOC_PCM3008
 config SND_SOC_RT286
 	tristate
 
-config SND_SOC_RT5631
+config SND_SOC_RT5677
 	tristate
+	default y
 
-config SND_SOC_RT56XX
-	tristate
-	default y if SND_SOC_RT5640
-	default y if SND_SOC_RT5651
-
-config SND_SOC_RT5640
-	tristate
-
-config SND_SOC_RT5645
-	tristate
-
-config SND_SOC_RT5651
-	tristate
-
-config SND_SOC_RT5672
-	tristate
+config SND_SOC_TS3A227E
+  	tristate
+	default y if SND_SOC_RT5677
 
 config SND_SOC_TLV320AIC31XX
 	tristate

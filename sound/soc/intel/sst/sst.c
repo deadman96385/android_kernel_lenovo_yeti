@@ -616,16 +616,17 @@ static const struct dmi_system_id dmi_machine_table[] = {
 };
 
 static struct platform_device cht_t_mach_dev = {
-	.name           = "cht_rt5672",
+	.name           = "cht_rt5677",
 	.id             = -1,
 	.num_resources  = 0,
 };
 
 static struct platform_device cht_cr_mrd_mach_dev = {
-	.name           = "cht_rt5645",
-	.id             = -1,
-	.num_resources  = 0,
+       .name           = "cht_rt5645",
+       .id             = -1,
+       .num_resources  = 0,
 };
+
 static struct platform_device cht_cr_mach_dev = {
 	.name           = "cht_aic31xx",
 	.id             = -1,
@@ -676,6 +677,8 @@ int sst_request_firmware_async(struct intel_sst_drv *ctx)
 				"fw_sst_%04x.bin", ctx->pci_id);
 
 		board_name = dmi_get_system_info(DMI_BOARD_NAME);
+		pr_err("BoardName: %s\n", board_name);
+
 		if (strcmp(board_name, "T3 MRD") == 0) {
 			pr_info("Registering machine device %s\n",
 						cht_cr_mrd_mach_dev.name);
