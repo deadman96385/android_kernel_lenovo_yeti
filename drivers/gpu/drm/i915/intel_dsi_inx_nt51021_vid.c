@@ -338,7 +338,7 @@ static void inx_nt51021_enable(struct intel_dsi_device *dsi)
 /*
 #if 1
 	dsi_vc_dcs_write_1(intel_dsi, 0, 0X01, 0X00);
-	mdelay(20);
+	msleep(20);
 	dsi_vc_dcs_write_1(intel_dsi, 0, 0X8C, 0X80);
 	dsi_vc_dcs_write_1(intel_dsi, 0, 0XC7, 0X50);
 	dsi_vc_dcs_write_1(intel_dsi, 0, 0XC6, 0X50);
@@ -416,18 +416,17 @@ dsi_vc_dcs_write_1(intel_dsi, 0, 0X01, 0X00);
 
 
 	dsi_vc_dcs_write_0(intel_dsi, 0, 0x11);
-	mdelay(120);
+	msleep(120);
 	dsi_vc_dcs_write_0(intel_dsi, 0, 0x29);
-	mdelay(20);
+	msleep(50);
 
 #ifdef  CONFIG_LENOVO_DISPLAY_FEATURE
 	inx_nt51021__panel_device.status = ON;
 #endif
-	printk("restore cabc setting in panel enable\n");
-	inx_nt51021_get_current_level(&inx_nt51021__panel_device.hal_panel_ctrl);
-	printk("level is %d,index is %d\n",inx_nt51021__panel_device.hal_panel_ctrl.level,inx_nt51021__panel_device.hal_panel_ctrl.index);
-	inx_nt51021_set_effect(&inx_nt51021__panel_device.hal_panel_ctrl,intel_dsi);
 	
+	inx_nt51021_get_current_level(&inx_nt51021__panel_device.hal_panel_ctrl);
+	printk("cabc level is %d,index is %d\n",inx_nt51021__panel_device.hal_panel_ctrl.level,inx_nt51021__panel_device.hal_panel_ctrl.index);
+	inx_nt51021_set_effect(&inx_nt51021__panel_device.hal_panel_ctrl,intel_dsi);
 	
 
 }
@@ -440,7 +439,7 @@ static void inx_nt51021_disable(struct intel_dsi_device *dsi)
 	//dsi_vc_dcs_write_0(intel_dsi, 0, 0x28);
 	//mdelay(120);
 	dsi_vc_dcs_write_0(intel_dsi, 0, 0x10);
-	mdelay(120);
+	mdelay(100);
 #ifdef  CONFIG_LENOVO_DISPLAY_FEATURE
 	inx_nt51021__panel_device.status = OFF;
 #endif
@@ -496,10 +495,10 @@ void inx_nt51021_power_on(struct intel_dsi_device *dsi)
             return;
          }
 
-        msleep(20);
+        //msleep(20);
 	/*lcd_pwr_en to high for lcd 3.3v*/
         gpio_direction_output(lcd_pwr_en, 1);
-	msleep(1);
+	msleep(2);
         //gpio_direction_output(lcd_rst, 1);
        // msleep(10);
         gpio_direction_output(lcd_rst,0 );
