@@ -37,6 +37,7 @@
 #include "intel_dsi.h"
 #include "intel_dsi_cmd.h"
 #include "intel_dsi_inx_nt51021_vid.h"
+extern unsigned int yeti_hw_ver;
 
 #ifdef  CONFIG_LENOVO_DISPLAY_FEATURE
 static int gcabc_ce_register;
@@ -267,11 +268,11 @@ bool inx_nt51021_init(struct intel_dsi_device *dsi)
 	//intel_dsi->port = 0; /* PORT_A by default */
 #endif
 
-	intel_dsi->backlight_off_delay = 20;
-	intel_dsi->backlight_on_delay = 20;
-	intel_dsi->panel_on_delay = 50;
-	intel_dsi->panel_off_delay = 50;
-	intel_dsi->panel_pwr_cycle_delay = 20;
+	intel_dsi->backlight_off_delay =50;
+	intel_dsi->backlight_on_delay = 0;
+	intel_dsi->panel_on_delay = 0;
+	intel_dsi->panel_off_delay = 0;
+	intel_dsi->panel_pwr_cycle_delay = 0;
 
 #ifdef  CONFIG_LENOVO_DISPLAY_FEATURE
 	inx_nt51021__panel_device.dsi = intel_dsi;
@@ -472,39 +473,44 @@ void inx_nt51021_power_on(struct intel_dsi_device *dsi)
 	struct drm_device *dev = intel_dsi->base.base.dev;
 	struct drm_i915_private *dev_priv = dev->dev_private;
 
+	int retval = 0;
+        unsigned int lcd_pwr_en = 279;//GPIO SE51
+        unsigned int lcd_rst = 406;//GPIO N65
+
 	DRM_DEBUG_KMS("\n");
 
-	/* enable LCD BIAS for BladeIII 10A */
+	if(yeti_hw_ver >= 0x3)
+		lcd_pwr_en = 401;//GPIO N60
+       
+	retval = gpio_request(lcd_pwr_en, "enable_lcd_pwr");
+        if (retval) {
+            pr_err("%s: Failed to get gpio %d (code: %d)", __func__, lcd_pwr_en, retval);
+            return;
+         }
 
-	msleep(20);
-	/* hardcode to do LCD reset for BladeIII 10A */
-	DRM_INFO("%s: do LCD reset.\n", __func__);
-	/* LCD_RESET_FVP -- K22 */
-	vlv_gpio_write(dev_priv, IOSF_PORT_GPIO_NC,
-					0x5428, 0x8102);
-	vlv_gpio_write(dev_priv, IOSF_PORT_GPIO_NC,
-					0x542c, 0x4c00000);
-	msleep(10);
+        retval = gpio_request(lcd_rst, "lcd_rst");
+        if (retval) {
+            pr_err("%s: Failed to get gpio %d (code: %d)", __func__, lcd_rst, retval);
+            gpio_free(lcd_pwr_en);
 
-	vlv_gpio_write(dev_priv, IOSF_PORT_GPIO_NC,
-					0x5428, 0x8100);
-	vlv_gpio_write(dev_priv, IOSF_PORT_GPIO_NC,
-					0x542c, 0x4c00000);
-	msleep(20);
+            return;
+         }
 
-	vlv_gpio_write(dev_priv, IOSF_PORT_GPIO_NC,
-					0x5428, 0x8102);
-	vlv_gpio_write(dev_priv, IOSF_PORT_GPIO_NC,
-					0x542c, 0x4c00000);
-	msleep(50);
+        msleep(20);
+	/*lcd_pwr_en to high for lcd 3.3v*/
+        gpio_direction_output(lcd_pwr_en, 1);
+	msleep(1);
+        //gpio_direction_output(lcd_rst, 1);
+       // msleep(10);
+        gpio_direction_output(lcd_rst,0 );
+        msleep(10);
+        gpio_direction_output(lcd_rst, 1);
+        msleep(20);
 
-	DRM_INFO("%s: enable LCD power.\n", __func__);
-	/* LCD_BIAS_ENP -- GPIO BK20 */
-	vlv_gpio_write(dev_priv, IOSF_PORT_GPIO_SC,
-					0x5030, 0x8102);
-	vlv_gpio_write(dev_priv, IOSF_PORT_GPIO_SC,
-					0x5034, 0x4c00000);
-	msleep(15);
+
+        gpio_free(lcd_pwr_en);
+        gpio_free(lcd_rst);
+
 
 #ifdef  CONFIG_LENOVO_DISPLAY_FEATURE
 	inx_nt51021__panel_device.status = ON;
@@ -523,6 +529,10 @@ void inx_nt51021_power_off(struct intel_dsi_device *dsi)
 	struct drm_device *dev = intel_dsi->base.base.dev;
 	struct drm_i915_private *dev_priv = dev->dev_private;
 
+	int retval = 0;
+        unsigned int lcd_pwr_en = 279;//GPIO SE51
+        unsigned int lcd_rst = 406;//GPIO N65
+
 #ifdef  CONFIG_LENOVO_DISPLAY_FEATURE
 	inx_nt51021__panel_device.status = OFF;
 	mutex_lock(&dev_priv->bk_status_lock);
@@ -531,24 +541,32 @@ void inx_nt51021_power_off(struct intel_dsi_device *dsi)
 	DRM_INFO("%s--OFF\n", __func__);
 #endif
 	DRM_DEBUG_KMS("\n");
+	
+	if(yeti_hw_ver >= 0x3)
+                lcd_pwr_en = 401;//N60
+	
+        retval = gpio_request(lcd_pwr_en, "enable_lcd_pwr");
+        if (retval) {
+            pr_err("%s: Failed to get gpio %d (code: %d)", __func__, lcd_pwr_en, retval);
+            return;
+         }
 
-	/* pull down panel reset pin */
-	msleep(100);
-	/* LCD_RESET_FVP -- K22 */
-	vlv_gpio_write(dev_priv, IOSF_PORT_GPIO_NC,
-			0x5428, 0x8100);
-	vlv_gpio_write(dev_priv, IOSF_PORT_GPIO_NC,
-			0x542c, 0x4c00000);
-	msleep(10);
+        retval = gpio_request(lcd_rst, "lcd_rst");
+        if (retval) {
+            pr_err("%s: Failed to get gpio %d (code: %d)", __func__, lcd_rst, retval);
+            gpio_free(lcd_pwr_en);
 
-	/* disable LCD BIAS for BladeIII 10A */
-	DRM_INFO("%s: disable LCD power.\n", __func__);
-	/* LCD_BIAS_ENP -- GPIO BK20 */
-	vlv_gpio_write(dev_priv, IOSF_PORT_GPIO_SC,
-			0x5030, 0x8100);
-	vlv_gpio_write(dev_priv, IOSF_PORT_GPIO_SC,
-			0x5034, 0x4c00000);
-	msleep(10);
+            return;
+         }
+
+       // msleep(100);
+        gpio_direction_output(lcd_rst, 0);
+      //  msleep(1);
+        gpio_direction_output(lcd_pwr_en,0 );
+        msleep(500);
+
+         gpio_free(lcd_pwr_en);
+         gpio_free(lcd_rst);
 
 	return;
 }
