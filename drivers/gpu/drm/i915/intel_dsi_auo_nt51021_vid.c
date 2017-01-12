@@ -320,32 +320,25 @@ static void auo_nt51021_enable(struct intel_dsi_device *dsi)
 	DRM_DEBUG_KMS("\n");
 	intel_dsi->hs=0;
 
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X8F, 0XA5);// I2C mode 转为MIPI mode
+	dsi_vc_dcs_write_1(intel_dsi, 0, 0X8F, 0XA5);
 	mdelay(5);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X01, 0X00);  // Reset CMD
+	dsi_vc_dcs_write_1(intel_dsi, 0, 0X01, 0X00);
 	mdelay(20);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X8F, 0XA5);  // I2C mode 再\u017d巫狹IPI mode
+	dsi_vc_dcs_write_1(intel_dsi, 0, 0X8F, 0XA5);
 	mdelay(5);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X85, 0X04);  //红字部分为变\u017e麲OA Timing
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X86, 0X08);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X8C, 0X80);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0XC7, 0X49);
+	dsi_vc_dcs_write_1(intel_dsi, 0, 0X85, 0X04);
+       dsi_vc_dcs_write_1(intel_dsi, 0, 0X86, 0X08);
+	dsi_vc_dcs_write_1(intel_dsi, 0, 0X8C, 0X80); 
+       dsi_vc_dcs_write_1(intel_dsi, 0, 0XC4, 0X01);
+       dsi_vc_dcs_write_1(intel_dsi, 0, 0XC5, 0X01);
 	dsi_vc_dcs_write_1(intel_dsi, 0, 0XC6, 0X49);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0XC5, 0X01);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0XC4, 0X01);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X83, 0XAA);
+       dsi_vc_dcs_write_1(intel_dsi, 0, 0XC7, 0X49);
+       dsi_vc_dcs_write_1(intel_dsi, 0, 0X83, 0XAA);
 	dsi_vc_dcs_write_1(intel_dsi, 0, 0X84, 0X11);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X9C, 0X10);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0XA9, 0X4B);   
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X83, 0XBB);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X84, 0X22);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X91, 0XA0);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X95, 0XB0);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X96, 0X00);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X93, 0X40);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X83, 0X00);  
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X84, 0X00);   
-	//dsi_vc_dcs_write_1(intel_dsi, 0, 0X8F, 0X00);   
+	dsi_vc_dcs_write_1(intel_dsi, 0, 0XA9, 0X4B);
+	dsi_vc_dcs_write_1(intel_dsi, 0, 0X83, 0X00);
+	dsi_vc_dcs_write_1(intel_dsi, 0, 0X84, 0X00);
+	dsi_vc_dcs_write_1(intel_dsi, 0, 0X8F, 0X00);
 
 	dsi_vc_dcs_write_0(intel_dsi, 0, 0x11);
 	mdelay(120);
