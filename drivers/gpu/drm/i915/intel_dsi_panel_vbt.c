@@ -735,7 +735,7 @@ static bool generic_init(struct intel_dsi_device *dsi)
 	struct drm_device *dev = intel_dsi->base.base.dev;
 	struct drm_i915_private *dev_priv = dev->dev_private;
 	struct mipi_config *mipi_config = dev_priv->vbt.dsi.config;
-	struct mipi_pps_data *pps = dev_priv->vbt.dsi.pps;
+//	struct mipi_pps_data *pps = dev_priv->vbt.dsi.pps;
 	struct drm_display_mode *mode = dev_priv->vbt.lfp_lvds_vbt_mode;
 	u32 bits_per_pixel = 24;
 	u32 tlpx_ns, extra_byte_count, bitrate, tlpx_ui;
@@ -1052,12 +1052,13 @@ static bool generic_init(struct intel_dsi_device *dsi)
 	/* delays in VBT are in unit of 100us, so need to convert
 	 * here in ms
 	 * Delay (100us) * 100 /1000 = Delay / 10 (ms) */
+#if 0
 	intel_dsi->backlight_off_delay = pps->bl_disable_delay / 10;
 	intel_dsi->backlight_on_delay = pps->bl_enable_delay / 10;
 	intel_dsi->panel_on_delay = pps->panel_on_delay / 10;
 	intel_dsi->panel_off_delay = pps->panel_off_delay / 10;
 	intel_dsi->panel_pwr_cycle_delay = pps->panel_power_cycle_delay / 10;
-
+#endif
 	return true;
 }
 
