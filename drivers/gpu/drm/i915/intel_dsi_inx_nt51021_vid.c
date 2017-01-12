@@ -335,8 +335,7 @@ static void inx_nt51021_enable(struct intel_dsi_device *dsi)
 
 	DRM_DEBUG_KMS("\n");
 	intel_dsi->hs=0;
-/*
-#if 1
+
 	dsi_vc_dcs_write_1(intel_dsi, 0, 0X01, 0X00);
 	msleep(20);
 	dsi_vc_dcs_write_1(intel_dsi, 0, 0X8C, 0X80);
@@ -346,74 +345,10 @@ static void inx_nt51021_enable(struct intel_dsi_device *dsi)
 	dsi_vc_dcs_write_1(intel_dsi, 0, 0XC4, 0X50);
 	dsi_vc_dcs_write_1(intel_dsi, 0, 0X85, 0X04);
 	dsi_vc_dcs_write_1(intel_dsi, 0, 0X86, 0X08);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0XA9, 0X2A);
 	dsi_vc_dcs_write_1(intel_dsi, 0, 0X83, 0XAA);
 	dsi_vc_dcs_write_1(intel_dsi, 0, 0X84, 0X11);
 	dsi_vc_dcs_write_1(intel_dsi, 0, 0X9C, 0X10);
 	dsi_vc_dcs_write_1(intel_dsi, 0, 0XA9, 0X4B);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X83, 0XBB);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X84, 0X22);
-//	dsi_vc_dcs_write_1(intel_dsi, 0, 0X90, 0X40); //enable cabc as default
-//	dsi_vc_dcs_write_1(intel_dsi, 0, 0X91, 0X80);
-//	dsi_vc_dcs_write_1(intel_dsi, 0, 0X95, 0XB0);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X96, 0X00);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X93, 0X40);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X83, 0X00);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X84, 0X00);
-	//dsi_vc_dcs_write_1(intel_dsi, 0, 0X9F, 0XFF);
-
-
-#else
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X83, 0X00);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X84, 0X00);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X9F, 0X00);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X97, 0XFF);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X83, 0XBB);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X84, 0X22);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X90, 0X00);
-	//dsi_vc_dcs_write_1(intel_dsi, 0, 0X90, 0XC0);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X91, 0XA2);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X95, 0X20);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X94, 0X2A);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X9B, 0X8C);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X96, 0X00);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X83, 0XCC);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X84, 0X33);
-	//dsi_vc_dcs_write_1(intel_dsi, 0, 0X90, 0X1F);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X90, ce_status);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X92, 0X0F);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X93, 0X0A);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X94, 0X07);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X95, 0X09);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X96, 0X0d);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X97, 0X06);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X98, 0XB5);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X83, 0XAA);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0X84, 0X11);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0XA0, 0X2D);
-	dsi_vc_dcs_write_1(intel_dsi, 0, 0XA1, 0X2D);
-#endif
-*/
-dsi_vc_dcs_write_1(intel_dsi, 0, 0X01, 0X00);
-      mdelay(20);
-      dsi_vc_dcs_write_1(intel_dsi, 0, 0X8C, 0X80);
-       dsi_vc_dcs_write_1(intel_dsi, 0, 0XC7, 0X50);
-	   dsi_vc_dcs_write_1(intel_dsi, 0, 0XC6, 0X50);
-       dsi_vc_dcs_write_1(intel_dsi, 0, 0XC5, 0X50);
-	   dsi_vc_dcs_write_1(intel_dsi, 0, 0XC4, 0X50);
-       dsi_vc_dcs_write_1(intel_dsi, 0, 0X85, 0X04);
-       dsi_vc_dcs_write_1(intel_dsi, 0, 0X86, 0X08);
-       dsi_vc_dcs_write_1(intel_dsi, 0, 0X83, 0XAA);
-       dsi_vc_dcs_write_1(intel_dsi, 0, 0X84, 0X11);
-       dsi_vc_dcs_write_1(intel_dsi, 0, 0X9C, 0X10);
-       dsi_vc_dcs_write_1(intel_dsi, 0, 0XA9, 0X4B);
-	   dsi_vc_dcs_write_1(intel_dsi, 0, 0X83, 0XBB);
-        dsi_vc_dcs_write_1(intel_dsi, 0, 0X84, 0X22);
-       dsi_vc_dcs_write_1(intel_dsi, 0, 0X96, 0X00);
-        dsi_vc_dcs_write_1(intel_dsi, 0, 0X93, 0X40);
-        dsi_vc_dcs_write_1(intel_dsi, 0, 0X83, 0X00);
-       dsi_vc_dcs_write_1(intel_dsi, 0, 0X84, 0X00);
-
 
 	dsi_vc_dcs_write_0(intel_dsi, 0, 0x11);
 	msleep(120);
@@ -498,7 +433,7 @@ void inx_nt51021_power_on(struct intel_dsi_device *dsi)
         //msleep(20);
 	/*lcd_pwr_en to high for lcd 3.3v*/
         gpio_direction_output(lcd_pwr_en, 1);
-	msleep(2);
+	msleep(5);
         //gpio_direction_output(lcd_rst, 1);
        // msleep(10);
         gpio_direction_output(lcd_rst,0 );
