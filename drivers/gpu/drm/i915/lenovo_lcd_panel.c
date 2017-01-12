@@ -28,7 +28,7 @@ static struct lcd_panel lenovo_lcd_panel;
 ssize_t lenovo_lcd_get_cabc(struct device *dev, struct device_attribute *attr, char *buf)
 {
 	ssize_t ret = -1;
-	int index = 1;
+	int index = 0;
 	struct lcd_panel_dev *lcd_panel = lenovo_lcd_panel.lcd_device;
 	struct hal_panel_ctrl_data ctrl;
 
@@ -45,6 +45,9 @@ ssize_t lenovo_lcd_get_cabc(struct device *dev, struct device_attribute *attr, c
 	}
 
 	ctrl.index = index;
+
+	 lcd_panel->hal_panel_ctrl.level = ctrl.level;
+	  lcd_panel->hal_panel_ctrl.index = ctrl.index;
 
 	if(lcd_panel->get_current_level)
 		ret = lcd_panel->get_current_level(&ctrl);
@@ -83,6 +86,8 @@ ssize_t lenovo_lcd_set_cabc(struct device *dev, struct device_attribute *attr, c
 	}
 
 	ctrl.index = index;
+	 lcd_panel->hal_panel_ctrl.level = ctrl.level;
+	  lcd_panel->hal_panel_ctrl.index = ctrl.index;
 
 	DRM_DEBUG_DRIVER("[LCD]: %s: line=%d ctrl.level=%d\n",__func__,__LINE__,ctrl.level);
 	if(lcd_panel->set_effect(&ctrl, dsi)!= 0){
@@ -113,6 +118,8 @@ ssize_t lenovo_lcd_get_cabc_and_ce(struct device *dev, struct device_attribute *
 	}
 
 	ctrl.index = index;
+	 lcd_panel->hal_panel_ctrl.level = ctrl.level;
+	  lcd_panel->hal_panel_ctrl.index = ctrl.index;
 
 	if(lcd_panel->get_current_level)
 		ret = lcd_panel->get_current_level(&ctrl);
@@ -153,6 +160,8 @@ ssize_t lenovo_lcd_set_cabc_and_ce(struct device *dev, struct device_attribute *
 	}
 
 	ctrl.index = index;
+	 lcd_panel->hal_panel_ctrl.level = ctrl.level;
+	  lcd_panel->hal_panel_ctrl.index = ctrl.index;
 
 	DRM_DEBUG_DRIVER("[LCD]: %s: line=%d ctrl.level=%d\n",__func__,__LINE__,ctrl.level);
 	if(lcd_panel->set_effect(&ctrl, dsi)!= 0){
@@ -184,6 +193,8 @@ ssize_t lenovo_lcd_get_ce(struct device *dev, struct device_attribute *attr, cha
 	}
 
 	ctrl.index = index;
+	 lcd_panel->hal_panel_ctrl.level = ctrl.level;
+	  lcd_panel->hal_panel_ctrl.index = ctrl.index;
 
 	if(lcd_panel->get_current_level)
 		ret = lcd_panel->get_current_level(&ctrl);
@@ -224,6 +235,8 @@ ssize_t lenovo_lcd_set_ce(struct device *dev, struct device_attribute *attr, con
 	}
 
 	ctrl.index = index;
+	 lcd_panel->hal_panel_ctrl.level = ctrl.level;
+	  lcd_panel->hal_panel_ctrl.index = ctrl.index;
 
 	if(lcd_panel->set_effect(&ctrl, dsi)!= 0)
 		DRM_ERROR("[LCD]: errored from set effect\n");
@@ -374,6 +387,8 @@ ssize_t lenovo_lcd_get_dpst(struct device *dev, struct device_attribute *attr, c
 	}
 
 	ctrl.index = index;
+	 lcd_panel->hal_panel_ctrl.level = ctrl.level;
+	  lcd_panel->hal_panel_ctrl.index = ctrl.index;
 
 	if(lcd_panel->get_current_level)
 		ret = lcd_panel->get_current_level(&ctrl);
@@ -425,6 +440,8 @@ ssize_t lenovo_lcd_set_dpst(struct device *dev, struct device_attribute *attr, c
 		}
 
 		ctrl.index = index;
+		 lcd_panel->hal_panel_ctrl.level = ctrl.level;
+	 	 lcd_panel->hal_panel_ctrl.index = ctrl.index;
 		if (val == 1) {
 			ctrl.level = 0;//cabc off
 			if(lcd_panel->set_effect(&ctrl, dsi)!= 0){
@@ -565,6 +582,7 @@ static long lenovo_lcd_panel_ioctl(struct file *filp, unsigned int cmd, unsigned
 	struct lcd_panel_dev *lcd_panel = lenovo_lcd_panel.lcd_device;
 	struct intel_dsi *dsi = lcd_panel->dsi;
 	struct hal_panel_ctrl_data *hal_panel_data = (struct hal_panel_ctrl_data *)argp;
+	 lcd_panel->hal_panel_ctrl = *hal_panel_data;
 	//struct drm_device *dev = dsi->base.base.dev;
 	//struct drm_i915_private *dev_priv = dev->dev_private;
 	//struct intel_panel *panel = &dev_priv->dpst.connector->panel;
@@ -646,7 +664,9 @@ static long lenovo_lcd_panel_ioctl(struct file *filp, unsigned int cmd, unsigned
 			}
 			break;
 		case LCD_IOCTL_SET_EFFECT:
-			DRM_DEBUG_DRIVER("[LCD]: %s: LCD_IOCTL_SET_EFFECT=cmd=%d  line=%d\n",__func__,cmd,__LINE__);
+			DRM_INFO("[LCD]: %s: LCD_IOCTL_SET_EFFECT=cmd=%d  line=%d\n",__func__,cmd,__LINE__);
+			 lcd_panel->hal_panel_ctrl.level = hal_panel_data->level;
+	 		 lcd_panel->hal_panel_ctrl.index = hal_panel_data->index;
 			if(lcd_panel->set_effect != NULL)
 			{
 				ret = lcd_panel->set_effect(hal_panel_data, dsi);
@@ -663,6 +683,8 @@ static long lenovo_lcd_panel_ioctl(struct file *filp, unsigned int cmd, unsigned
 			DRM_DEBUG_DRIVER("[LCD]: %s: LCD_IOCTL_SET_MODE=cmd=%d  line=%d\n",__func__,cmd,__LINE__);
 			if(lcd_panel->set_mode!= NULL)
 			{
+				 lcd_panel->hal_panel_ctrl.level = hal_panel_data->level;
+	 			 lcd_panel->hal_panel_ctrl.index = hal_panel_data->index;
 				ret = lcd_panel->set_mode(hal_panel_data, dsi);
 				if(ret < 0){
 					DRM_ERROR("[LCD]: Error from set_mode\n");

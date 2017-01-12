@@ -330,6 +330,7 @@ static void inx_nt51021_send_otp_cmds(struct intel_dsi_device *dsi)
 static void inx_nt51021_enable(struct intel_dsi_device *dsi)
 {
 	struct intel_dsi *intel_dsi = container_of(dsi, struct intel_dsi, dev);
+	//struct hal_panel_ctrl_data  hal_panel_ctrl;
 
 	DRM_DEBUG_KMS("\n");
 	intel_dsi->hs=0;
@@ -421,6 +422,12 @@ dsi_vc_dcs_write_1(intel_dsi, 0, 0X01, 0X00);
 #ifdef  CONFIG_LENOVO_DISPLAY_FEATURE
 	inx_nt51021__panel_device.status = ON;
 #endif
+	printk("restore cabc setting in panel enable\n");
+	inx_nt51021_get_current_level(&inx_nt51021__panel_device.hal_panel_ctrl);
+	printk("level is %d,index is %d\n",inx_nt51021__panel_device.hal_panel_ctrl.level,inx_nt51021__panel_device.hal_panel_ctrl.index);
+	inx_nt51021_set_effect(&inx_nt51021__panel_device.hal_panel_ctrl,intel_dsi);
+	
+	
 
 }
 

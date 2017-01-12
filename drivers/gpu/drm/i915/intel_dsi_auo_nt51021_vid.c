@@ -356,6 +356,10 @@ static void auo_nt51021_enable(struct intel_dsi_device *dsi)
 #ifdef  CONFIG_LENOVO_DISPLAY_FEATURE
 	auo_nt51021__panel_device.status = ON;
 #endif
+	printk("restore cabc setting in panel enable\n");
+	auo_nt51021_get_current_level(&auo_nt51021__panel_device.hal_panel_ctrl);
+	printk("level is %d,index is %d\n",auo_nt51021__panel_device.hal_panel_ctrl.level,auo_nt51021__panel_device.hal_panel_ctrl.index);
+	auo_nt51021_set_effect(&auo_nt51021__panel_device.hal_panel_ctrl,intel_dsi);
 }
 
 static void auo_nt51021_disable(struct intel_dsi_device *dsi)

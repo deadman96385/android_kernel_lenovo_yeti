@@ -60,6 +60,7 @@ struct lcd_panel_dev{
 	int (*set_effect)(struct hal_panel_ctrl_data *, struct intel_dsi *);
 	int (*set_mode)(struct hal_panel_ctrl_data *, struct intel_dsi *);
 	int (*set_gamma)(int newgamma, struct intel_dsi *);
+	struct hal_panel_ctrl_data hal_panel_ctrl;
 };
 
 struct lcd_panel{
