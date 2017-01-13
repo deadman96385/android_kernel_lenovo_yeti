@@ -5,7 +5,6 @@
 #include <linux/nls.h>
 #include <linux/usb/composite.h>
 #include <linux/usb/gadget_configfs.h>
-#include <linux/completion.h>
 #include "configfs.h"
 #include "u_f.h"
 #include "u_os_desc.h"
@@ -78,7 +77,6 @@ struct gadget_info {
 	struct config_group *default_groups[5];
 
 	struct mutex lock;
-	struct completion udc_store_completion;
 	struct usb_gadget_strings *gstrings[MAX_USB_STRING_LANGS + 1];
 	struct list_head string_list;
 	struct list_head available_func;
@@ -309,12 +307,10 @@ static ssize_t gadget_dev_desc_UDC_store(struct gadget_info *gi,
 		gi->udc_name = name;
 	}
 	mutex_unlock(&gi->lock);
-	complete(&gi->udc_store_completion);
 	return len;
 err:
 	kfree(name);
 	mutex_unlock(&gi->lock);
-	complete(&gi->udc_store_completion);
 	return ret;
 }
 
@@ -1754,7 +1750,6 @@ static struct config_group *gadgets_make(
 	gi->composite.max_speed = USB_SPEED_SUPER;
 
 	mutex_init(&gi->lock);
-	init_completion(&gi->udc_store_completion);
 	INIT_LIST_HEAD(&gi->string_list);
 	INIT_LIST_HEAD(&gi->available_func);
 
@@ -1816,9 +1811,7 @@ void unregister_gadget_item(struct config_item *item)
 {
 	struct gadget_info *gi = to_gadget_info(item);
 
-	wait_for_completion_timeout(&gi->udc_store_completion, msecs_to_jiffies(20));
 	unregister_gadget(gi);
-	reinit_completion(&gi->udc_store_completion);
 }
 EXPORT_SYMBOL(unregister_gadget_item);
 
