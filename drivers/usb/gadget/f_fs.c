@@ -3049,8 +3049,10 @@ static void ffs_closed(struct ffs_data *ffs)
 	    || !ffs_obj->opts->func_inst.group.cg_item.ci_parent)
 		goto done;
 
+	ffs_dev_unlock();
 	unregister_gadget_item(ffs_obj->opts->
 			       func_inst.group.cg_item.ci_parent->ci_parent);
+	return;
 done:
 	ffs_dev_unlock();
 }
