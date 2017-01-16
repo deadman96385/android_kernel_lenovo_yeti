@@ -108,6 +108,12 @@ config MMC_SDHCI_ACPI_FORCE_POWER_ON
 
 	  If unsure, say N.
 
+config MMC_CAP2_CD_ACTIVE_HIGH
+	bool "SDCard card detection needs active high interrupt"
+	depends on MMC_SDHCI_ACPI
+	help
+	  SDCard card detection needs active high interrupt
+
 config MMC_SDHCI_PLTFM
 	tristate "SDHCI platform and OF driver helper"
 	depends on MMC_SDHCI

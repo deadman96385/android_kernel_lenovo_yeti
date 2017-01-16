@@ -224,7 +224,11 @@ static const struct sdhci_acpi_slot sdhci_acpi_slot_int_sdio = {
 };
 
 static const struct sdhci_acpi_slot sdhci_acpi_slot_int_sd = {
+#if defined(CONFIG_MMC_CAP2_CD_ACTIVE_HIGH)
+	.caps2   = MMC_CAP2_FULL_PWR_CYCLE | MMC_CAP2_CD_ACTIVE_HIGH,
+#else
 	.caps2   = MMC_CAP2_FULL_PWR_CYCLE,
+#endif
 	.flags   = SDHCI_ACPI_SD_CD | SDHCI_ACPI_RUNTIME_PM,
 	.quirks2 = SDHCI_QUIRK2_PRESET_VALUE_BROKEN,
 	.probe_slot = sdhci_acpi_sd_probe_slot,
