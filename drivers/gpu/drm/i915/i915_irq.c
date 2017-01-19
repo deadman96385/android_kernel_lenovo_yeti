@@ -3319,7 +3319,7 @@ void i915_handle_error(struct drm_device *dev, struct intel_ring_hangcheck *hc,
 	va_list args;
 	char error_msg[80];
 
-	if (hc) {
+	if (hc && !(atomic_read(&hc->flags) & DRM_I915_HANGCHECK_IGNORE_SCHED)) {
 		struct intel_engine_cs *ring = &dev_priv->ring[hc->ringid];
 
 		if (!i915_scheduler_is_ring_flying(ring)) {
@@ -3851,6 +3851,7 @@ void i915_hangcheck_sample(struct work_struct *work)
 	enum context_submission_status status = CONTEXT_SUBMISSION_STATUS_OK;
 	struct intel_ring_hangcheck *hc =
 		container_of(work, typeof(*hc), work.work);
+	unsigned long flags;
 
 	if (!i915.enable_hangcheck || !hc)
 		return;
@@ -3874,6 +3875,8 @@ void i915_hangcheck_sample(struct work_struct *work)
 	instdone_cmp = (memcmp(hc->prev_instdone,
 		instdone, sizeof(instdone)) == 0) ? 1 : 0;
 
+	spin_lock_irqsave(&ring->reqlist_lock, flags);
+	empty = list_empty(&ring->request_list);
 	if (!empty) {
 		/* Examine the request list to see where the HW has got to
 		* (Only call ring_last_request when the list is non-empty)*/
@@ -3903,6 +3906,7 @@ void i915_hangcheck_sample(struct work_struct *work)
 		      (unsigned int) hc->last_seqno,
 		      (long int) hc->last_seqno,
 		      (idle ? "true" : "false"));
+	spin_unlock_irqrestore(&ring->reqlist_lock, flags);
 
 	/*
 	 * ACTHD breaks in some instances by constantly changing even when

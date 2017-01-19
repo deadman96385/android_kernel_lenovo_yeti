@@ -109,7 +109,6 @@ out:
 		obj = NULL;
 	}
 
-	release_firmware(fw);
 	return obj;
 }
 
@@ -174,9 +173,9 @@ static int add_huc_commands(struct intel_ringbuffer *ringbuf,
 	return ret;
 }
 
-static void finish_chv_huc_load(const struct firmware *fw, void *context)
+static int __finish_chv_huc_load(struct drm_i915_private *dev_priv,
+				 const struct firmware *fw)
 {
-	struct drm_i915_private *dev_priv = context;
 	struct drm_device *dev = dev_priv->dev;
 	struct drm_i915_gem_object *fw_obj = NULL;
 	struct intel_engine_cs *ring;
@@ -185,42 +184,42 @@ static void finish_chv_huc_load(const struct firmware *fw, void *context)
 	struct drm_i915_gem_request *req;
 	struct i915_address_space *vm;
 	u32 fw_size;
+	struct timespec timeout;
+	unsigned reset_counter;
 	int ret;
-
-	if (!fw) {
-		DRM_ERROR("HuC: Null fw. Check fw binary file is present\n");
-		return;
-	}
-
-	dev_priv = dev->dev_private;
-
-	intel_runtime_pm_get(dev_priv);
 
 	ret = i915_mutex_lock_interruptible(dev);
 	if (ret) {
 		DRM_ERROR("HuC: Unable to acquire mutex\n");
-		intel_runtime_pm_put(dev_priv);
-		return;
+		return ret;
 	}
+
+	timeout.tv_sec = 1;
 
 	ring = &dev_priv->ring[VCS];
 
 	ctx = ring->default_context;
+	if (IS_ERR(ctx)) {
+		ret = PTR_ERR(ctx);
+		HUC_ERROR_OUT("No context");
+	}
+
 	if (ctx->ppgtt)
 		vm = &ctx->ppgtt->base;
 	else
 		vm = &dev_priv->gtt.base;
 
 	fw_obj = create_fw_obj(dev, fw, &fw_size, vm);
-	if (!fw_obj)
+	if (!fw_obj) {
+		ret = -ENOMEM;
 		HUC_ERROR_OUT("Null fw obj");
-
-	if (IS_ERR(ctx))
-		HUC_ERROR_OUT("No context");
+	}
 
 	ringbuf = ctx->engine[ring->id].ringbuf;
-	if (!ringbuf)
+	if (!ringbuf) {
+		ret = -ENOENT;
 		HUC_ERROR_OUT("No ring obj");
+	}
 
 	ret = add_huc_commands(ringbuf, fw_obj, fw_size, vm);
 	if (ret)
@@ -232,18 +231,92 @@ static void finish_chv_huc_load(const struct firmware *fw, void *context)
 	if (ret)
 		HUC_ERROR_OUT("Failed to add request");
 
-	ret = i915_wait_request(req);
+	reset_counter = atomic_read(&dev_priv->gpu_error.reset_counter);
+
+	/*
+	 * Unlock the mutex while waiting to avoid locking out the rest of the
+	 * driver init if something goes wrong with the request
+	 */
+	mutex_unlock(&dev->struct_mutex);
+	ret = __wait_request(req, reset_counter, true, &timeout, NULL, false);
+	mutex_lock(&dev->struct_mutex);
+
 	if (ret)
 		HUC_ERROR_OUT("Commands didn't finish executing");
 
+	DRM_INFO("HuC loaded successfully\n");
 out:
+
 	if (fw_obj) {
 		i915_gem_object_unpin(fw_obj, vm);
 		drm_gem_object_unreference(&fw_obj->base);
 	}
 
 	mutex_unlock(&dev->struct_mutex);
+
+	return ret;
+}
+
+static void finish_chv_huc_load(const struct firmware *fw, void *context)
+{
+	int ret = -EINVAL;
+	unsigned retry_count = 3;
+	struct drm_i915_private *dev_priv = context;
+
+	if (!fw) {
+		DRM_ERROR("HuC: Null fw. Check fw binary file is present\n");
+		dev_priv->huc_load_fail = true;
+		return;
+	}
+
+	intel_runtime_pm_get(dev_priv);
+
+	DRM_INFO("Loading HuC\n");
+	/* XXX: on HuC loading failure we need to reset HuC and to do that we
+	 * need to reset the VCS. The hang recovery code should automatically
+	 * reload HuC but currently it doesn't. Since we have observed sporadic
+	 * HuC load failures (1/10k), as a temporary WA while we wait for full
+	 * recovery support we can manually re-try loading the HuC up to 3
+	 * times here. This will need to be reverted after the HuC reload
+	 * support has been added to single engine recovery to avoid circular
+	 * function calls
+	 */
+	while (retry_count-- > 0 && ret != 0) {
+		ret = __finish_chv_huc_load(dev_priv, fw);
+		if (ret) {
+			struct intel_ring_hangcheck *hc =
+				&dev_priv->ring[VCS].hangcheck;
+
+			DRM_ERROR("HuC Load failed! resetting VCS engine\n");
+
+			atomic_set_mask(DRM_I915_HANGCHECK_IGNORE_SCHED,
+					&hc->flags);
+			i915_handle_error(dev_priv->dev, hc, 0,
+					  "VCS reset after HuC load failure");
+
+			/*
+			 * i915_handle_error will do error state capturing, mark
+			 * the ring as hung and then queue the recovery work.
+			 * we need to wait for the recovery to complete.
+			 */
+			flush_work(&dev_priv->gpu_error.work);
+
+			atomic_clear_mask(DRM_I915_HANGCHECK_IGNORE_SCHED,
+					  &hc->flags);
+
+			if (retry_count > 0) {
+				DRM_INFO("Will retry HuC load %d more times\n",
+					 retry_count);
+			} else {
+				DRM_ERROR("FAILED TO LOAD HUC 3 TIMES IN A ROW."
+					  " CONTINUING WITH HUC DISABLED");
+				dev_priv->huc_load_fail = true;
+			}
+		}
+	}
+
 	intel_runtime_pm_put(dev_priv);
+	release_firmware(fw);
 	return;
 }
 

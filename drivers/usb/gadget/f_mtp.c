@@ -1017,6 +1017,8 @@ static long mtp_ioctl(struct file *fp, unsigned code, unsigned long value)
 			goto fail;
 		}
 
+		reinit_completion(&dev->ioctl_completion);
+
 		/* write the parameters */
 		dev->xfer_file = filp;
 		dev->xfer_file_offset = mfr.offset;

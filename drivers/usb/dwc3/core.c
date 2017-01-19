@@ -224,31 +224,6 @@ static void set_phy_eye_optim(struct dwc3 *dwc)
 		dev_err(dwc->dev, "Tuning ULPI phy eye diagram failed.\n");
 }
 
-/*
- * This is a tricky situation that can only be cleanly solved when ULPI bus
- * is available for usb phy driver:
- * When cable is removed, dwc3 will enter in autosuspend mode (if pm runtime is
- * enabled). If USB cable is reconnected before suspend is actually called,
- * the charger detection module will be unable to detect CDP charging mode
- * because D+/D- will still be in connected state. In order to allow CDP
- * connection again, we need to pull down D+/D- to notify USB host we are
- * disconnected.
- */
-void dwc3_set_phy_dpm_pulldown(struct dwc3 *dwc, int pull_down)
-{
-	u32 reg;
-
-	if (!dwc->ulpi_phy)
-		return;
-
-	reg = ulpi_read(dwc, TUSB1211_OTG_CTRL);
-	if (pull_down)
-		reg |= TUSB1211_OTG_CTRL_DPPULLDOWN | TUSB1211_OTG_CTRL_DMPULLDOWN;
-	else
-		reg &= ~(TUSB1211_OTG_CTRL_DPPULLDOWN | TUSB1211_OTG_CTRL_DMPULLDOWN);
-	ulpi_write(dwc, reg, TUSB1211_OTG_CTRL);
-}
-
 static void dwc3_check_ulpi(struct dwc3 *dwc)
 {
 	if (ulpi_read(dwc, ULPI_VENDOR_ID_LOW) < 0)
@@ -609,8 +584,8 @@ static int dwc3_handle_otg_notification(struct notifier_block *nb,
 		if (last_value != event) {
 			dev_info(dwc->dev, "DWC3 OTG Notify USB_EVENT_VBUS\n");
 			last_value = event;
-			dwc3_set_phy_dpm_pulldown(dwc, 0);
-			pm_runtime_get(dwc->dev);
+			if (!dwc->connected && pm_runtime_suspended(dwc->dev))
+				pm_runtime_get(dwc->dev);
 			state = NOTIFY_OK;
 		}
 		spin_unlock_irqrestore(&dwc->lock, flags);
@@ -619,14 +594,8 @@ static int dwc3_handle_otg_notification(struct notifier_block *nb,
 		spin_lock_irqsave(&dwc->lock, flags);
 		if (last_value != event) {
 			dev_info(dwc->dev, "DWC3 OTG Notify USB_EVENT_NONE\n");
-			pm_runtime_mark_last_busy(dwc->dev);
-			/*
-			 * RVP workaround: guard against bad USB_EVENT_NONE
-			 * during kernel boot
-			 */
-			if (last_value != -1)
-				pm_runtime_put_autosuspend(dwc->dev);
-			dwc3_set_phy_dpm_pulldown(dwc, 1);
+			if (!dwc->connected && pm_runtime_active(dwc->dev))
+				pm_runtime_put(dwc->dev);
 			last_value = event;
 			state = NOTIFY_OK;
 		}
@@ -799,6 +768,11 @@ static int dwc3_probe(struct platform_device *pdev)
 
 	if (dwc->dr_mode == USB_DR_MODE_UNKNOWN)
 		dwc->dr_mode = USB_DR_MODE_OTG;
+
+	/* Setup same OTG caps we had when g_android was used */
+	dwc->otg_caps.otg_rev = 0x0200;
+	dwc->otg_caps.hnp_support = false;
+	dwc->otg_caps.srp_support = false;
 
 	switch (dwc->dr_mode) {
 	case USB_DR_MODE_PERIPHERAL:

@@ -881,7 +881,7 @@ static int get_charger_type(void)
 	}
 
 	chgr_type = (val & USBSRCDET_USBSRCRSLT_MASK) >> 2;
-	dev_dbg(chc.dev, "Charger type after detection complete: %d\n",
+	dev_warn(chc.dev, "Charger type after detection complete: %d\n",
 			(val & USBSRCDET_USBSRCRSLT_MASK) >> 2);
 
 	switch (chgr_type) {

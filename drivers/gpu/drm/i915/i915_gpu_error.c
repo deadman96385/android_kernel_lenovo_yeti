@@ -927,6 +927,7 @@ static void i915_gem_record_rings(struct drm_device *dev,
 {
 	struct drm_i915_private *dev_priv = dev->dev_private;
 	struct drm_i915_gem_request *request;
+	unsigned long flags;
 	int i, count;
 
 	for (i = 0; i < I915_NUM_RINGS; i++) {
@@ -1007,6 +1008,7 @@ static void i915_gem_record_rings(struct drm_device *dev,
 		i915_gem_record_active_context(ring, error, &error->ring[i]);
 
 		count = 0;
+		spin_lock_irqsave(&ring->reqlist_lock, flags);
 		list_for_each_entry(request, &ring->request_list, list)
 			count++;
 
@@ -1016,6 +1018,7 @@ static void i915_gem_record_rings(struct drm_device *dev,
 				GFP_ATOMIC);
 		if (error->ring[i].requests == NULL) {
 			error->ring[i].num_requests = 0;
+			spin_unlock_irqrestore(&ring->reqlist_lock, flags);
 			continue;
 		}
 
@@ -1030,6 +1033,7 @@ static void i915_gem_record_rings(struct drm_device *dev,
 			erq->seqno = request->seqno;
 			erq->jiffies = request->emitted_jiffies;
 		}
+		spin_unlock_irqrestore(&ring->reqlist_lock, flags);
 	}
 }
 

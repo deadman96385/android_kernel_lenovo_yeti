@@ -27,6 +27,7 @@
 #include <linux/mm.h>
 #include <linux/debugfs.h>
 #include <linux/workqueue.h>
+#include <linux/wait.h>
 
 #include <linux/usb/ch9.h>
 #include <linux/usb/gadget.h>
@@ -37,6 +38,7 @@
 #define DWC3_MSG_MAX	500
 
 /* Global constants */
+#define DWC3_PULL_UP_TIMEOUT	500	/* ms */
 #define DWC3_ZLP_BUF_SIZE	1024	/* size of a superspeed bulk */
 #define DWC3_EP0_BOUNCE_SIZE	512
 #define DWC3_ENDPOINTS_NUM	32
@@ -427,6 +429,7 @@ struct dwc3_event_buffer {
  * @endpoint: usb endpoint
  * @pending_list: list of pending requests for this endpoint
  * @started_list: list of started requests on this endpoint
+ * @wait_end_transfer: wait_queue_head_t for waiting on End Transfer complete
  * @lock: spinlock for endpoint request queue traversal
  * @regs: pointer to first endpoint register
  * @trb_pool: array of transaction buffers
@@ -676,6 +679,7 @@ struct dwc3_scratchpad_array {
  * @ep0_trb: dma address of ep0_trb
  * @ep0_usb_req: dummy req used while handling STD USB requests
  * @ep0_bounce_addr: dma address of ep0_bounce
+ * @ep0_in_setup: one control transfer is completed and enter setup phase
  * @lock: for synchronizing
  * @dev: pointer to our struct device
  * @xhci: pointer to our xHCI child
@@ -726,6 +730,7 @@ struct dwc3 {
 	dma_addr_t		ep0_trb_addr;
 	dma_addr_t		ep0_bounce_addr;
 	struct dwc3_request	ep0_usb_req;
+	struct completion	ep0_in_setup;
 
 	/* device lock */
 	spinlock_t		lock;
@@ -822,6 +827,9 @@ struct dwc3 {
 
 	bool			connected;
 
+	bool			recovery_needed;
+
+	struct usb_otg_caps	otg_caps;
 	unsigned int		quirks;
 };
 
@@ -980,9 +988,6 @@ struct dwc3_gadget_ep_cmd_params {
 /* prototypes */
 void dwc3_set_mode(struct dwc3 *dwc, u32 mode);
 int dwc3_gadget_resize_tx_fifos(struct dwc3 *dwc);
-
-/* remove me when ulpi bus is exported to usb phy */
-void dwc3_set_phy_dpm_pulldown(struct dwc3 *dwc, int pull_down);
 
 #if IS_ENABLED(CONFIG_USB_DWC3_HOST) || IS_ENABLED(CONFIG_USB_DWC3_DUAL_ROLE)
 int dwc3_host_init(struct dwc3 *dwc);

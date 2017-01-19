@@ -1251,6 +1251,12 @@ static inline int bq24192_enable_charging(
 
 	dev_warn(&chip->client->dev, "%s:%d %d\n", __func__, __LINE__, val);
 
+	//To put BQ24192I into hi-z mode when disabling charging, this is for checking VBUS drop issue, 
+	// https://jira01.devtools.intel.com/browse/OAM-39965
+	if (chip->chip_type == BQ24192I)
+		ret = bq24192_reg_read_modify(chip->client,
+			BQ24192_INPUT_SRC_CNTL_REG,
+			INPUT_SRC_CNTL_EN_HIZ, !val);
 
 	ret = bq24192_read_reg(chip->client, BQ24192_POWER_ON_CFG_REG);
 	if (ret < 0) {
