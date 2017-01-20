@@ -11427,3 +11427,17 @@ static struct sh_css_hmm_buffer_record
 	else
 		return NULL;
 }
+
+void sh_css_hmm_buffer_records_reset(enum ia_css_buffer_type type)
+{
+        int i;
+	struct sh_css_hmm_buffer_record *buffer_record = NULL;
+
+	buffer_record = &hmm_buffer_record[0];
+	for (i = 0; i < MAX_HMM_BUFFER_NUM; i++) {
+		if ((buffer_record->type == type) &&
+                                (buffer_record->in_use == false))
+                        sh_css_hmm_buffer_record_reset(buffer_record);
+		buffer_record++;
+	}
+}

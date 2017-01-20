@@ -3169,6 +3169,11 @@ ia_css_metadata_free(struct ia_css_metadata *me)
 		 * We found this to be confusing during development
 		 * and debugging. */
 		IA_CSS_ENTER("me=%p", me);
+                /*
+                 * cleanup hmm_record_buffer entries as well to avoid
+                 * dequeueing for already freed buffers
+                 */
+                sh_css_hmm_buffer_records_reset(IA_CSS_BUFFER_TYPE_METADATA);
 		mmgr_free(me->address);
 		sh_css_free(me);
 		IA_CSS_LEAVE("void");

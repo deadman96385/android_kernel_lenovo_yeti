@@ -1061,6 +1061,8 @@ sh_css_params_init(void);
 void
 sh_css_params_uninit(void);
 
+void sh_css_hmm_buffer_records_reset(enum ia_css_buffer_type type);
+
 #define sh_css_malloc(size) sh_css_malloc_ex(size, __func__, __LINE__)
 #define sh_css_calloc(N, size) sh_css_calloc_ex(N, size, __func__, __LINE__)
 #define sh_css_free(ptr) sh_css_free_ex(ptr, __func__, __LINE__)
