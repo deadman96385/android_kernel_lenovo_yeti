@@ -73,6 +73,9 @@ struct bq2589x {
 	struct wake_lock wakelock;		/* prevent platform from going to S3 when charging */
 
 	struct delayed_work chrg_task_wrkr;
+	struct delayed_work chrg_post_wrkr;
+	struct delayed_work chrg_ntfy_wrkr;
+	struct delayed_work chrg_last_wrkr;
 	struct delayed_work chrg_boost_wrkr;
 	struct delayed_work chrg_full_wrkr;
 	struct delayed_work aca_work;
@@ -172,6 +175,9 @@ int bq2589x_pumpx_decrease_volt_done(void);
 int disable_watchdog_timer(struct bq2589x *bq);
 void dump_mainchg_reg(struct bq2589x *bq);
 int bq2589x_reset_wdt_timer(struct bq2589x *bq);
+static int bq2589x_set_otg_current(struct bq2589x *bq, int curr);
+BLOCKING_NOTIFIER_HEAD(otg_cur_boost_lim_list);
+static int bq2589x_boost_lim_handler(struct notifier_block *nb, unsigned long event, void *data);
 
 /* wangxiang9 [YETIM-2081] begin*/
 /*static int power_off_on = 0;
@@ -1896,6 +1902,11 @@ static void bq2589x_irq_workfunc(struct work_struct *work)
 
 	if(fault & BQ2589X_FAULT_BOOST_MASK) {
 		dev_info(bq->dev, "%s:Boost Fault occured!\n", __func__);
+		cancel_delayed_work_sync(&bq->chrg_last_wrkr);
+		cancel_delayed_work_sync(&bq->chrg_post_wrkr);
+		cancel_delayed_work_sync(&bq->chrg_ntfy_wrkr);
+		bq2589x_change_otg_boost_lim(BOOST_LIM_SLP_SEC);
+		pr_warn("%s:cancel the rest work, and raise the boost lim\n",__func__);
 	}
 
 	temp = (fault & BQ2589X_FAULT_CHRG_MASK) >> BQ2589X_FAULT_CHRG_SHIFT; 
@@ -1936,6 +1947,131 @@ static void bq2589x_irq_workfunc(struct work_struct *work)
 		//power_supply_changed(&bq->usb);
 	//}
 }
+
+int bq2589x_get_boost_fault_state(void)
+{
+	int ret;
+	u8 fault;
+	struct bq2589x *bq = g_bq;
+	pr_warn("%s, type=%d\n",__func__, bq->usb.type);
+	if(!bq){
+		pr_warn("%s:null pointer\n",__func__);
+		return -EINVAL;
+	}
+	ret = bq2589x_read_byte(bq, &fault, BQ2589X_REG_0C);
+	if (ret) {
+		pr_err("%s:fail to read byte: %d\n", __func__, ret);
+		return -EIO;
+	}
+	if(fault & BQ2589X_FAULT_BOOST_MASK)
+	{
+		pr_warn("boost fault now\n");
+		return 1;
+	}else{
+		pr_warn("no boost fault\n");
+		return 0;
+	}
+}
+EXPORT_SYMBOL_GPL(bq2589x_get_boost_fault_state);
+
+int bq2589x_change_otg_boost_lim(unsigned int slp_sec)
+{
+	struct bq2589x *bq = g_bq;
+	int ret;
+	pr_warn("%s:type=%d\n",__func__,bq->usb.type);
+	if(!bq){
+		pr_warn("%s:null pointer\n",__func__);
+		return -EINVAL;
+	}
+
+	/* Configure the charger in OTG mode */
+	ret = bq2589x_set_otg_current(bq, 2150);
+	if (ret < 0) {
+		pr_err("%s:set otg current failed!\n",__func__);
+		return ret;
+	}
+	schedule_delayed_work(&bq->chrg_post_wrkr, slp_sec * HZ);
+	return 0;
+}
+EXPORT_SYMBOL_GPL(bq2589x_change_otg_boost_lim);
+void bq2589x_restore_otg_boost_lim(void)
+{
+	struct bq2589x *bq = g_bq;
+	pr_warn("%s:type=%d\n",__func__,bq->usb.type);
+	if(!bq){
+		pr_warn("%s:null pointer\n",__func__);
+		return;
+	}
+	//cancel the "last_wrkr" in advance in case it has any delay,
+	//as we need to schedule the last_wrkr immediately.
+	cancel_delayed_work_sync(&bq->chrg_last_wrkr);
+	cancel_delayed_work_sync(&bq->chrg_post_wrkr);
+	cancel_delayed_work_sync(&bq->chrg_ntfy_wrkr);
+	schedule_delayed_work(&bq->chrg_last_wrkr, 0);
+}
+EXPORT_SYMBOL_GPL(bq2589x_restore_otg_boost_lim);
+#define ISSUE_OFFSET 3
+#define STABLE_DURATION 20
+static void bq2589x_post_worker(struct work_struct *work)
+{
+	struct bq2589x *bq = container_of(work, struct bq2589x, chrg_post_wrkr.work);
+	int ret = 0;
+	pr_warn("%s:type=%d\n",__func__,bq->usb.type);
+	if(!bq){
+		pr_warn("%s:null pointer\n",__func__);
+		return;
+	}
+	ret = bq2589x_set_otg_current(bq, 1200);
+	if (ret < 0) {
+		pr_warn("%s:set otg current failed!\n",__func__);
+	}
+	schedule_delayed_work(&bq->chrg_ntfy_wrkr, (STABLE_DURATION - ISSUE_OFFSET) * HZ);
+	schedule_delayed_work(&bq->chrg_last_wrkr, STABLE_DURATION * HZ);
+}
+static void bq2589x_last_worker(struct work_struct *work)
+{
+	struct bq2589x *bq = container_of(work, struct bq2589x, chrg_last_wrkr.work);
+	int ret = 0;
+	pr_warn("%s:type=%d\n",__func__,bq->usb.type);
+	if(!bq){
+		pr_warn("%s:null pointer\n",__func__);
+		return;
+	}
+	ret = bq2589x_set_otg_current(bq, 750);
+	if (ret < 0) {
+		pr_warn("%s:set otg current failed!\n",__func__);
+	}
+}
+
+static void bq2589x_ntfy_worker(struct work_struct *work)
+{
+	struct bq2589x *bq = container_of(work, struct bq2589x, chrg_ntfy_wrkr.work);
+	pr_warn("%s:type=%d\n",__func__,bq->usb.type);
+}
+static int bq2589x_boost_lim_handler(struct notifier_block *nb, unsigned long event, void *data)
+{
+	struct boost_lim_info *p_bli = data;
+	pr_warn("%s: event:%d\n", __func__, event);
+	switch(event){
+		case CHANGE_BOOST_LIM:
+			bq2589x_change_otg_boost_lim(p_bli->slp_sec);
+			break;
+		case RESTORE_BOOST_LIM:
+			bq2589x_restore_otg_boost_lim();
+			break;
+		case GET_BOOST_FAULT_STAT:
+			p_bli->boost_fault_stat = bq2589x_get_boost_fault_state();
+			break;
+	}
+
+	return NOTIFY_OK;
+}
+
+static struct notifier_block otg_current_boost_lim_nb = {
+   .notifier_call = bq2589x_boost_lim_handler,
+};
+
+
 
 /**************************************************************/
 static int bq2589x_update_charge_params(struct bq2589x *bq)
@@ -2000,6 +2136,8 @@ static int bq2589x_set_otg_current(struct bq2589x *bq, int curr)
 		temp = BQ2589X_BOOST_LIM_750MA;
 	else if(curr == 1200)
 		temp = BQ2589X_BOOST_LIM_1200MA;
+	else if(curr == 1400)
+		temp = BQ2589X_BOOST_LIM_1400MA;
 	else if(curr == 1650)
 		temp = BQ2589X_BOOST_LIM_1650MA;
 	else if(curr == 1875)
@@ -2019,10 +2157,10 @@ static int bq2589x_set_otg_current(struct bq2589x *bq, int curr)
 static int bq2589x_turn_otg_vbus(struct bq2589x *bq, bool votg_on)
 {
 	int ret = 0;
-
-	  dev_info(&bq->client->dev, "%s %d\n", __func__, votg_on);
+	pr_warn("%s: %s+\n", __func__, bq->usb.name);
 	if(g_bq==NULL)	return 0;
 	if (votg_on) {
+			pr_warn("%s: votg_on+\n", __func__);
 			if(!wake_lock_active(&bq->wakelock))
 							wake_lock(&bq->wakelock);
 			bq2589x_update_bits(g_bq,BQ2589X_REG_00,BQ2589X_ENHIZ_MASK,BQ2589X_HIZ_DISABLE<<BQ2589X_ENHIZ_SHIFT);
@@ -2048,16 +2186,13 @@ static int bq2589x_turn_otg_vbus(struct bq2589x *bq, bool votg_on)
 				dev_warn(&bq->client->dev, "enable OTG failed!\n");
 				goto i2c_write_fail;
 			}
-			mdelay(500);
-			ret = bq2589x_set_otg_current(bq, 750);
-			if (ret < 0) {
-				dev_warn(&bq->client->dev, "set otg current failed!\n");
-				goto i2c_write_fail;
-			}
 			bq->boost_mode = true;
 			/* Schedule the charger task worker now */
 			schedule_delayed_work(&bq->chrg_task_wrkr, 0);
+			schedule_delayed_work(&bq->chrg_post_wrkr, BOOST_LIM_SLP_SEC * HZ);
+			pr_warn("%s: votg_on-\n", __func__);
 	} else {
+			pr_warn("%s:votg_off+\n",__func__);
 			if (wake_lock_active(&bq->wakelock))
 							wake_unlock(&bq->wakelock);
 			/* Clear the charger from the OTG mode */
@@ -2068,10 +2203,17 @@ static int bq2589x_turn_otg_vbus(struct bq2589x *bq, bool votg_on)
 			}
 			bq->boost_mode = false;
 			/* Cancel the charger task worker now */
+			//cancel the "last_wrkr" in advance in case it has any delay,
+			//as we need to schedule the last_wrkr immediately.
+			cancel_delayed_work_sync(&bq->chrg_last_wrkr);
+			cancel_delayed_work_sync(&bq->chrg_post_wrkr);
+			cancel_delayed_work_sync(&bq->chrg_ntfy_wrkr);
 			cancel_delayed_work_sync(&bq->chrg_task_wrkr);
+			schedule_delayed_work(&bq->chrg_last_wrkr, 0);
+			pr_warn("%s:votg_off-\n",__func__);
 	}
 	/* Drive the gpio to turn ON/OFF the VBUS */
-
+	pr_warn("%s: %s-\n", __func__, bq->usb.name);
 	return ret;
 i2c_write_fail:
 	dev_err(&bq->client->dev, "%s: Failed\n", __func__);
@@ -2083,18 +2225,19 @@ static void bq2589x_usb_otg_enable(struct usb_phy *phy, int on)
 	struct bq2589x *bq = g_bq;
 	int ret;
 
-	printk("bq2589x_usb_otg_enable %s\n", bq->usb.name);
+	pr_warn("%s: %s+\n", __func__, bq->usb.name);
 	mutex_lock(&bq->event_lock);
 	ret =  bq2589x_turn_otg_vbus(bq, on);
 	mutex_unlock(&bq->event_lock);
 	if (ret < 0)
 		dev_err(&bq->client->dev, "VBUS mode(%d) failed!\n", on);
+	pr_warn("%s: %s-\n", __func__, bq->usb.name);
 }
 
 static inline int bq2589x_register_otg_vbus(struct bq2589x *bq)
 {
 	int ret;
-
+	pr_warn("%s+\n",__func__);
 	bq->transceiver = usb_get_phy(USB_PHY_TYPE_USB2);
 	if (!bq->transceiver) {
 		dev_err(&bq->client->dev, "Failed to get the USB transceiver!\n");
@@ -2614,6 +2757,7 @@ static int bq2589x_charger_probe(struct i2c_client *client, const struct i2c_dev
 	int ret;
 	int irqn = 0;
 	int chip;
+	pr_warn("%s+\n",__func__);
 
 	bq = kzalloc(sizeof(struct bq2589x), GFP_KERNEL);
 	if (!bq) {
@@ -2653,6 +2797,8 @@ static int bq2589x_charger_probe(struct i2c_client *client, const struct i2c_dev
 		}
 		msleep(20);
 	}
+	pr_warn("%s:charger device is detected\n",__func__);
+	blocking_notifier_chain_register(&otg_cur_boost_lim_list, &otg_current_boost_lim_nb);
 
 	if (client->adapter == wcove_pmic_i2c_adapter) {	   /* Main charger: PMIC i2c */
 		dev_info(&client->dev, "bq2589x probe PMIC I2C:%d(Main).\n", bq->i2c_adp_num);
@@ -2732,6 +2878,9 @@ static int bq2589x_charger_probe(struct i2c_client *client, const struct i2c_dev
 	INIT_WORK(&bq->irq_work, bq2589x_irq_workfunc);
 	INIT_DELAYED_WORK(&bq->chrg_full_wrkr, bq2589x_full_worker);
 	INIT_DELAYED_WORK(&bq->chrg_task_wrkr, bq2589x_task_worker);
+	INIT_DELAYED_WORK(&bq->chrg_post_wrkr, bq2589x_post_worker);
+	INIT_DELAYED_WORK(&bq->chrg_last_wrkr, bq2589x_last_worker);
+	INIT_DELAYED_WORK(&bq->chrg_ntfy_wrkr, bq2589x_ntfy_worker);
 	INIT_DELAYED_WORK(&bq->aca_work, bq2589x_aca_workfunc);
 	if(bq->main_charger_flag == 1)
 		INIT_DELAYED_WORK(&bq->chrg_boost_wrkr, bq2589x_boost_worker);
@@ -2831,7 +2980,7 @@ static int bq2589x_charger_remove(struct i2c_client *client)
 //	if (!bq->pdata->slave_mode) {
 		bq2589x_psy_unregister(bq);
 //	}
-
+	blocking_notifier_chain_unregister(&otg_cur_boost_lim_list, &otg_current_boost_lim_nb);
 	if (bq->platform_data->gpio_irq)
 		gpio_free(bq->platform_data->gpio_irq);
 	if (bq->platform_data->gpio_otg)

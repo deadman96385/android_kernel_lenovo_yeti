@@ -59,9 +59,20 @@ struct charging_algo {
 			struct psy_batt_thresholds *bat_thr);
 };
 
+#define BOOST_LIM_SLP_SEC 	5
+#define CHANGE_BOOST_LIM	0x0
+#define RESTORE_BOOST_LIM	0x1
+#define GET_BOOST_FAULT_STAT	0x2
 
+struct boost_lim_info {
+	int boost_fault_stat;
+	int slp_sec;
+};
 extern int power_supply_register_charging_algo(struct charging_algo *);
 extern int power_supply_unregister_charging_algo(struct charging_algo *);
+extern int bq2589x_get_boost_fault_state(void);
+extern int bq2589x_change_otg_boost_lim(unsigned int);
+extern void bq2589x_restore_otg_boost_lim(void);
 
 static inline int set_ps_int_property(struct power_supply *psy,
 				      enum power_supply_property psp,

@@ -25,6 +25,10 @@
 
 #include "xhci.h"
 #include "xhci-intel-cap.h"
+#include "../../power/power_supply_charger.h"
+
+extern struct blocking_notifier_head otg_cur_boost_lim_list;
+
 
 void xhci_change_ssic_regs(struct xhci_hcd *xhci, bool enable)
 {
@@ -308,6 +312,9 @@ void hub_intel_ssic_check_block_runtime(struct usb_device *udev)
 			dev_name(&udev->dev),
 			udev->portnum,
 			xhci->ssic_runtime_blocked);
+	pr_warn("%s:restore otg vbus boostlim\n",__func__);
+	blocking_notifier_call_chain(&otg_cur_boost_lim_list, RESTORE_BOOST_LIM, NULL);
+
 
 	if (xhci_intel_ssic_port_check(xhci, udev->portnum)) {
 		if (!xhci->ssic_runtime_blocked) {

@@ -44,6 +44,7 @@
 #include <linux/sysfs.h>
 #include <linux/miscdevice.h>
 #include "intel_pmic_ccsm.h"
+#include "power_supply_charger.h"
 
 /* Macros */
 #define DRIVER_NAME "pmic_ccsm"
@@ -93,6 +94,7 @@
 #define TEMPORARY_HOLD_TIME    2000
 struct wake_lock lenovo_pmic_wakelock;      /* for lenovo pmic workaround*/
 extern bool get_cable_present(void);
+extern struct blocking_notifier_head otg_cur_boost_lim_list;
 
 /* Type definitions */
 static void pmic_bat_zone_changed(void);
@@ -1155,15 +1157,28 @@ static void handle_pwrsrc_interrupt(u16 int_reg, u16 stat_reg)
 
 	if (int_reg & BIT_POS(PMIC_INT_VBUS)) {
 		int ret;
-
+		struct boost_lim_info bli;
+		bli.slp_sec = BOOST_LIM_SLP_SEC;
 		mask = !!(stat_reg & BIT_POS(PMIC_INT_VBUS));
 		if (mask) {
+			blocking_notifier_call_chain(&otg_cur_boost_lim_list, GET_BOOST_FAULT_STAT, &bli);
+			pr_warn("boost_fault_stat is %d\n", bli.boost_fault_stat);
+			blocking_notifier_call_chain(&otg_cur_boost_lim_list, CHANGE_BOOST_LIM, &bli);
 			dev_info(chc.dev, "USB VBUS Detected. Notifying OTG driver\n");
 			mutex_lock(&pmic_lock);
 			chc.otg_mode_enabled =	(stat_reg & id_mask) == SHRT_GND_DET;
 			mutex_unlock(&pmic_lock);
 		} else {
-			dev_info(chc.dev, "USB VBUS Removed. Notifying OTG driver\n");
+			blocking_notifier_call_chain(&otg_cur_boost_lim_list, GET_BOOST_FAULT_STAT, &bli);
+			if(bli.boost_fault_stat){
+				blocking_notifier_call_chain(&otg_cur_boost_lim_list, CHANGE_BOOST_LIM, &bli);
+				pr_warn("%s:schedule the function again\n",__func__);
+				schedule_delayed_work(&chc.evt_work, 0);
+				return;
+			}else{
+				dev_info(chc.dev, "USB VBUS Removed. Notifying OTG driver\n");
+				blocking_notifier_call_chain(&otg_cur_boost_lim_list, RESTORE_BOOST_LIM, NULL);
+			}
 		}
 		ret = intel_soc_pmic_readb(chc.reg_map->pmic_chgrctrl1);
 		dev_dbg(chc.dev, "chgrctrl = %x", ret);
