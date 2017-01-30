@@ -400,7 +400,6 @@ struct dwc3_trb;
  * @flags: flags related to this event buffer
  * @dma: dma_addr_t
  * @dwc: pointer to DWC controller
- * @wait_end_transfer: wait_queue_head_t for waiting on End Transfer complete
  */
 struct dwc3_event_buffer {
 	void			*buf;

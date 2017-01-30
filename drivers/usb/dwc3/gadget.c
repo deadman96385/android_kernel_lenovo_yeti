@@ -2021,21 +2021,6 @@ static int dwc3_gadget_stop(struct usb_gadget *g,
 	dwc3_gadget_disable_irq(dwc);
 	__dwc3_gadget_ep_disable(dwc->eps[0]);
 	__dwc3_gadget_ep_disable(dwc->eps[1]);
-
-	for (epnum = 2; epnum < DWC3_ENDPOINTS_NUM; epnum++) {
-		struct dwc3_ep  *dep = dwc->eps[epnum];
-
-		if (!(dep->flags & DWC3_EP_ENABLED))
-			continue;
-
-		if (!(dep->flags & DWC3_EP_END_TRANSFER_PENDING))
-			continue;
-
-		wait_event_lock_irq(dep->wait_end_transfer,
-				!(dep->flags & DWC3_EP_END_TRANSFER_PENDING),
-				dwc->lock);
-	}
-
 	dwc->gadget_driver	= NULL;
 
 	spin_unlock_irqrestore(&dwc->lock, flags);
@@ -2499,12 +2484,6 @@ static void dwc3_endpoint_interrupt(struct dwc3 *dwc,
 		}
 		break;
 	case DWC3_DEPEVT_EPCMDCMPLT:
-		cmd = DEPEVT_PARAMETER_CMD(event->parameters);
-
-		if (cmd == DWC3_DEPCMD_ENDTRANSFER) {
-			dep->flags &= ~DWC3_EP_END_TRANSFER_PENDING;
-			wake_up(&dep->wait_end_transfer);
-		}
 		dwc3_trace(trace_dwc3_gadget, "Endpoint Command Complete");
 		cmd = DEPEVT_PARAMETER_CMD(event->parameters);
 
