@@ -3144,6 +3144,7 @@ static irqreturn_t dwc3_check_event_buf(struct dwc3_event_buffer *evt)
 	u32 reg;
 	u32 timeout = 500;
 
+	spin_lock(&dwc->lock);
 	do {
 		count = dwc3_readl(dwc->regs, DWC3_GEVNTCOUNT(0));
 		count &= DWC3_GEVNTCOUNT_MASK;
@@ -3164,11 +3165,14 @@ static irqreturn_t dwc3_check_event_buf(struct dwc3_event_buffer *evt)
 		dev_err(dwc->dev, "- DWC3_GEVNTSIZ(0): 0x%x\n",
 			dwc3_readl(dwc->regs, DWC3_GEVNTSIZ(0)));
 		dwc3_writel(dwc->regs, DWC3_GEVNTCOUNT(0), 0);
+		spin_unlock(&dwc->lock);
 		return IRQ_NONE;
 	}
 
-	if (!count)
+	if (!count) {
+		spin_unlock(&dwc->lock);
 		return IRQ_NONE;
+	}
 
 	evt->count = count;
 	evt->flags |= DWC3_EVENT_PENDING;
@@ -3177,7 +3181,7 @@ static irqreturn_t dwc3_check_event_buf(struct dwc3_event_buffer *evt)
 	reg = dwc3_readl(dwc->regs, DWC3_GEVNTSIZ(0));
 	reg |= DWC3_GEVNTSIZ_INTMASK;
 	dwc3_writel(dwc->regs, DWC3_GEVNTSIZ(0), reg);
-
+	spin_unlock(&dwc->lock);
 	return IRQ_WAKE_THREAD;
 }
 
