@@ -370,7 +370,7 @@ int atomisp_subdev_set_selection(struct v4l2_subdev *sd,
 	unsigned int i;
 	unsigned int padding_w = pad_w;
 	unsigned int padding_h = pad_h;
-
+	struct v4l2_rect *p_rect = {0};
 	stream_id = atomisp_source_pad_to_stream_id(isp_sd, vdev_pad);
 
 	isp_get_fmt_rect(sd, fh, which, ffmt, crop, comp);
@@ -569,11 +569,10 @@ int atomisp_subdev_set_selection(struct v4l2_subdev *sd,
 		ffmt[pad]->width = comp[pad]->width;
 		ffmt[pad]->height = comp[pad]->height;
 	}
-
-	if (!atomisp_subdev_get_rect(sd, fh, which, pad, target))
-		return -EINVAL;
-	*r = *atomisp_subdev_get_rect(sd, fh, which, pad, target);
-
+	p_rect = atomisp_subdev_get_rect(sd, fh, which, pad, target);
+	if (p_rect == NULL)
+		return -ENOMEM;
+	*r = *p_rect;
 	dev_dbg(isp->dev, "sel actual: l %d t %d w %d h %d\n",
 		r->left, r->top, r->width, r->height);
 
