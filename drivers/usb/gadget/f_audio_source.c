@@ -490,7 +490,7 @@ static void audio_data_complete(struct usb_ep *ep, struct usb_request *req)
 
 	audio_req_put(audio, req);
 
-	if (!audio->buffer_start || req->status)
+	if (!audio->buffer_start || (req->status && req->status != -EAGAIN))
 		return;
 
 	audio->period_offset += req->actual;
