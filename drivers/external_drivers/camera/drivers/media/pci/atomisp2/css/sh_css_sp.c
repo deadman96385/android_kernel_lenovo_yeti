@@ -791,6 +791,8 @@ sh_css_sp_init_group(bool two_ppc,
 	if (if_config_index == SH_CSS_IF_CONFIG_NOT_NEEDED) return;
 #if !defined(HAS_NO_INPUT_FORMATTER)
 	assert(if_config_index < SH_CSS_MAX_IF_CONFIGS);
+	if (if_config_index >= ARRAY_SIZE(sh_css_sp_group.config.input_formatter.set))
+		return;
 	sh_css_sp_group.config.input_formatter.set[if_config_index].stream_format = input_format;
 #else
 	(void)input_format;
