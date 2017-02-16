@@ -1119,6 +1119,10 @@ static int __dwc3_gadget_kick_transfer(struct dwc3_ep *dep, u16 cmd_param)
 		if (req->trb)
 			memset(req->trb, 0, sizeof(struct dwc3_trb));
 		dep->queued_requests--;
+		if (starting && ret == -EAGAIN) {
+			dep->resource_index = dwc3_gadget_ep_get_transfer_index(dep);
+			WARN_ON_ONCE(!dep->resource_index);
+		}
 		dwc3_gadget_giveback(dep, req, ret);
 		return ret;
 	}
@@ -1131,6 +1135,14 @@ static int __dwc3_gadget_kick_transfer(struct dwc3_ep *dep, u16 cmd_param)
 	}
 
 	return 0;
+}
+
+static int __dwc3_gadget_get_frame(struct dwc3 *dwc)
+{
+	u32                     reg;
+
+	reg = dwc3_readl(dwc->regs, DWC3_DSTS);
+	return DWC3_DSTS_SOFFN(reg);
 }
 
 static void __dwc3_gadget_start_isoc(struct dwc3 *dwc,
@@ -1252,10 +1264,10 @@ static int __dwc3_gadget_ep_queue(struct dwc3_ep *dep, struct dwc3_request *req)
 				dwc3_stop_active_transfer(dwc, dep->number, true);
 				dep->flags = DWC3_EP_ENABLED;
 			} else {
-				__dwc3_gadget_start_isoc(dwc, dep,
-							dep->current_uf);
+				u32 uf = __dwc3_gadget_get_frame(dwc);
+				__dwc3_gadget_start_isoc(dwc, dep, uf);
+				dep->flags &= ~DWC3_EP_PENDING_REQUEST;
 			}
-			dep->flags &= ~DWC3_EP_PENDING_REQUEST;
 			return 0;
 		}
 
@@ -1564,10 +1576,8 @@ static void dwc3_gadget_kick_dog(struct dwc3 *dwc)
 static int dwc3_gadget_get_frame(struct usb_gadget *g)
 {
 	struct dwc3		*dwc = gadget_to_dwc(g);
-	u32			reg;
 
-	reg = dwc3_readl(dwc->regs, DWC3_DSTS);
-	return DWC3_DSTS_SOFFN(reg);
+	return __dwc3_gadget_get_frame(dwc);
 }
 
 static int __dwc3_gadget_wakeup(struct dwc3 *dwc)
