@@ -783,7 +783,8 @@ static void atomisp_flush_video_pipe(struct atomisp_sub_device *asd,
 				atomic_read(&asd->sequence) << 1;
 			dev_dbg(asd->isp->dev, "release buffers on device %s\n",
 				pipe->vdev.name);
-			if (pipe->capq.bufs[i]->state == VIDEOBUF_QUEUED)
+			if (pipe->capq.bufs[i]->state == VIDEOBUF_QUEUED
+				&& !list_empty_careful(&pipe->capq.bufs[i]->queue))
 				list_del_init(&pipe->capq.bufs[i]->queue);
 			pipe->capq.bufs[i]->state = VIDEOBUF_ERROR;
 			wake_up(&pipe->capq.bufs[i]->done);
