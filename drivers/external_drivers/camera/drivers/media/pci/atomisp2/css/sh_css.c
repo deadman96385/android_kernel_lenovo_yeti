@@ -10588,13 +10588,6 @@ ia_css_pipe_get_pipe_num(const struct ia_css_pipe *pipe)
 {
 	assert(pipe != NULL);
 
-	/* KW was not sure this function was not returning a value
-	   that was out of range; so added an assert, and, for the
-	   case when asserts are not enabled, clip to the largest
-	   value; pipe_num is unsigned so the value cannot be too small
-	*/
-	assert(pipe->pipe_num < IA_CSS_PIPELINE_NUM_MAX);
-
 	if (pipe->pipe_num >= IA_CSS_PIPELINE_NUM_MAX)
 		return (IA_CSS_PIPELINE_NUM_MAX - 1);
 
