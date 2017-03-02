@@ -1119,7 +1119,9 @@ static int __dwc3_gadget_kick_transfer(struct dwc3_ep *dep, u16 cmd_param)
 		if (req->trb)
 			memset(req->trb, 0, sizeof(struct dwc3_trb));
 		dep->queued_requests--;
-		if (starting && ret == -EAGAIN) {
+		if (starting && ret == -EAGAIN &&
+		    usb_endpoint_xfer_isoc(dep->endpoint.desc) &&
+		    !dep->resource_index) {
 			dep->resource_index = dwc3_gadget_ep_get_transfer_index(dep);
 			WARN_ON_ONCE(!dep->resource_index);
 		}
