@@ -15,6 +15,7 @@
 #include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/acpi.h>
+#include <linux/gpio.h>
 #include <linux/gpio/consumer.h>
 #include <linux/gpio_keys.h>
 #include <linux/input.h>
@@ -28,6 +29,21 @@
  */
 #define	MAX_NBUTTONS	5
 
+#define gpio_southwest_NUM      98
+#define gpio_north_NUM  73
+#define gpio_east_NUM   27
+#define gpio_southeast_NUM      86
+
+#define gpio_southwest_base     (ARCH_NR_GPIOS-gpio_southwest_NUM)
+#define gpio_north_base         (gpio_southwest_base - gpio_north_NUM)
+#define gpio_east_base          (gpio_north_base - gpio_east_NUM)
+#define gpio_southeast_base             (gpio_east_base - gpio_southeast_NUM)
+
+#define HOME_PIN 95 //GPIO_SW95
+
+#define HOME_PIN_GPIO (gpio_southwest_base +  HOME_PIN )
+
+
 struct soc_button_info {
 	const char *name;
 	int acpi_index;
@@ -36,10 +52,11 @@ struct soc_button_info {
 	int wakeup;
 	int gpio;
 };
+#define KEY_PEN 0x260
 
 static struct soc_button_info soc_button_tbl[] = {
 	{"power", 0, KEY_POWER, 0, 1, -1},
-	{"home", 1, KEY_HOMEPAGE, 0, 1, -1},
+	{"home", 1, KEY_PEN, 0, 1, -1},
 	{"volume_up", 2, KEY_VOLUMEUP, 1, 0, -1},
 	{"volume_down", 3, KEY_VOLUMEDOWN, 1, 0, -1},
 	{"rotation_lock", 4, KEY_RO, 0, 0, -1},
@@ -97,7 +114,12 @@ static int soc_button_register(int r)
 	struct platform_device *pd;
 	int err;
 
-	pd = platform_device_alloc("gpio-keys", PLATFORM_DEVID_AUTO);
+	if (r) {
+		pd = platform_device_alloc("gpio-keys", PLATFORM_DEVID_AUTO);
+	} else {
+		pd = platform_device_alloc("gpio-lesskey", PLATFORM_DEVID_AUTO);
+	}
+
 	if (!pd) {
 		err = -ENOMEM;
 		goto err0;
@@ -125,14 +147,18 @@ err0:
 static int soc_button_pnp_probe(struct pnp_dev *pdev,
 	const struct pnp_device_id *id)
 {
-	int i, j, r, ret = 0;
+	int i, j, r, ret;
 	int sz_tbl = sizeof(soc_button_tbl) / sizeof(soc_button_tbl[0]);
 	struct gpio_keys_button *gk;
 
 	/* Find GPIO number of all the buttons */
 	for (i = 0; i < sz_tbl; i++) {
-		soc_button_tbl[i].gpio = soc_button_lookup_gpio(&pdev->dev,
-						soc_button_tbl[i].acpi_index);
+ 		soc_button_tbl[i].gpio = soc_button_lookup_gpio(&pdev->dev,
+ 						soc_button_tbl[i].acpi_index);
+		if (i == 1 )
+		{
+		   soc_button_tbl[i].gpio = HOME_PIN_GPIO;
+		}
 	}
 
 	for (r = 0; r < BUTTON_TYPES; r++) {
