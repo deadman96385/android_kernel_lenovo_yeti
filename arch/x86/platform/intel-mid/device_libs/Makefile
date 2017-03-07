@@ -22,6 +22,7 @@ obj-$(subst m,y,$(CONFIG_DRM_MEDFIELD)) += platform_tc35876x.o
 obj-$(subst m,y,$(CONFIG_TOUCHSCREEN_HIDEEP_IST940E)) += platform_ist940e.o
 #C_face
 obj-$(subst m,y,$(CONFIG_TOUCHSCREEN_GT9XX)) += platform_gt9xx.o
+obj-$(subst m,y,$(CONFIG_TOUCHSCREEN_WACOM_I2C)) += platform_wacom.o
 # SPI Devices
 obj-$(subst m,y,$(CONFIG_SERIAL_MRST_MAX3110)) += platform_max3111.o
 # MISC Devices
