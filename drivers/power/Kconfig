@@ -434,6 +434,17 @@ config DC_XPWR_CHARGER
 	help
 	  Say Y here to enable support for Dollar Cove(Xpower) PMIC Charger.
 
+config CHARGER_BQ2589X
+	tristate "TI BQ25890/BQ25892/BQ25895 Charger"
+	select POWER_SUPPLY_CHARGER
+	depends on I2C
+	help
+	  BQ25892 is the charger chip for lithium-ion (Li+) batteries
+	  in handheld and portable equipment.
+
+	  Say Y here if you know your platform has this chip for charging
+	  support.
+
 config CHARGER_BQ24192
 	tristate "TI BQ24192/BQ24191/BQ24190 Charger"
 	select POWER_SUPPLY_CHARGER

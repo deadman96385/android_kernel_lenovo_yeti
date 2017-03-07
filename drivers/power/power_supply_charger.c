@@ -70,6 +70,14 @@ static struct power_supply_cable_props cable_list[] = {
 		.chrg_type = POWER_SUPPLY_CHARGER_TYPE_WIRELESS,
 		.chrg_evt = POWER_SUPPLY_CHARGER_EVENT_DISCONNECT,
 	},
+	{
+		.chrg_type = POWER_SUPPLY_CHARGER_TYPE_ACA_B,
+		.chrg_evt = POWER_SUPPLY_CHARGER_EVENT_DISCONNECT,
+	},
+	{
+		.chrg_type = POWER_SUPPLY_CHARGER_TYPE_ACA_L,
+		.chrg_evt = POWER_SUPPLY_CHARGER_EVENT_DISCONNECT,
+	},
 };
 
 static int get_supplied_by_list(struct power_supply *psy,
@@ -89,7 +97,6 @@ static void configure_chrgr_source(struct power_supply_cable_props *cable_lst);
 
 struct power_supply_cable_props *get_cable(unsigned long usb_chrgr_type)
 {
-
 	switch (usb_chrgr_type) {
 	case POWER_SUPPLY_CHARGER_TYPE_USB_SDP:
 		return &cable_list[0];
@@ -109,11 +116,14 @@ struct power_supply_cable_props *get_cable(unsigned long usb_chrgr_type)
 		return &cable_list[7];
 	case POWER_SUPPLY_CHARGER_TYPE_WIRELESS:
 		return &cable_list[8];
+	case POWER_SUPPLY_CHARGER_TYPE_ACA_B:
+		return &cable_list[9];
+	case POWER_SUPPLY_CHARGER_TYPE_ACA_L:
+		return &cable_list[10];
 	}
 
 	return NULL;
 }
-
 
 static void notifier_event_worker(struct work_struct *work)
 {

@@ -71,3 +71,4 @@ obj-$(CONFIG_WIRELESS_REZENCE)	+= wireless_rezence.o
 obj-$(CONFIG_REZENCE_NX2A4WP)	+= wireless_nx2a4wp.o
 obj-$(CONFIG_CHARGER_BQ24261) 	+= bq24261_charger.o
 obj-$(CONFIG_BLE_GPIO) 		+= ble_gpio.o
+obj-$(CONFIG_CHARGER_BQ2589X)	+= bq2589x_charger.o

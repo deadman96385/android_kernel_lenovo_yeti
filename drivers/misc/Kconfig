@@ -558,6 +558,13 @@ config INTEL_WCOVE_GPIO
 
           Say Y here to enable support for Intel Wcove PMIC gpio driver
 
+config CHRLED_GPLED
+	bool  "charger led and gpled"
+	default n
+	---help---
+	This option enables charge led and gpled driver. If
+	you are unsure, say N.
+
 source "drivers/misc/pwm/Kconfig"
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
