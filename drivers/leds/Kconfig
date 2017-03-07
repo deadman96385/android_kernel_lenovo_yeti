@@ -479,6 +479,13 @@ config LEDS_OT200
 	  This option enables support for the LEDs on the Bachmann OT200.
 	  Say Y to enable LEDs on the Bachmann OT200.
 
+config LEDS_TPS61163A
+       tristate "LED support for the TI TPS61163A"
+       depends on LEDS_CLASS && PWM
+       help
+         This option enables support for the LEDs TPS61163A.
+         Say Y to enable LEDs on the TPS61163A.
+
 config LEDS_BLINKM
 	tristate "LED support for the BlinkM I2C RGB LED"
 	depends on LEDS_CLASS
