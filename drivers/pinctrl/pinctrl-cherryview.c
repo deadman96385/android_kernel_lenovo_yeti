@@ -1006,6 +1006,41 @@ static int chv_gpio_direction_output(struct gpio_chip *chip,
 	return 0;
 }
 
+/* Change the termination pull up/down settin
+**     gpio : gpio number
+**     pupd : pupd setting
+**             0x0: disable
+**             0x1: 20k pull down
+**             0x2: 5k pull down
+**             0x9: 20k pull up
+**             0xa: 5k pull up
+**/
+void chv_gpio_cfg_pupd(int gpio, int term)
+{
+       int offset;
+       struct chv_gpio *cg;
+       void __iomem *reg;
+       unsigned long flags;
+       struct gpio_chip *chip;
+       u32 value;
+
+       chip = gpiod_to_chip(gpio_to_desc(gpio));
+       if (!chip)
+               return;
+
+       cg = to_chv_priv(chip);
+       offset = gpio - chip->base;
+       reg = chv_gpio_reg(&cg->chip, offset, CV_PADCTRL0_REG);
+
+       spin_lock_irqsave(&cg->lock, flags);
+       value = chv_readl(reg) & (~CV_GPIO_PULL_MODE);
+       value |= (term & 0xF);
+       chv_writel(value, reg);
+
+       spin_unlock_irqrestore(&cg->lock, flags);
+}
+EXPORT_SYMBOL_GPL(chv_gpio_cfg_pupd);
+
 static int chv_get_gpio_direction(struct gpio_chip *chip, unsigned offset)
 {
 	struct chv_gpio *cg = to_chv_priv(chip);

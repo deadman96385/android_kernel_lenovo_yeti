@@ -154,10 +154,12 @@
 
 #define USBSRCDET_RETRY_CNT		5
 #define USBSRCDET_SLEEP_RETRYDET	200 /* 200mSec */
+#define USBSRCDET_SLEEP_TIME		200
 #define USBSRCDET_SUSBHWDET_MASK	(3 << 0)
 #define USBSRCDET_USBSRCRSLT_MASK	(0x0F << 2)
 #define USBSRCDET_SDCD_MASK		(1 << 6)
 #define USBSRCDET_SUSBHWDET_INPROG	(1 << 0)
+#define USBSRCDET_SUSBHWDET_DETON	(1 << 0)
 #define USBSRCDET_SUSBHWDET_DETSUCC	(1 << 1)
 #define USBSRCDET_SUSBHWDET_DETFAIL	(3 << 0)
 #define USBSRCDET_SUSBHWDET		(3 << 0)
@@ -250,7 +252,7 @@
 #define MPWRSRCIRQ_CCSM_MASK		0x9F
 #define MPWRSRCIRQ_CCSM_VAL		0x84
 
-#define CHGDISFN_EN_CCSM_VAL		0x50
+#define CHGDISFN_EN_CCSM_VAL		0x00
 #define CHGDISFN_DIS_CCSM_VAL		0x11
 #define CHGDISFN_CCSM_MASK		0x51
 
@@ -304,6 +306,7 @@ enum pmic_charger_aca_type {
 	RID_C,
 	RID_FLOAT,
 	RID_GND,
+	RID_L,
 };
 
 enum pmic_charger_cable_type {
@@ -416,6 +419,10 @@ struct pmic_chrgr_drv_context {
 	bool is_usb_typec;
 	bool is_notify_otg;
 
+	bool otg_mode_enabled;
+	bool ACA_B_mode_enabled;
+	bool ACA_L_mode_enabled;
+
 	bool tt_lock;
 	unsigned int irq[PMIC_CCSM_IRQ_MAX];		/* GPE_ID or IRQ# */
 	int vbus_state;
@@ -425,6 +432,7 @@ struct pmic_chrgr_drv_context {
 	int pmic_model;
 	int intmap_size;
 	int reg_cnt;
+	int cable_state;
 	void __iomem *pmic_intr_iomap;
 	struct pmic_regs *reg_map;
 	struct device *dev;

@@ -46,8 +46,7 @@
 #include <linux/regulator/driver.h>
 #include <linux/regulator/gpio-regulator.h>
 #include <linux/platform_device.h>
-#include <linux/dmi.h>
-
+#include <linux/power/bq2589x_reg.h>
 
 #define CHIPID		0x00
 #define CHIPVER	0x01
@@ -421,6 +420,9 @@ static struct mfd_cell whiskey_cove_dev[] = {
 		.resources = NULL,
 	},
 	{
+		.name = "whiskey_cove_region",
+	},
+	{
 		.name = "wcove_regulator",
 		.id = WCOVE_ID_V1P8SX+1,
 		.num_resources = 0,
@@ -528,9 +530,6 @@ static struct mfd_cell whiskey_cove_dev[] = {
 		.num_resources = 0,
 		.resources = NULL,
 	},
-	{
-                .name = "whiskey_cove_region",
-        },
 	{NULL, },
 };
 
@@ -547,8 +546,8 @@ struct intel_pmic_irqregmap whiskey_cove_irqregmap[] = {
 	},
 	{
 		{MIRQLVL1, BCU_IRQ, 1, 0},
-		{BCUIRQ, 0, 0x7, INTEL_PMIC_REG_W1C},
-		{BCUIRQ, 0, 0x7, INTEL_PMIC_REG_W1C},
+		{BCUIRQ, 0, 0x1F, INTEL_PMIC_REG_W1C},
+		{BCUIRQ, 0, 0x1F, INTEL_PMIC_REG_W1C},
 	},
 	{
 		{MIRQLVL1, ADC_IRQ, 1, 0},
@@ -1249,29 +1248,6 @@ static acpi_handle pmic_handle(void)
 	return ACPI_HANDLE(intel_soc_pmic_dev());
 }
 
-static int acpi_get_chgr_irq(int *irq)
-{
-	struct gpio_desc *gpiod;
-	struct device *dev = intel_soc_pmic_dev();
-	int ret;
-
-	gpiod = devm_gpiod_get_index(dev, KBUILD_MODNAME, 1);
-	if (IS_ERR(gpiod)) {
-		dev_err(dev, "Unable to get the gpio 1 %d\n", PTR_ERR(gpiod));
-		return -EINVAL;
-	}
-
-	ret = gpiod_direction_input(gpiod);
-	if (ret < 0) {
-		dev_err(dev, "Cannot configure chgr_irq as input %d\n",
-			ret);
-		return ret;
-	}
-
-	*irq = gpiod_to_irq(gpiod);
-	return 0;
-}
-
 static int acpi_get_lpat_table(int **lpat)
 {
 	struct acpi_buffer buffer = { ACPI_ALLOCATE_BUFFER, NULL };
@@ -1456,22 +1432,52 @@ static u8 pmic_read_tt(u8 addr)
 	return intel_soc_pmic_readb(pmic_wcove_regmap.pmic_chrttdata);
 }
 
+static struct bq2589x_platform_data bq25892_data_main = {
+       .gpio_irq = 0,    /* null: conect to PMIC */
+       .gpio_ce = 0,     /* null: conect to PMIC */
+       .gpio_otg = 0,    /* null: conect to VSYS1 */
 
-static void __init register_external_charger(void)
+       .enable_watchdog = 0,
+       .watchdog_timeout = 40,   /* only valid if watchdog timer is enabled */
+//     .enable_charge_timer =
+       .charge_timeout = 12,     /* only valid if fast charge timer is enabled */
+
+       .boost_voltage = 4998,
+
+       .ir_comp_resistance = 0,
+
+       .thermal_regulation_threshold = 120,    /* default */
+       .jeita_vset = 150,        /* default */
+       .jeita_iset = 20,         /* default */
+       .sys_min_voltage = 3500,
+//     .enable_termination =
+       .termination_current = 256,   /* 256mA default */
+       .precharge_voltage = 3000,
+       .recharge_threshold = 100,
+//     .enable_ilimit_pin =
+       .vindpm_offset = 600,
+       .force_vindpm = 0,
+
+/* add bq25892_charge_param init data here */
+       .charge_param[BQ2589X_VBUS_USB_SDP].vlim = 4400,
+       .charge_param[BQ2589X_VBUS_USB_SDP].ilim = 500,
+       .charge_param[BQ2589X_VBUS_USB_SDP].ichg = 500,
+       .charge_param[BQ2589X_VBUS_USB_SDP].vreg = 4208,
+
+};
+static int __init register_external_charger(void)
 {
 	static struct i2c_board_info i2c_info;
-	int irq;
 
 	if (!wcove_init_done)
-		return;
+		return -1;
 
-	strncpy(i2c_info.type, "ext-charger", I2C_NAME_SIZE);
+	strncpy(i2c_info.type, "bq25892-main", I2C_NAME_SIZE);
 	i2c_info.addr = pmic_read_tt(TT_I2CDADDR_ADDR);
-	if (acpi_get_chgr_irq(&irq))
-		i2c_info.irq = whiskey_cove_pmic.irq_base + CHGR_IRQ;
-	else
-		i2c_info.irq = irq;
+	i2c_info.irq = whiskey_cove_pmic.irq_base + CHGR_IRQ;
+	i2c_info.platform_data = &bq25892_data_main;
 	i2c_new_device(wcove_pmic_i2c_adapter, &i2c_info);
+	return 0;
 }
 late_initcall(register_external_charger);
 
