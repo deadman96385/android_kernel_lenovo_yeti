@@ -63,6 +63,8 @@ fw-shipped-$(CONFIG_DRM_RADEON) += radeon/R100_cp.bin radeon/R200_cp.bin \
 				   radeon/RV710_pfp.bin radeon/RV710_me.bin
 fw-shipped-$(CONFIG_DVB_AV7110) += av7110/bootcode.bin
 fw-shipped-$(CONFIG_DVB_TTUSB_BUDGET) += ttusb-budget/dspbootcode.bin
+fw-shipped-$(CONFIG_TOUCHSCREEN_HIDEEP_IST940E) += hideep/YetiM_B_OFILM_MP_0100F121_20160623.bin
+fw-shipped-$(CONFIG_TOUCHSCREEN_HIDEEP_IST940E) += hideep/YetiM_B_GIS_MP_0600F121_20160623.bin
 fw-shipped-$(CONFIG_E100) += e100/d101m_ucode.bin e100/d101s_ucode.bin \
 			     e100/d102e_ucode.bin
 fw-shipped-$(CONFIG_MYRI_SBUS) += myricom/lanai.bin
