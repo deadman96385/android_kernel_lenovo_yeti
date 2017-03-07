@@ -21,6 +21,7 @@ obj-$(subst m,y,$(CONFIG_DRM_MEDFIELD)) += platform_tc35876x.o
 #B_face
 obj-$(subst m,y,$(CONFIG_TOUCHSCREEN_HIDEEP_IST940E)) += platform_ist940e.o
 #C_face
+obj-$(subst m,y,$(CONFIG_INPUT_SX9310)) += platform_sx9310.o
 obj-$(subst m,y,$(CONFIG_TOUCHSCREEN_GT9XX)) += platform_gt9xx.o
 obj-$(subst m,y,$(CONFIG_TOUCHSCREEN_WACOM_I2C)) += platform_wacom.o
 #Sensor
