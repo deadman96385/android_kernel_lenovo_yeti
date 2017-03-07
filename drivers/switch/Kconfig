@@ -20,4 +20,16 @@ config SWITCH_ARIZONA
 	  with Wolfson Arizona devices. These are audio CODECs with
 	  advanced audio accessory detection support.
 
+config SWITCH_HALL
+	bool "Hall Switch support"
+	help
+	  Say Y here to enable support for Dual Hall Switch on Yoga Book
+
+config SWITCH_HALL_IRQ_WAKE
+	bool "implement irq wake in power_HAL framework"
+	depends on SWITCH_HALL
+	default y
+	help
+	  Say Y here to implement irq wake in power_HAL framework
+
 endif # SWITCH
