@@ -83,6 +83,24 @@ config INPUT_ARIZONA_HAPTICS
 	  To compile this driver as a module, choose M here: the
 	  module will be called arizona-haptics.
 
+config INPUT_TI_2604L_HAPTICS
+	tristate "TI drv2604L haptic vibrater support"
+	depends on I2C
+	select INPUT_POLLDEV
+	select HAPTICS_LRA_SEMCO1030
+	select IMMERSION_TOUCHSENSE
+
+config HAPTICS_LRA_SEMCO1030
+	tristate "Haptics LRA SEMCO1030 support"
+	depends on I2C && INPUT_TI_2604L_HAPTICS
+	select INPUT_POLLDEV
+
+config IMMERSION_TOUCHSENSE
+	tristate "TouchSense driver support"
+	depends on INPUT_TI_2604L_HAPTICS
+	help
+	  immersion library is needed for drv2604L for LRA mode
+
 config INPUT_BMA150
 	tristate "BMA150/SMB380 acceleration sensor support"
 	depends on I2C
