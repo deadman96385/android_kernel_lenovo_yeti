@@ -143,6 +143,7 @@ static enum power_supply_property bq2589x_charger_props[] = {
 };
 //liulc1 add
 extern int is_bat_cf(int m);
+extern int usbid(void);
 extern int intel_soc_pmic_readb(int reg);
 extern int intel_soc_pmic_writeb(int reg, u8 val);
 int bq2589x_enter_ship_mode(void);
@@ -1749,7 +1750,15 @@ enum pmic_charger_cable_type {
 	PMIC_CHARGER_TYPE_OTHER,
 	PMIC_CHARGER_TYPE_DCP_EXTPHY,
 };
-
+enum pmic_charger_aca_type {
+	RID_UNKNOWN = 0,
+	RID_A,
+	RID_B,
+	RID_C,
+	RID_FLOAT,
+	RID_GND,
+	RID_L,
+};
 static int read_pmic_reg(struct bq2589x *bq,u16 addr,u8 *val)
 {
 	int ret;
@@ -1803,7 +1812,18 @@ static int pmic_get_charger_type(struct bq2589x *bq)
 		return POWER_SUPPLY_CHARGER_TYPE_USB_DCP;
 	case PMIC_CHARGER_TYPE_CDP:
 		return POWER_SUPPLY_CHARGER_TYPE_USB_CDP;
-
+	case PMIC_CHARGER_TYPE_ACA:
+		rid = usbid();
+		if (rid == RID_A)
+			return POWER_SUPPLY_CHARGER_TYPE_ACA_DOCK;
+		/* As PMIC detected the charger as ACA, if RID detection
+		 * failed report type as ACA  */
+		else if (rid == RID_B)
+			return POWER_SUPPLY_CHARGER_TYPE_ACA_B;
+		else if (rid == RID_L)
+			return POWER_SUPPLY_CHARGER_TYPE_ACA_L;
+		else
+			return POWER_SUPPLY_CHARGER_TYPE_USB_ACA;
 	default:
 		return POWER_SUPPLY_CHARGER_TYPE_NONE;
 	}
@@ -1857,7 +1877,10 @@ static void bq2589x_irq_workfunc(struct work_struct *work)
 
 	temp = (status & BQ2589X_CHRG_STAT_MASK) >> BQ2589X_CHRG_STAT_SHIFT;
 	pg_stat = (status & BQ2589X_PG_STAT_MASK) >> BQ2589X_PG_STAT_SHIFT;
-
+	if((pg_stat == BQ2589X_PG_NOT_GOOD) && (fault == 0x00)){
+		bq2589x_enable_charger(bq, false);
+		return;
+	}
 	if (temp == BQ2589X_CHRG_STAT_CHGDONE) {
 		dev_warn(&bq->client->dev, "HW termination happened!\n");
 		//mutex_lock(&bq->event_lock);

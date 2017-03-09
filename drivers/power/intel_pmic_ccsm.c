@@ -868,6 +868,15 @@ err_exit:
 	return id;
 }
 
+int usbid(void)
+{
+	int ret;
+	ret = pmic_get_usbid();
+	printk("usbid = %d\n",ret);
+	return ret;
+}
+EXPORT_SYMBOL_GPL(usbid);
+
 static int get_charger_type(void)
 {
 	int ret, i = 0,h=0;
