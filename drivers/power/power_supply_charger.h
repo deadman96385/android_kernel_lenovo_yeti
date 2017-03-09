@@ -186,6 +186,7 @@ static inline int get_ps_int_property(struct power_supply *psy,
 			psy->type == POWER_SUPPLY_TYPE_USB_DCP || \
 			psy->type == POWER_SUPPLY_TYPE_USB_ACA || \
 			psy->type == POWER_SUPPLY_TYPE_USB_TYPEC || \
+			psy->type == POWER_SUPPLY_TYPE_USB_ACA_L || \
 			psy->type == POWER_SUPPLY_TYPE_WIRELESS)
 #define IS_ONLINE(psy) \
 		(get_ps_int_property(psy, POWER_SUPPLY_PROP_ONLINE) == 1)
