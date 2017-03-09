@@ -1631,7 +1631,7 @@ void vlv_set_ddr_dvfs(struct drm_i915_private *dev_priv,
 	struct drm_crtc *crtc;
 	struct intel_crtc_config *config;
 	unsigned int cur_dvfs_mode;
-
+    return;
 	/* Set higher DDR frequency if DDR DVFS is being disabled */
 	if (!enable_ddr_dvfs)
 		val = CHV_FORCE_DDR_HIGH_FREQ;
