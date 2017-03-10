@@ -447,7 +447,6 @@ static int charger_gp_led_probe(struct platform_device *pdev)
 	intel_soc_pmic_writeb(CHRLEDPWM_REG,0xFF); 
 	gpled_set_effect(GPLEDFF_ON);
 	gpled_set_enable(0);
-	pr_info("%s-\n",__func__);
 	return 0;
 }
 
@@ -460,7 +459,7 @@ static int charger_gp_led_remove(struct platform_device *pdev)
 
 static void charger_gp_led_shutdown(struct platform_device *pdev)
 {
-	pr_info("%s\n",__func__);
+	pr_info("%s+\n",__func__);
 	return 0;
 }
 

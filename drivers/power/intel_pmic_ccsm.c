@@ -2340,7 +2340,7 @@ static int pmic_chrgr_shutdown(struct platform_device *pdev)
 {
 	int i, ret = 0;
 
-	printk("pmic_chrgr_shutdown wanghow\n");
+	printk("pmic_chrgr_shutdown\n");
 
 	ret = gpio_request(ACC_M_INT, "ACC_M_INT");
 	if(ret) {
@@ -2382,7 +2382,7 @@ static int pmic_chrgr_shutdown(struct platform_device *pdev)
 	intel_soc_pmic_writeb(0x6EA1,0x00);
 	intel_soc_pmic_writeb(0x6EA2,0x00);
 
-	printk("pmic_chrgr_shutdown wanghow!!!\n");
+	printk("pmic_chrgr_shutdown\n");
 	return ret;
 }
 
