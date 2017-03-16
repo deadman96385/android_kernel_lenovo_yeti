@@ -37,6 +37,7 @@
 #include "intel_dsi.h"
 #include "i915_drv.h"
 #include <linux/platform_data/lp855x.h>
+#include <linux/thermal.h>
 #include "intel_dsi_cmd.h"
 extern int i915_boot_mode;
 
@@ -1478,6 +1479,78 @@ static void intel_backlight_device_unregister(struct intel_connector *connector)
 {
 }
 #endif /* CONFIG_BACKLIGHT_CLASS_DEVICE */
+/* backlight control cooling device callbacks */
+static int bl_get_max_state(struct thermal_cooling_device *tcd,
+		unsigned long *state)
+{
+	struct intel_connector *intel_connector = tcd->devdata;
+	struct intel_panel *panel = &intel_connector->panel;
+	if(!panel){
+		pr_err("%s: null pointer of panel\n",__func__);
+		return -ENODEV;
+	}
+
+	*state = panel->backlight.max;
+	return 0;
+}
+
+static int bl_get_cur_state(struct thermal_cooling_device *tcd,
+		unsigned long *state)
+{
+	struct intel_connector *intel_connector = tcd->devdata;
+	struct intel_panel *panel = &intel_connector->panel;
+	struct backlight_device *bd;
+	if(!panel){
+		pr_err("%s: null pointer of panel\n",__func__);
+		return -ENODEV;
+	}
+	bd = panel->backlight.device;
+	if(!bd){
+		pr_err("%s: null pointer of bd\n",__func__);
+		return -ENODEV;
+	}
+	*state = intel_backlight_device_get_brightness(bd);
+	return 0;
+}
+
+static int bl_set_cur_state(struct thermal_cooling_device *tcd,
+		unsigned long new_state)
+{
+	struct intel_connector *intel_connector = tcd->devdata;
+	struct intel_panel *panel = &intel_connector->panel;
+	struct backlight_device *bd = panel->backlight.device;
+	struct drm_device *dev;
+	if(!panel){
+		pr_err("%s: null pointer of panel\n",__func__);
+		return -ENODEV;
+	}
+	pr_info("%s:new_state=%ld\n", __func__, new_state);
+       dev = intel_connector->base.dev;
+
+      drm_modeset_lock(&dev->mode_config.connection_mutex, NULL);
+      intel_panel_set_backlight(intel_connector, new_state,
+                  bd->props.max_brightness);
+      drm_modeset_unlock(&dev->mode_config.connection_mutex);
+
+	return 0;
+}
+
+static struct thermal_cooling_device_ops bl_cdev_ops = {
+	.get_max_state = bl_get_max_state,
+	.get_cur_state = bl_get_cur_state,
+	.set_cur_state = bl_set_cur_state,
+};
+
+static inline int intel_backlight_register_cooling_device(struct intel_connector *connector)
+{
+	struct thermal_cooling_device *bl_cdev;
+	bl_cdev = thermal_cooling_device_register("panel_backlight", connector, &bl_cdev_ops);
+	if (IS_ERR(bl_cdev))
+		return PTR_ERR(bl_cdev);
+
+	pr_err("%s:cooling device register successfully\n", __func__);
+	return 0;
+}
 
 /*
  * Note: The setup hooks can't assume pipe is set!
@@ -1770,6 +1843,7 @@ int intel_panel_setup_backlight(struct drm_connector *connector)
 	}
 
 	intel_backlight_device_register(intel_connector);
+	intel_backlight_register_cooling_device(intel_connector);
 
 	panel->backlight.present = true;
 
