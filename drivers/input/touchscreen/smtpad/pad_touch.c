@@ -84,7 +84,7 @@ int notify_touch_event(int finger, int x, int y, int w)
     if (x > p_controller->line )
         return 0;
     if ( x >=  0 ) {
-    pr_err("%s id %d  x %x y %d\n", __func__,finger, x, y);
+    pr_debug("%s id %d  x %x y %d\n", __func__,finger, x, y);
     input_mt_slot(p_controller->pointer_dev, finger);
     input_report_abs(p_controller->pointer_dev, ABS_MT_TRACKING_ID, finger);
     input_report_abs(p_controller->pointer_dev, ABS_MT_POSITION_X, x);
