@@ -1263,6 +1263,7 @@ static int atomisp_qbuf(struct file *file, void *fh, struct v4l2_buffer *buf)
 	u32 length;
 	u32 pgnr;
 	int ret = 0;
+	unsigned long irqflags;
 
 	rt_mutex_lock(&isp->mutex);
 	if (isp->isp_fatal_error) {
@@ -1397,7 +1398,10 @@ done:
 
 	/* TODO: do this better, not best way to queue to css */
 	if (asd->streaming == ATOMISP_DEVICE_STREAMING_ENABLED) {
-		if (!list_empty(&pipe->buffers_waiting_for_param)) {
+		spin_lock_irqsave(&pipe->irq_lock, irqflags);
+		ret = !list_empty(&pipe->buffers_waiting_for_param);
+		spin_unlock_irqrestore(&pipe->irq_lock, irqflags);
+		if (ret) {
 			atomisp_handle_parameter_and_buffer(pipe);
 		} else {
 			atomisp_qbuffers_to_css(asd);

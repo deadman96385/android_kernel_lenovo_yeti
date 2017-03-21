@@ -4316,9 +4316,14 @@ void atomisp_handle_parameter_and_buffer(struct atomisp_video_pipe *pipe)
 	if (!asd->streaming == ATOMISP_DEVICE_STREAMING_ENABLED)
 		return;
 
-	if (list_empty(&pipe->per_frame_params) ||
-	    list_empty(&pipe->buffers_waiting_for_param))
+	if (list_empty(&pipe->per_frame_params))
 		return;
+
+	spin_lock_irqsave(&pipe->irq_lock, irqflags);
+	if (list_empty(&pipe->buffers_waiting_for_param)) {
+		spin_unlock_irqrestore(&pipe->irq_lock, irqflags);
+		return;
+	}
 
 	list_for_each_entry_safe(vb, vb_tmp,
 			&pipe->buffers_waiting_for_param, queue) {
@@ -4343,9 +4348,7 @@ void atomisp_handle_parameter_and_buffer(struct atomisp_video_pipe *pipe)
 			}
 
 			if (vm_mem) {
-				spin_lock_irqsave(&pipe->irq_lock, irqflags);
 				list_add_tail(&vb->queue, &pipe->activeq);
-				spin_unlock_irqrestore(&pipe->irq_lock, irqflags);
 				vm_mem = NULL;
 				need_to_enqueue_buffer = true;
 			} else {
@@ -4355,12 +4358,11 @@ void atomisp_handle_parameter_and_buffer(struct atomisp_video_pipe *pipe)
 		} else {
 			list_del(&vb->queue);
 			pipe->frame_params[vb->i] = NULL;
-			spin_lock_irqsave(&pipe->irq_lock, irqflags);
 			list_add_tail(&vb->queue, &pipe->activeq);
-			spin_unlock_irqrestore(&pipe->irq_lock, irqflags);
 			need_to_enqueue_buffer = true;
 		}
 	}
+	spin_unlock_irqrestore(&pipe->irq_lock, irqflags);
 
 	if (need_to_enqueue_buffer) {
 		atomisp_qbuffers_to_css(asd);
