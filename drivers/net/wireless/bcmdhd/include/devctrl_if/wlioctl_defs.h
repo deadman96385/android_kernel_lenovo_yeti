@@ -409,15 +409,25 @@
 #define AES_ENABLED		0x0004
 #define WSEC_SWFLAG		0x0008
 #define SES_OW_ENABLED		0x0040	/* to go into transition mode without setting wep */
+#ifdef BCMWAPI_WPI
+#define SMS4_ENABLED		0x0100
+#endif /* BCMWAPI_WPI */
 
 /* wsec macros for operating on the above definitions */
 #define WSEC_WEP_ENABLED(wsec)	((wsec) & WEP_ENABLED)
 #define WSEC_TKIP_ENABLED(wsec)	((wsec) & TKIP_ENABLED)
 #define WSEC_AES_ENABLED(wsec)	((wsec) & AES_ENABLED)
 
-#define WSEC_ENABLED(wsec)	((wsec) & (WEP_ENABLED | TKIP_ENABLED | AES_ENABLED))
-#define WSEC_SES_OW_ENABLED(wsec)	((wsec) & SES_OW_ENABLED)
+#ifdef BCMWAPI_WPI
+#define WSEC_ENABLED(wsec)     ((wsec) & (WEP_ENABLED | TKIP_ENABLED | AES_ENABLED | SMS4_ENABLED))
+#else /* BCMWAPI_WPI */
+#define WSEC_ENABLED(wsec)     ((wsec) & (WEP_ENABLED | TKIP_ENABLED | AES_ENABLED))
+#endif /* BCMWAPI_WPI */
 
+#define WSEC_SES_OW_ENABLED(wsec)	((wsec) & SES_OW_ENABLED)
+#ifdef BCMWAPI_WAI
+#define WSEC_SMS4_ENABLED(wsec)	((wsec) & SMS4_ENABLED)
+#endif /* BCMWAPI_WAI */
 #define MFP_CAPABLE		0x0200
 #define MFP_REQUIRED	0x0400
 #define MFP_SHA256		0x0800 /* a special configuration for STA for WIFI test tool */
@@ -436,6 +446,12 @@
 #define WPA2_AUTH_PSK		0x0080	/* Pre-shared key */
 #define BRCM_AUTH_PSK           0x0100  /* BRCM specific PSK */
 #define BRCM_AUTH_DPT		0x0200	/* DPT PSK without group keys */
+#if defined(BCMWAPI_WAI) || defined(BCMWAPI_WPI)
+#define WPA_AUTH_WAPI           0x0400
+#define WAPI_AUTH_NONE		WPA_AUTH_NONE	/* none (IBSS) */
+#define WAPI_AUTH_UNSPECIFIED	0x0400	/* over AS */
+#define WAPI_AUTH_PSK		0x0800	/* Pre-shared key */
+#endif /* BCMWAPI_WAI || BCMWAPI_WPI */
 #define WPA2_AUTH_MFP           0x1000  /* MFP (11w) in contrast to CCX */
 #define WPA2_AUTH_TPK		0x2000 	/* TDLS Peer Key */
 #define WPA2_AUTH_FT		0x4000 	/* Fast Transition. */
@@ -1517,6 +1533,20 @@
 
 #define VNDR_IE_P2PAF_SHIFT	12
 #endif /* WLP2P */
+#ifdef BCMWAPI_WAI
+#define IV_LEN 16
+struct wapi_sta_msg_t
+{
+	uint16	msg_type;
+	uint16	datalen;
+	uint8	vap_mac[6];
+	uint8	reserve_data1[2];
+	uint8	sta_mac[6];
+	uint8	reserve_data2[2];
+	uint8	gsn[IV_LEN];
+	uint8	wie[256];
+};
+#endif /* BCMWAPI_WAI */
 
 /* channel interference measurement (chanim) related defines */
 
@@ -1830,8 +1860,15 @@
 #define PFN_PARTIAL_SCAN_BIT		0
 #define PFN_PARTIAL_SCAN_MASK		1
 
-#define WL_PFN_SUPPRESSFOUND_MASK	0x08
-#define WL_PFN_SUPPRESSLOST_MASK	0x10
+#define WL_PFN_SUPPRESSFOUND_MASK	  0x08
+#define WL_PFN_SUPPRESSLOST_MASK	  0x10
+#define WL_PFN_SSID_A_BAND_TRIG	  	  0x20
+#define WL_PFN_SSID_BG_BAND_TRIG  	  0x40
+#define WL_PFN_SSID_IMPRECISE_MATCH   0x80
+#define WL_PFN_SSID_SAME_NETWORK      0x10000
+#define WL_PFN_SUPPRESS_AGING_MASK    0x20000
+#define WL_PFN_FLUSH_ALL_SSIDS        0x40000
+
 #define WL_PFN_RSSI_MASK		0xff00
 #define WL_PFN_RSSI_SHIFT		8
 
@@ -1847,6 +1884,9 @@
 #define PNO_SCAN_MAX_FW_SEC		PNO_SCAN_MAX_FW/1000 /* max time scan time in SEC */
 #define PNO_SCAN_MIN_FW_SEC		10			/* min time scan time in SEC */
 #define WL_PFN_HIDDEN_MASK		0x4
+#define MAX_SSID_WHITELIST_NUM         4
+#define MAX_BSSID_PREF_LIST_NUM        32
+#define MAX_BSSID_BLACKLIST_NUM        32
 
 #ifndef BESTN_MAX
 #define BESTN_MAX			8
