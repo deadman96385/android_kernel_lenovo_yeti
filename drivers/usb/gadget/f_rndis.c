@@ -477,6 +477,7 @@ rndis_setup(struct usb_function *f, const struct usb_ctrlrequest *ctrl)
 	struct f_rndis		*rndis = func_to_rndis(f);
 	struct usb_composite_dev *cdev = f->config->cdev;
 	struct usb_request	*req = cdev->req;
+	int			len;
 	int			value = -EOPNOTSUPP;
 	u16			w_index = le16_to_cpu(ctrl->wIndex);
 	u16			w_value = le16_to_cpu(ctrl->wValue);
@@ -534,8 +535,9 @@ invalid:
 		DBG(cdev, "rndis req%02x.%02x v%04x i%04x l%d\n",
 			ctrl->bRequestType, ctrl->bRequest,
 			w_value, w_index, w_length);
+		len = usb_ep_align_maybe(cdev->gadget, cdev->gadget->ep0, value);
 		req->zero = (value < w_length);
-		req->length = value;
+		req->length = len;
 		value = usb_ep_queue(cdev->gadget->ep0, req, GFP_ATOMIC);
 		if (value < 0)
 			ERROR(cdev, "rndis response on err %d\n", value);
