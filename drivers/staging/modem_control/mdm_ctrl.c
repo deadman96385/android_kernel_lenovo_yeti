@@ -43,10 +43,16 @@
  *  @work: a reference to work queue element
  *
  */
+ 
+extern ssize_t ssic_port_reset(int val);
 static void mdm_ctrl_handle_hangup(struct work_struct *work)
 {
 	struct mdm_info *mdm = container_of(work, struct mdm_info, hangup_work);
 	int modem_rst;
+
+	ssic_port_reset(0);
+	msleep(200);
+	ssic_port_reset(1);
 
 	/* Check the hangup reason */
 	modem_rst = mdm->hangup_causes;

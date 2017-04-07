@@ -44,6 +44,72 @@
 #define SSIC_SS_PORT_LINK_CTRL 0x80ec
 #define SSIC_SS_PORT_LINK_CTRL_U3_MASK (0x7 << 9)
 
+
+struct xhci_hcd *p_xhci = NULL; 
+ssize_t ssic_port_reset(int val)
+{
+	struct xhci_hcd *xhci = p_xhci; 
+	__le32 __iomem **port_array;
+	int size, port = 4;  /* Only CHT SSIC port need this enable/disable */
+	u32 temp;
+	int total_time;
+
+	if(xhci == NULL)
+		return -EINVAL;
+
+	port_array = xhci->usb3_ports;
+	temp = readl(port_array[port]);
+
+	if (val == 1) {
+
+		xhci_dbg(xhci, "Enable SS port %d\n", port);
+
+		if ((temp & PORT_PLS_MASK) != USB_SS_PORT_LS_SS_DISABLED)
+				return size;
+
+		xhci_set_link_state(xhci, port_array, port,
+				USB_SS_PORT_LS_RX_DETECT);
+		temp = readl(port_array[port]);
+
+	} else if (val == 0) {
+
+		xhci_dbg(xhci, "Disable SS port %d\n", port);
+
+		if ((temp & PORT_PLS_MASK) == USB_SS_PORT_LS_SS_DISABLED)
+				return size;
+		/*
+		 * Clear all change bits, so that we get a new
+		 * connection event.
+		 */
+		temp |= PORT_CSC | PORT_PEC | PORT_WRC |
+			PORT_OCC | PORT_RC | PORT_PLC |
+			PORT_CEC;
+		writel(temp | PORT_PE, port_array[port]);
+		temp = readl(port_array[port]);
+
+		/*
+		 * Wait until port is disabled
+		 */
+		for (total_time = 0; ; total_time += 25) {
+			temp = readl(port_array[port]);
+
+			if ((temp & PORT_PLS_MASK) == USB_SS_PORT_LS_SS_DISABLED)
+				break;
+			if (total_time >= 200)
+				break;
+			msleep(20);
+		}
+		if (total_time >= 200) {
+			xhci_warn(xhci, "Disable port %d failed after %d ms\n",
+					port, total_time);
+			return -EBUSY;
+		}
+	} else {
+		return -EINVAL;
+	}
+	return size;
+}
+
 static ssize_t ssic_port_enable_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t size)
 {
@@ -343,7 +409,7 @@ static int xhci_pci_probe(struct pci_dev *dev, const struct pci_device_id *id)
 	 * is called by usb_add_hcd().
 	 */
 	*((struct xhci_hcd **) xhci->shared_hcd->hcd_priv) = xhci;
-
+	p_xhci = xhci;
 	retval = usb_add_hcd(xhci->shared_hcd, dev->irq,
 			IRQF_SHARED);
 	if (retval)

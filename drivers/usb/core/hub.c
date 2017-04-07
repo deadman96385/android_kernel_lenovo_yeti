@@ -33,6 +33,7 @@
 
 #include "hub.h"
 #include "../host/xhci-intel-cap.h"
+#include "./../host/xhci.h"
 
 #define USB_VENDOR_GENESYS_LOGIC		0x05e3
 #define HUB_QUIRK_CHECK_PORT_AUTOSUSPEND	0x01
@@ -103,6 +104,25 @@ EXPORT_SYMBOL_GPL(ehci_cf_port_reset_rwsem);
 #define HUB_DEBOUNCE_STABLE	 100
 
 static void hub_release(struct kref *kref);
+#define XHCI_PCE_REG_MMIO	0x86a0
+#define XHCI_MUX_REGS		0x8070
+#define XHCI_D3HOT_BIT		(1 << 18)
+void xhci_intel_ssic_set_d3hot(struct xhci_hcd *xhci, bool enable)
+{
+	void __iomem *reg, *base;
+	u32 data;
+
+	/*PCE_REG_MMIO: Power control enable, offset 0x86a0*/
+	reg = xhci->phy_mux_regs + (XHCI_PCE_REG_MMIO - XHCI_MUX_REGS);
+	data = readl(reg);
+	if (enable)
+		data |= (XHCI_D3HOT_BIT);
+	else
+		data &= ~(XHCI_D3HOT_BIT);
+	writel(data, reg);
+	printk("xhci D3hot Power Control Settings [%p] = 0x%x\n", reg, data);
+}
+
 static int usb_reset_and_verify_device(struct usb_device *udev);
 
 static inline char *portspeed(struct usb_hub *hub, int portstatus)
@@ -2113,6 +2133,15 @@ void usb_disconnect(struct usb_device **pdev)
 	 * this device (and any of its children) will fail immediately.
 	 * this quiesces everything except pending urbs.
 	 */
+
+	/*ssic hang WA.*/
+	struct usb_hcd *hcd = bus_to_hcd(udev->bus);
+	if (hcd){
+		struct xhci_hcd *xhci=hcd_to_xhci(hcd);
+		printk("modem is in exception and will disable xhci controller's D3hot -------\n");
+		xhci_intel_ssic_set_d3hot(xhci, false);
+	}
+
 	usb_set_device_state(udev, USB_STATE_NOTATTACHED);
 	dev_info(&udev->dev, "USB disconnect, device number %d\n",
 			udev->devnum);
@@ -2465,6 +2494,17 @@ int usb_new_device(struct usb_device *udev)
 	(void) usb_create_ep_devs(&udev->dev, &udev->ep0, udev);
 	usb_mark_last_busy(udev);
 	pm_runtime_put_sync_autosuspend(&udev->dev);
+
+	/*ssic hang WA.*/
+	if ( le16_to_cpu(udev->descriptor.idProduct)== 0x452  ){
+		struct usb_hcd *hcd = bus_to_hcd(udev->bus);
+		if (hcd){
+			struct xhci_hcd *xhci=hcd_to_xhci(hcd);
+			printk("enable xhci controller to D3hot-------\n" );
+			xhci_intel_ssic_set_d3hot(xhci, true);
+		}
+	}
+
 	return err;
 
 fail:
