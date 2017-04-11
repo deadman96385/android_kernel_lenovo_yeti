@@ -446,6 +446,34 @@ void istcore_reset_ic(void)
 	msleep(100);
 }
 
+static void ist940e_resume_work(struct work_struct *work)
+{
+	u8 sleep_cmd = 0;
+	struct ist510e *ts = container_of(work, struct ist510e,
+					      resume_work);
+
+	if(ts->gesture_enable == true) {
+        ISTCORE_INFO("zombie resume\n");
+        istcore_reset_ic();
+	} else {
+		ISTCORE_INFO("normal resume\n");
+		istcore_i2c_read(ts, IST_ENTER_RIP, 1, &sleep_cmd);
+        istcore_reset_ic();
+        ts->power_status = true;
+        ts->is_usb_plug_in = 2;
+        istcore_init_mode(ts);
+        queue_work(ts->notifier_wq, &ts->notifier_work);
+        hideep_irq_enable(true);
+	}
+
+	/*Add Begin  by xucm1 20160623 feature: add anypen API  control pen function*/
+	if(!ts->anypen_switch)
+		anypen_switch_operate(ts, ts->anypen_switch);
+	
+	
+}
+
+
 /*------------------------------------------------------------------------------
  *
  *-----------------------------------------------------------------------------*/
@@ -680,6 +708,7 @@ static int istcore_probe(struct i2c_client *client, const struct i2c_device_id *
 #ifndef DO_STARTUP_FW_UPDATE
     power_supply_reg_notifier(&ts->power_supply_notifier);
 #endif
+    INIT_WORK(&ts->resume_work, ist940e_resume_work);
     printk("##B Face:main tp probe success##\n");
     return 0;
 
@@ -782,7 +811,10 @@ static int hideep_resume(struct device *dev)
 
 	if (!ts->suspended)
 		goto out;
+	schedule_work(&ts->resume_work);
 
+/*move resume operation wo resume_work to reduce system resume time that tp costs*/
+#if 0
     if(ts->gesture_enable == true) {
         ISTCORE_INFO("zombie resume\n");
         istcore_reset_ic();
@@ -804,6 +836,7 @@ static int hideep_resume(struct device *dev)
 		ISTCORE_ERR("set anypen disable i2c error=%d\n",ret);
 	}
 	/*Add end by xucm1 20160623*/
+#endif
 out:
 	ts->suspended = false;
     mutex_unlock(&ts->dev_mutex);

@@ -379,6 +379,7 @@ struct ist510e
    int is_usb_plug_in;
    bool power_status;
    bool anypen_switch;
+    struct work_struct resume_work;
 };
 /*------------------------------------------------------------------------------
  *
