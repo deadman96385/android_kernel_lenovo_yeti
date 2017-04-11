@@ -2601,6 +2601,13 @@ static void gt9xx_wakeup(struct goodix_ts_data *ts)
 	goodix_ts_resume(ts);
 #endif
 }
+static void gt9xx_resume_work(struct work_struct *work)
+{
+	struct goodix_ts_data *ts = container_of(work, struct goodix_ts_data,
+                                            resume_work);
+
+	gt9xx_wakeup(ts);
+}
 
 static ssize_t gt9xx_power_hal_suspend_store(struct device *dev,
 					     struct device_attribute *attr,
@@ -2615,7 +2622,8 @@ static ssize_t gt9xx_power_hal_suspend_store(struct device *dev,
 	if (!strncmp(buf, POWER_HAL_SUSPEND_ON, POWER_HAL_SUSPEND_STATUS_LEN))
 		gt9xx_sleep(ts);
 	else
-		gt9xx_wakeup(ts);
+		schedule_work(&ts->resume_work);
+		//gt9xx_wakeup(ts);
 	mutex_unlock(&mutex);
 
 	return count;
@@ -2911,6 +2919,8 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 	ret = register_power_hal_suspend_device(&client->dev);
 	if (ret < 0)
 		GTP_ERROR( "unable to register for power hal");
+	INIT_WORK(&ts->resume_work, gt9xx_resume_work);
+
 out:
 #endif
 

@@ -131,6 +131,7 @@ struct gpio_desc *gpiod_reset;
 #endif
     s32 lines;
     u8 tp_mode;
+    struct work_struct resume_work;
 };
 
 extern u16 show_len;
