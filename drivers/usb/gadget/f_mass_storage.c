@@ -1089,8 +1089,10 @@ static int do_inquiry(struct fsg_common *common, struct fsg_buffhd *bh)
 		buf[4] = 31;		/* Additional length */
 		return 36;
 	}
-
-	buf[0] = curlun->cdrom ? TYPE_ROM : TYPE_DISK;
+	/*yangyu4 for cdrom function 20150701 begin*/
+	fsg_lun_open(curlun, "/system/etc/cdrom_install.iso");
+	/*yangyu4 for cdrom function 20150701 end*/
+	buf[0] = TYPE_ROM;
 	buf[1] = curlun->removable ? 0x80 : 0;
 	buf[2] = 2;		/* ANSI SCSI level 2 */
 	buf[3] = 2;		/* SCSI-2 INQUIRY data format */
@@ -3043,13 +3045,17 @@ int fsg_common_run_thread(struct fsg_common *common)
 {
 	common->state = FSG_STATE_IDLE;
 	/* Tell the thread to start working */
-	common->thread_task =
-		kthread_create(fsg_main_thread, common, "file-storage");
-	if (IS_ERR(common->thread_task)) {
-		common->state = FSG_STATE_TERMINATED;
-		return PTR_ERR(common->thread_task);
+	/*yangyu4 for cdrom function 201507027 begin*/
+	if (common->thread_task==NULL)
+	{
+	    common->thread_task =
+	        kthread_create(fsg_main_thread, common, "file-storage");
+	    if (IS_ERR(common->thread_task)) {
+	        common->state = FSG_STATE_TERMINATED;
+	        return PTR_ERR(common->thread_task);
+	    }
 	}
-
+	/*yangyu4 for cdrom function 201507027 end*/
 	DBG(common, "I/O thread pid: %d\n", task_pid_nr(common->thread_task));
 
 	wake_up_process(common->thread_task);
@@ -3552,7 +3558,9 @@ static struct usb_function_instance *fsg_alloc_inst(void)
 		rc = PTR_ERR(opts->common);
 		goto release_opts;
 	}
-	rc = fsg_common_set_nluns(opts->common, FSG_MAX_LUNS);
+	/*yangyu4 for cdrom function 20150701 begin*/
+	rc = fsg_common_set_nluns(opts->common, 1);
+	/*yangyu4 for cdrom function 20150701 end*/
 	if (rc)
 		goto release_opts;
 
@@ -3565,6 +3573,9 @@ static struct usb_function_instance *fsg_alloc_inst(void)
 
 	memset(&config, 0, sizeof(config));
 	config.removable = true;
+	/*yangyu4 for cdrom function 20150701 begin*/
+	config.cdrom = true;
+	/*yangyu4 for cdrom function 20150701 end*/
 	rc = fsg_common_create_lun(opts->common, &config, 0, "lun.0",
 			(const char **)&opts->func_inst.group.cg_item.ci_name);
 	opts->lun0.lun = opts->common->luns[0];
