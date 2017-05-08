@@ -434,6 +434,7 @@ static void hw_init(psx86xx_t this)
 	psx9310_t pDevice = 0;
 	psx9310_platform_data_t pdata = 0;
 	int i = 0;
+	int k = 0;
 	/* configure device */
 	if (this && (pDevice = this->pDevice) && (pdata = pDevice->hw))
 	{
@@ -443,6 +444,14 @@ static void hw_init(psx86xx_t this)
 				pdata->pi2c_reg[i].reg,pdata->pi2c_reg[i].val);
 			write_register(this, pdata->pi2c_reg[i].reg,pdata->pi2c_reg[i].val);
 			i++;
+			if (this->contry_sar_config)
+			{
+				read_register(this, SX9310_CPS_CTRL8_REG, &k);
+				dev_info(this->pdev, "-----Read Reg[0x%02x] = 0x%02x\n", SX9310_CPS_CTRL8_REG, k);
+
+				write_register(this, SX9310_CPS_CTRL8_REG, 0x56);
+				write_register(this, SX9310_CPS_CTRL9_REG, 0x56);
+			}
 		}
 	} else {
 		pr_err("ERROR! platform data 0x%p\n",pDevice->hw);
@@ -493,6 +502,7 @@ static u8 get_default_value_of_reg(psx86xx_t this, u8 reg)
 	psx9310_t pDevice = 0;
 	psx9310_platform_data_t pdata = 0;
 	int i = 0;
+	int k = 0;
 	u8 val = 0;
 
 	if (this && (pDevice = this->pDevice) && (pdata = pDevice->hw)) {
@@ -501,6 +511,14 @@ static u8 get_default_value_of_reg(psx86xx_t this, u8 reg)
 				return pdata->pi2c_reg[i].val;
 			write_register(this, pdata->pi2c_reg[i].reg,pdata->pi2c_reg[i].val);
 			i++;
+			if (this->contry_sar_config)
+			{
+				read_register(this, SX9310_CPS_CTRL8_REG, &k);
+				dev_info(this->pdev, "-----Read Reg[0x%02x] = 0x%02x\n", SX9310_CPS_CTRL8_REG, k);
+
+				write_register(this, SX9310_CPS_CTRL8_REG, 0x56);
+				write_register(this, SX9310_CPS_CTRL9_REG, 0x56);
+			}
 		}
 	} else {
 		pr_err("ERROR! platform data 0x%p\n",pDevice->hw);
@@ -533,6 +551,7 @@ static void calibration_work(struct work_struct *work)
 {
 	psx86xx_t this = container_of(work, struct sx86xx , cali_work);
 	pr_info("%s\n",__func__);
+	dev_info(this->pdev,"this->contry_sar_config = %d\n",this->contry_sar_config);
 	manual_offset_calibration(this);
 	if (this->sar_enable && (this->cali_count == LOOP_COUNT))
 		write_register(this, SX9310_CPS_CTRL0_REG, get_default_value_of_reg(this, SX9310_CPS_CTRL0_REG));
@@ -782,6 +801,7 @@ static int sx9310_probe(struct i2c_client *client, const struct i2c_device_id *i
 		this->read_flag = 0;
 		this->read_reg = SX9310_CPS_CTRL0_REG;
 		this->sar_enable = true;
+		this->contry_sar_config= false;
 		pr_info("%s-\n",__func__);
 		return	0;
 	}else{
