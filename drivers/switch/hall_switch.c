@@ -39,6 +39,7 @@ static void hall_switch_work(struct work_struct *work)
 		container_of(work, struct hall_switch_data, work);
 
 	state = gpio_get_value(data->gpio);
+	pr_info("%s:%d name is %s, state is %d\n",__func__,__LINE__, data->sdev.name, state);
 	switch_set_state(&data->sdev, state);
 }
 
