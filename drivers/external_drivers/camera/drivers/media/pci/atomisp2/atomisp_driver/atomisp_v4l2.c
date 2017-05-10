@@ -441,10 +441,11 @@ int atomisp_mrfld_power_down(struct atomisp_device *isp)
 	reg_value |= MRFLD_ISPSSPM0_IUNIT_POWER_OFF;
 	intel_mid_msgbus_write32(PUNIT_PORT, MRFLD_ISPSSPM0, reg_value);
 
+#if 0 /*on yeti, ddr dvfs disabled,not need to touch it in isp driver*/
 	/*WA:Enable DVFS*/
 	if (IS_CHT)
 		punit_ddr_dvfs_enable(true);
-
+#endif
 	/*
 	 * There should be no iunit access while power-down is
 	 * in progress HW sighting: 4567865
@@ -479,10 +480,11 @@ int atomisp_mrfld_power_up(struct atomisp_device *isp)
 	unsigned long timeout;
 	u32 reg_value;
 
+#if 0 /*on yeti, ddr dvfs disabled,not need to touch it in isp driver*/
 	/*WA for PUNIT, if DVFS enabled, ISP timeout observed*/
 	if (IS_CHT)
 		punit_ddr_dvfs_enable(false);
-
+#endif
 	/*
 	 * FIXME:WA for ECS28A, with this sleep, CTS
 	 * android.hardware.camera2.cts.CameraDeviceTest#testCameraDeviceAbort
