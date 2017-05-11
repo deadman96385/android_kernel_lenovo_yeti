@@ -2160,57 +2160,57 @@ static int bq2589x_turn_otg_vbus(struct bq2589x *bq, bool votg_on)
 	pr_warn("%s: %s+\n", __func__, bq->usb.name);
 	if(g_bq==NULL)	return 0;
 	if (votg_on) {
-			pr_warn("%s: votg_on+\n", __func__);
-			if(!wake_lock_active(&bq->wakelock))
-							wake_lock(&bq->wakelock);
-			bq2589x_update_bits(g_bq,BQ2589X_REG_00,BQ2589X_ENHIZ_MASK,BQ2589X_HIZ_DISABLE<<BQ2589X_ENHIZ_SHIFT);
-			/* Program the timers */
-			ret = bq2589x_program_timers(g_bq, BQ2589X_WDT_160S, false);
-			if (ret < 0) {
-				dev_warn(&bq->client->dev, "TIMER enable failed %s\n", __func__);
-				goto i2c_write_fail;
-			}
-			/* Configure the charger in OTG mode */
-			ret = bq2589x_set_otg_current(bq, 2150);
-			if (ret < 0) {
-				dev_warn(&bq->client->dev, "set otg current failed!\n");
-				goto i2c_write_fail;
-			}
-			ret = bq2589x_set_otg_volt(bq, 4998);		   //return fail ???
-			if (ret < 0) {
-				dev_warn(&bq->client->dev, "set otg volt failed!\n");
-				goto i2c_write_fail;
-			}
-			ret = bq2589x_enable_otg(bq);
-			if (ret < 0) {
-				dev_warn(&bq->client->dev, "enable OTG failed!\n");
-				goto i2c_write_fail;
-			}
-			bq->boost_mode = true;
-			/* Schedule the charger task worker now */
-			schedule_delayed_work(&bq->chrg_task_wrkr, 0);
-			schedule_delayed_work(&bq->chrg_post_wrkr, BOOST_LIM_SLP_SEC * HZ);
-			pr_warn("%s: votg_on-\n", __func__);
+		pr_warn("%s: votg_on+\n", __func__);
+		if(!wake_lock_active(&bq->wakelock))
+			wake_lock(&bq->wakelock);
+		bq2589x_update_bits(g_bq,BQ2589X_REG_00,BQ2589X_ENHIZ_MASK,BQ2589X_HIZ_DISABLE<<BQ2589X_ENHIZ_SHIFT);
+		/* Program the timers */
+		ret = bq2589x_program_timers(g_bq, BQ2589X_WDT_160S, false);
+		if (ret < 0) {
+			dev_warn(&bq->client->dev, "TIMER enable failed %s\n", __func__);
+			goto i2c_write_fail;
+		}
+		/* Configure the charger in OTG mode */
+		ret = bq2589x_set_otg_current(bq, 2150);
+		if (ret < 0) {
+			dev_warn(&bq->client->dev, "set otg current failed!\n");
+			goto i2c_write_fail;
+		}
+		ret = bq2589x_set_otg_volt(bq, 4998);		   //return fail ???
+		if (ret < 0) {
+			dev_warn(&bq->client->dev, "set otg volt failed!\n");
+			goto i2c_write_fail;
+		}
+		ret = bq2589x_enable_otg(bq);
+		if (ret < 0) {
+			dev_warn(&bq->client->dev, "enable OTG failed!\n");
+			goto i2c_write_fail;
+		}
+		bq->boost_mode = true;
+		/* Schedule the charger task worker now */
+		schedule_delayed_work(&bq->chrg_task_wrkr, 0);
+		schedule_delayed_work(&bq->chrg_post_wrkr, BOOST_LIM_SLP_SEC * HZ);
+		pr_warn("%s: votg_on-\n", __func__);
 	} else {
-			pr_warn("%s:votg_off+\n",__func__);
-			if (wake_lock_active(&bq->wakelock))
-							wake_unlock(&bq->wakelock);
-			/* Clear the charger from the OTG mode */
-			ret = bq2589x_disable_otg(bq);
-			if (ret < 0) {
-				dev_warn(&bq->client->dev, "disable OTG failed!\n");
-				goto i2c_write_fail;
-			}
-			bq->boost_mode = false;
-			/* Cancel the charger task worker now */
-			//cancel the "last_wrkr" in advance in case it has any delay,
-			//as we need to schedule the last_wrkr immediately.
-			cancel_delayed_work_sync(&bq->chrg_last_wrkr);
-			cancel_delayed_work_sync(&bq->chrg_post_wrkr);
-			cancel_delayed_work_sync(&bq->chrg_ntfy_wrkr);
-			cancel_delayed_work_sync(&bq->chrg_task_wrkr);
-			schedule_delayed_work(&bq->chrg_last_wrkr, 0);
-			pr_warn("%s:votg_off-\n",__func__);
+		pr_warn("%s:votg_off+\n",__func__);
+		if (wake_lock_active(&bq->wakelock))
+			wake_unlock(&bq->wakelock);
+		/* Clear the charger from the OTG mode */
+		ret = bq2589x_disable_otg(bq);
+		if (ret < 0) {
+			dev_warn(&bq->client->dev, "disable OTG failed!\n");
+			goto i2c_write_fail;
+		}
+		bq->boost_mode = false;
+		/* Cancel the charger task worker now */
+		//cancel the "last_wrkr" in advance in case it has any delay,
+		//as we need to schedule the last_wrkr immediately.
+		cancel_delayed_work_sync(&bq->chrg_last_wrkr);
+		cancel_delayed_work_sync(&bq->chrg_post_wrkr);
+		cancel_delayed_work_sync(&bq->chrg_ntfy_wrkr);
+		cancel_delayed_work_sync(&bq->chrg_task_wrkr);
+		schedule_delayed_work(&bq->chrg_last_wrkr, 0);
+		pr_warn("%s:votg_off-\n",__func__);
 	}
 	/* Drive the gpio to turn ON/OFF the VBUS */
 	pr_warn("%s: %s-\n", __func__, bq->usb.name);
@@ -2467,20 +2467,13 @@ static const struct attribute_group bq2589x_attr_group = {
 extern int chao=1000;
 static ssize_t u_read(struct device *dev,struct device_attribute *attr, char *buf)
 {
-		//struct bq2589x *bq = dev_get_drvdata(dev);
-
-
-		return snprintf(buf, PAGE_SIZE, "%d\n", chao);
+	return snprintf(buf, PAGE_SIZE, "%d\n", chao);
 }
 
 static ssize_t u_write(struct device *dev,struct device_attribute *attr, const char *buf, size_t count)
 {
-		//struct bq2589x *bq = dev_get_drvdata(dev);
-
 	sscanf(buf, "%d", &chao);
-
-
-		return count;
+	return count;
 }
 
 static DEVICE_ATTR(chao_charger, S_IRUGO | S_IWUSR | S_IWGRP, u_read, u_write);
@@ -2501,26 +2494,21 @@ static ssize_t read_mchg_ce(struct device *dev,struct device_attribute *attr, ch
 
 static ssize_t write_mchg_ce(struct device *dev,struct device_attribute *attr, const char *buf, size_t count)
 {
-		//struct bq2589x *bq = dev_get_drvdata(dev);
 	int  ch,ret;
-
-		sscanf(buf, "%d", &ch);
+	sscanf(buf, "%d", &ch);
 	if(ch==0)
 	{
 		ret=intel_soc_pmic_writeb(0x5e2f,0x00);
 		if(ret)
-				 printk("write-0x5e2f err!!!\n");
+			 printk("write-0x5e2f err!!!\n");
 	}
-
-		return count;
+	return count;
 }
 
 static DEVICE_ATTR(mchg_ce, S_IRUGO | S_IWUSR | S_IWGRP, read_mchg_ce, write_mchg_ce);
 
-
 static ssize_t enter_ship_mode(struct device *dev,struct device_attribute *attr, const char *buf, size_t count)
 {
-		//struct bq2589x *bq = dev_get_drvdata(dev);
 	int ch;
 		sscanf(buf, "%d", &ch);
 	if(ch==1)
@@ -2528,140 +2516,97 @@ static ssize_t enter_ship_mode(struct device *dev,struct device_attribute *attr,
 		printk("enter_ship_mode\n");
 		bq2589x_enter_ship_mode();
 	}
-
-		return count;
+	return count;
 }
 
 static DEVICE_ATTR(enter_ship_mode, S_IRUGO | S_IWUSR | S_IWGRP,NULL, enter_ship_mode);
 
 static ssize_t charge_en_ctrl(struct device *dev,struct device_attribute *attr, const char *buf, size_t count)
 {
-		//struct bq2589x *bq = dev_get_drvdata(dev);
 	int ch;
 		sscanf(buf, "%d", &ch);
 	if(ch==1)
 	{
 		printk("=====weijj4===enable charging\n");
-		
 		bq2589x_enable_chr(g_bq);
 		g_bq->charge_en = true;
-			bq2589x_update_bits(g_bq,BQ2589X_REG_00,BQ2589X_ENHIZ_MASK,BQ2589X_HIZ_DISABLE<<BQ2589X_ENHIZ_SHIFT);
-
+		bq2589x_update_bits(g_bq,BQ2589X_REG_00,BQ2589X_ENHIZ_MASK,BQ2589X_HIZ_DISABLE<<BQ2589X_ENHIZ_SHIFT);
 	}else if (ch==0) {
-	
 		printk("=====weijj4===disable charging\n");
 		g_bq->charge_en = false;
 		bq2589x_disable_chr(g_bq);
 	}
-
-		return count;
+	return count;
 }
 
 static DEVICE_ATTR(charge_en_ctrl, S_IRUGO | S_IWUSR | S_IWGRP,NULL, charge_en_ctrl);
 
-
 static ssize_t read_vbus(struct device *dev,struct device_attribute *attr, char *buf)
 {
-	//struct bq2589x *bq = dev_get_drvdata(dev);
 	int vbus=0;
 	vbus=bq2589x_adc_read_vbus_volt();
-
 	return snprintf(buf, PAGE_SIZE, "%d\n", vbus);
 }
 static DEVICE_ATTR(chao_vbus, S_IRUGO | S_IWUSR | S_IWGRP, read_vbus, NULL);
 
 static ssize_t read_ichg_main(struct device *dev,struct device_attribute *attr, char *buf)
 {
-	//struct bq2589x *bq = dev_get_drvdata(dev);
 	int ichg=0;
-
 	ichg=read_bat_ichg(1);
-
 	return snprintf(buf, PAGE_SIZE, "%d\n", ichg);
 }
 static DEVICE_ATTR(chao_ichg_main, S_IRUGO | S_IWUSR | S_IWGRP, read_ichg_main, NULL);
 
-//static ssize_t read_ichg_sec(struct device *dev,struct device_attribute *attr, char *buf)
-//{
-//		  struct bq2589x *bq = dev_get_drvdata(dev);
-//		  int ichg=0;
-
-//		  ichg=read_bat_ichg(1);
-
-//		  return snprintf(buf, PAGE_SIZE, "%d\n", ichg);
-//}
-//static DEVICE_ATTR(chao_ichg_sec, S_IRUGO | S_IWUSR | S_IWGRP, read_ichg_sec, NULL);
 static ssize_t write_temp_main(struct device *dev,struct device_attribute *attr, const char *buf, size_t count)
 {
-		//struct bq2589x *bq = dev_get_drvdata(dev);
 	int  ch,ret;
-
-		sscanf(buf, "%d", &ch);
-
-//	if(ch >= -5 && ch <= 65)
-	{
-		g_fake_temperature = ch;
-
-			printk("%s ===write-temperature:%d\n",__func__,g_fake_temperature);
-	}
-
-		return count;
+	sscanf(buf, "%d", &ch);
+	g_fake_temperature = ch;
+	printk("%s ===write-temperature:%d\n",__func__,g_fake_temperature);
+	return count;
 }
 
 static ssize_t read_temp_main(struct device *dev,struct device_attribute *attr, char *buf)
 {
-		struct bq2589x *bq = dev_get_drvdata(dev);
-		int temp=0;
-		temp=read_battery_temp(1)/10;
+	struct bq2589x *bq = dev_get_drvdata(dev);
+	int temp=0;
+	temp=read_battery_temp(1)/10;
 	if(g_fake_temperature != 0)
 		temp = g_fake_temperature*10;
 	dump_mainchg_reg(bq);
-		return snprintf(buf, PAGE_SIZE, "%d\n", temp);
+	return snprintf(buf, PAGE_SIZE, "%d\n", temp);
 }
 static DEVICE_ATTR(chao_temp_main, S_IRUGO | S_IWUSR | S_IWGRP, read_temp_main, write_temp_main);
 
 
 static ssize_t write_max_current(struct device *dev,struct device_attribute *attr, const char *buf, size_t count)
 {
-		struct bq2589x *bq = dev_get_drvdata(dev);
-		int  ch = 0;
-
-		sscanf(buf, "%d", &ch);
-
-	  if(ch >= 0 && ch <= MAX_HIGH_CURRENT)
-		{
-				bq->max_cc = ch;
-
-				printk("%s ===write-max charge current:%d\n",__func__,bq->max_cc);
-		}
-
-		return count;
+	struct bq2589x *bq = dev_get_drvdata(dev);
+	int  ch = 0;
+	sscanf(buf, "%d", &ch);
+	if(ch >= 0 && ch <= MAX_HIGH_CURRENT)
+	{
+		bq->max_cc = ch;
+		printk("%s ===write-max charge current:%d\n",__func__,bq->max_cc);
+	}
+	return count;
 }
 static ssize_t read_max_current(struct device *dev,struct device_attribute *attr, char *buf)
 {
-		struct bq2589x *bq = dev_get_drvdata(dev);
+	struct bq2589x *bq = dev_get_drvdata(dev);
 
-		return snprintf(buf, PAGE_SIZE, "%d\n", bq->max_cc);
+	return snprintf(buf, PAGE_SIZE, "%d\n", bq->max_cc);
 }
 static DEVICE_ATTR(debug_max_current, S_IRUGO | S_IWUSR | S_IWGRP, read_max_current, write_max_current);
-//static ssize_t read_temp_sec(struct device *dev,struct device_attribute *attr, char *buf)
-//{
-//		  struct bq2589x *bq = dev_get_drvdata(dev);
-//		  int temp=0;
-//		  temp=read_battery_temp(0)/10;
-
-//		  return snprintf(buf, PAGE_SIZE, "%d\n", temp);
-//}
-//static DEVICE_ATTR(chao_temp_sec, S_IRUGO | S_IWUSR | S_IWGRP, read_temp_sec, NULL);
 
 static ssize_t read_capacity_main(struct device *dev,struct device_attribute *attr, char *buf)
 {
-		struct bq2589x *bq = dev_get_drvdata(dev);
-		int capacity=0;
+	struct bq2589x *bq = dev_get_drvdata(dev);
+	int capacity=0;
 
-		capacity=read_rsoc(1);
+	capacity=read_rsoc(1);
 
-		return snprintf(buf, PAGE_SIZE, "%d\n", capacity);
+	return snprintf(buf, PAGE_SIZE, "%d\n", capacity);
 }
 static DEVICE_ATTR(chao_capacity_main, S_IRUGO | S_IWUSR | S_IWGRP, read_capacity_main, NULL);
 /*
@@ -2676,12 +2621,10 @@ static DEVICE_ATTR(chao_capacity_sec, S_IRUGO | S_IWUSR | S_IWGRP, read_capacity
 */
 static ssize_t read_volt_main(struct device *dev,struct device_attribute *attr, char *buf)
 {
-		struct bq2589x *bq = dev_get_drvdata(dev);
-		int volt=0;
-
-		volt=read_bat(1);
-
-		return snprintf(buf, PAGE_SIZE, "%d\n", volt);
+	struct bq2589x *bq = dev_get_drvdata(dev);
+	int volt=0;
+	volt=read_bat(1);
+	return snprintf(buf, PAGE_SIZE, "%d\n", volt);
 }
 static DEVICE_ATTR(chao_volt_main, S_IRUGO | S_IWUSR | S_IWGRP, read_volt_main, NULL);
 
@@ -2699,20 +2642,17 @@ static DEVICE_ATTR(chao_volt_sec, S_IRUGO | S_IWUSR | S_IWGRP, read_volt_sec, NU
 */
 static ssize_t read_pmic_ver(struct device *dev,struct device_attribute *attr, char *buf)
 {
-		struct bq2589x *bq = dev_get_drvdata(dev);
-		int ver=0;
+	struct bq2589x *bq = dev_get_drvdata(dev);
+	int ver=0;
 	u8	tmp=0x00;
-
-	   tmp=intel_soc_pmic_readb(0x5FC5);	   // 0x45:V5, 0x46:V6
+	tmp=intel_soc_pmic_readb(0x5FC5);	   // 0x45:V5, 0x46:V6
 	if(tmp==0x45)  
 		ver=5;
 	else if(tmp==0x46) 
 		ver=6;
 	else
 		ver=0;
-	
-
-		return snprintf(buf, PAGE_SIZE, "%d\n", ver);
+	return snprintf(buf, PAGE_SIZE, "%d\n", ver);
 }
 static DEVICE_ATTR(pmic_hw_ver, S_IRUGO | S_IWUSR | S_IWGRP, read_pmic_ver, NULL);
 
@@ -2728,26 +2668,26 @@ static ssize_t read_dpm_stat(struct device *dev,struct device_attribute *attr, c
 static DEVICE_ATTR(read_dpm_stat, S_IRUGO | S_IWUSR | S_IWGRP, read_dpm_stat, NULL);
 
 static struct attribute *chao_bq2589x_attributes[] = {
-		&dev_attr_chao_charger.attr,
-		&dev_attr_chao_vbus.attr,
-		&dev_attr_chao_ichg_main.attr,
+	&dev_attr_chao_charger.attr,
+	&dev_attr_chao_vbus.attr,
+	&dev_attr_chao_ichg_main.attr,
 //		  &dev_attr_chao_ichg_sec.attr,
-		&dev_attr_chao_temp_main.attr,
-		&dev_attr_debug_max_current.attr,
-		&dev_attr_chao_capacity_main.attr,
+	&dev_attr_chao_temp_main.attr,
+	&dev_attr_debug_max_current.attr,
+	&dev_attr_chao_capacity_main.attr,
 //		  &dev_attr_chao_capacity_sec.attr,
-		&dev_attr_chao_volt_main.attr,
+	&dev_attr_chao_volt_main.attr,
 //		  &dev_attr_chao_volt_sec.attr,
-		&dev_attr_pmic_hw_ver.attr,
-		&dev_attr_enter_ship_mode.attr,
-		&dev_attr_mchg_ce.attr,
-		&dev_attr_read_dpm_stat.attr,
-		&dev_attr_charge_en_ctrl.attr,
-		NULL,
+	&dev_attr_pmic_hw_ver.attr,
+	&dev_attr_enter_ship_mode.attr,
+	&dev_attr_mchg_ce.attr,
+	&dev_attr_read_dpm_stat.attr,
+	&dev_attr_charge_en_ctrl.attr,
+	NULL,
 };
 
 static const struct attribute_group chao_bq2589x_attr_group = {
-		.attrs = chao_bq2589x_attributes,
+	.attrs = chao_bq2589x_attributes,
 };
 
 static int bq2589x_charger_probe(struct i2c_client *client, const struct i2c_device_id *id)
@@ -2812,12 +2752,12 @@ static int bq2589x_charger_probe(struct i2c_client *client, const struct i2c_dev
 		g_bq_sec = bq;
 		wake_lock_init(&bq->wakelock, WAKE_LOCK_SUSPEND, "bq25892_sec");
 	}
-		//yeti one charger
-		bq->main_charger_flag = 1;
-		g_bq_sec = g_bq;
-	 bq->is_charger_enabled = 0;
-	 bq->is_charging_enabled= 0;
-	 bq->charge_en = true;
+	//yeti one charger
+	bq->main_charger_flag = 1;
+	g_bq_sec = g_bq;
+	bq->is_charger_enabled = 0;
+	bq->is_charging_enabled= 0;
+	bq->charge_en = true;
 		
 	bq->platform_data = client->dev.platform_data;
 	if(!bq->platform_data){
@@ -3028,7 +2968,6 @@ int bq2589x_adc_stop(void)	 //stop continue scan
 }
 EXPORT_SYMBOL_GPL(bq2589x_adc_stop);
 
-
 int bq2589x_adc_read_battery_volt(void)
 {
 	uint8_t val;
@@ -3054,17 +2993,17 @@ int bq2589x_adc_read_sys_volt(void)
 	int ret;
 	u8	data;
 
-		if(g_bq==NULL)	return 0;
-		bq2589x_read_byte(g_bq,&data,0x02);
-		data|=0x80;
-		data&=0xbf;
-		bq2589x_write_byte(g_bq,0x02,data);
-		msleep(200);
+	if(g_bq==NULL)	return 0;
+	bq2589x_read_byte(g_bq,&data,0x02);
+	data|=0x80;
+	data&=0xbf;
+	bq2589x_write_byte(g_bq,0x02,data);
+	msleep(200);
 
 	ret = bq2589x_read_byte(g_bq, &val, BQ2589X_REG_0F);
 	bq2589x_read_byte(g_bq,&data,0x02);
-		data&=0x3f;
-		bq2589x_write_byte(g_bq,0x02,data);
+	data&=0x3f;
+	bq2589x_write_byte(g_bq,0x02,data);
 
 	if(ret < 0){
 		dev_err(g_bq->dev,"read system voltage failed :%d\n",ret);
@@ -3072,7 +3011,7 @@ int bq2589x_adc_read_sys_volt(void)
 	}
 	else{
 		volt = BQ2589X_SYSV_BASE + ((val & BQ2589X_SYSV_MASK) >> BQ2589X_SYSV_SHIFT) * BQ2589X_SYSV_LSB ;
-	volt+=2304;
+		volt+=2304;
 		return volt;
 	}
 }
@@ -3085,21 +3024,20 @@ int bq2589x_adc_read_vbus_volt(void)
 	int ret;
 	u8	data;
 	if(g_bq==NULL)	return 0;
-		bq2589x_read_byte(g_bq,&data,0x02);
-		data|=0x80;
-		data&=0xbf;
-		bq2589x_write_byte(g_bq,0x02,data);
-		msleep(200);
+	bq2589x_read_byte(g_bq,&data,0x02);
+	data|=0x80;
+	data&=0xbf;
+	bq2589x_write_byte(g_bq,0x02,data);
+	msleep(200);
 
 	ret = bq2589x_read_byte(g_bq, &val, BQ2589X_REG_11);
 	bq2589x_read_byte(g_bq,&data,0x02);
-		data&=0x3f;
-		bq2589x_write_byte(g_bq,0x02,data);
+	data&=0x3f;
+	bq2589x_write_byte(g_bq,0x02,data);
 	if(ret < 0){
 		dev_err(g_bq->dev,"read vbus voltage failed :%d\n",ret);
 		return ret;
-	}
-	else{
+	}else{
 		volt = BQ2589X_VBUSV_BASE + ((val & BQ2589X_VBUSV_MASK) >> BQ2589X_VBUSV_SHIFT) * BQ2589X_VBUSV_LSB ;
 	volt+=2600;  //offset 2.6V
 		return volt;
@@ -3109,7 +3047,6 @@ EXPORT_SYMBOL_GPL(bq2589x_adc_read_vbus_volt);
 
 int bq2589x_pumpx_enable(int enable)
 {
-
 	u8 val;
 	int ret;
 
@@ -3117,18 +3054,13 @@ int bq2589x_pumpx_enable(int enable)
 		val = BQ2589X_PUMPX_ENABLE << BQ2589X_EN_PUMPX_SHIFT;
 	else
 		val = BQ2589X_PUMPX_DISABLE << BQ2589X_EN_PUMPX_SHIFT;
-
 	ret = bq2589x_update_bits(g_bq, BQ2589X_REG_04, BQ2589X_EN_PUMPX_MASK, val);
-
 	return ret;
-
 }
-
 EXPORT_SYMBOL_GPL(bq2589x_pumpx_enable);
 
 int bq2589x_pumpx_increase_volt(void)
 {
-
 	u8 val;
 	int ret;
 
@@ -3137,13 +3069,10 @@ int bq2589x_pumpx_increase_volt(void)
 
 	return ret;
 }
-
 EXPORT_SYMBOL_GPL(bq2589x_pumpx_increase_volt);
-
 
 int bq2589x_pumpx_increase_volt_done(void)
 {
-
 	u8 val;
 	int ret;
 
@@ -3155,9 +3084,7 @@ int bq2589x_pumpx_increase_volt_done(void)
 	else
 		return 0;	// pumpx up finished
 }
-
 EXPORT_SYMBOL_GPL(bq2589x_pumpx_increase_volt_done);
-
 
 int bq2589x_pumpx_decrease_volt(void)
 {
@@ -3175,7 +3102,6 @@ EXPORT_SYMBOL_GPL(bq2589x_pumpx_decrease_volt);
 
 int bq2589x_pumpx_decrease_volt_done(void)
 {
-
 	u8 val;
 	int ret;
 
@@ -3197,21 +3123,20 @@ int bq2589x_adc_read_temperature(void)
 	u8	data;
 	if(g_bq==NULL)	return 0;
 
-		bq2589x_read_byte(g_bq,&data,0x02);
-		data|=0x80;
-		data&=0xbf;
-		bq2589x_write_byte(g_bq,0x02,data);
-		msleep(200);
+	bq2589x_read_byte(g_bq,&data,0x02);
+	data|=0x80;
+	data&=0xbf;
+	bq2589x_write_byte(g_bq,0x02,data);
+	msleep(200);
 
 	ret = bq2589x_read_byte(g_bq, &val, BQ2589X_REG_10);
 	bq2589x_read_byte(g_bq,&data,0x02);
-		data&=0x3f;
-		bq2589x_write_byte(g_bq,0x02,data);
+	data&=0x3f;
+	bq2589x_write_byte(g_bq,0x02,data);
 	if(ret < 0){
 		dev_err(g_bq->dev,"read temperature failed :%d\n",ret);
 		return ret;
-	}
-	else{
+	}else{
 		temp = BQ2589X_TSPCT_BASE + ((val & BQ2589X_TSPCT_MASK) >> BQ2589X_TSPCT_SHIFT) * BQ2589X_TSPCT_LSB/1000;
 		return temp;
 	}
@@ -3228,8 +3153,7 @@ int bq2589x_adc_read_charge_current(void)
 	if(ret < 0){
 		dev_err(g_bq->dev,"read charge current failed :%d\n",ret);
 		return ret;
-	}
-	else{
+	}else{
 		volt = (int)(BQ2589X_ICHGR_BASE + ((val & BQ2589X_ICHGR_MASK) >> BQ2589X_ICHGR_SHIFT) * BQ2589X_ICHGR_LSB) ;
 		return volt;
 	}
