@@ -102,10 +102,6 @@ struct sdhci_host {
 #define SDHCI_QUIRK2_BROKEN_HS200			(1<<6)
 #define SDHCI_QUIRK2_TUNING_POLL			(1<<7)
 #define SDHCI_QUIRK2_FAKE_VDD				(1<<8)
-#if defined(CONFIG_SDHCI_QUIRK2_HOLDSUSPEND_AFTER_REQUEST)
-/* After SD host request, prevent system to suspend state for a while */
-#define SDHCI_QUIRK2_HOLDSUSPEND_AFTER_REQUEST		(1<<15)
-#endif
 
 	int irq;		/* Device IRQ */
 	void __iomem *ioaddr;	/* Mapped address */

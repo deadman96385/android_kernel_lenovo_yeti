@@ -16,9 +16,6 @@
 #include <linux/device.h>
 #include <linux/fault-inject.h>
 #include <linux/pm_qos.h>
-#if defined(CONFIG_SDHCI_QUIRK2_HOLDSUSPEND_AFTER_REQUEST)
-#include <linux/wakelock.h>
-#endif
 
 #include <linux/mmc/core.h>
 #include <linux/mmc/card.h>
@@ -201,10 +198,6 @@ struct mmc_supply {
 	struct regulator *vmmc;		/* Card power supply */
 	struct regulator *vqmmc;	/* Optional Vccq supply */
 };
-
-#if defined(CONFIG_SDHCI_QUIRK2_HOLDSUSPEND_AFTER_REQUEST)
-#define FLAG_NO_SUSPEND_IF_BUSBUSY  (0x1)
-#endif
 
 struct mmc_host {
 	struct device		*parent;
@@ -389,18 +382,6 @@ struct mmc_host {
 #endif
 
 	struct pm_qos_request *qos;
-
-#if defined(CONFIG_SDHCI_QUIRK2_HOLDSUSPEND_AFTER_REQUEST)
-	/*
-	 * New feature: prevent suspend if bus is keepping busy
-	 * enabled by "FLAG_NO_SUSPEND_IF_BUSBUSY" in busbusy_flags
-	 */
-	unsigned int busbusy_flags;
-	struct wake_lock busbusy_wakelock;
-	unsigned int busbusy_wakelock_en;
-	int busbusy_timeout;
-	int tasklet_cnt;
-#endif
 
 	unsigned long		private[0] ____cacheline_aligned;
 };
