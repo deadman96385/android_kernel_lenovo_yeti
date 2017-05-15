@@ -149,6 +149,21 @@ static int mmc_bus_suspend(struct device *dev)
 	struct mmc_card *card = mmc_dev_to_card(dev);
 	struct mmc_host *host = card->host;
 	int ret;
+	pr_info("%s\t%s\n",__func__,mmc_hostname(host));
+
+#if defined(CONFIG_SDHCI_QUIRK2_HOLDSUSPEND_AFTER_REQUEST)
+	if(!strcmp(mmc_hostname(host), "mmc1")){
+		if (host->busbusy_flags & FLAG_NO_SUSPEND_IF_BUSBUSY) {
+			/*
+			* If system has entered suspend, do not hold wakelock,
+			* or the system may have no chance to enter suspend for ever.
+			*/
+			host->busbusy_wakelock_en = 0;
+			if (wake_lock_active(&host->busbusy_wakelock))
+				wake_unlock(&host->busbusy_wakelock);
+		}
+	}
+#endif
 
 	if (dev->driver && drv->suspend) {
 		ret = drv->suspend(card);
@@ -166,6 +181,16 @@ static int mmc_bus_resume(struct device *dev)
 	struct mmc_card *card = mmc_dev_to_card(dev);
 	struct mmc_host *host = card->host;
 	int ret;
+	pr_info("%s\t%s\n",__func__,mmc_hostname(host));
+
+#if defined(CONFIG_SDHCI_QUIRK2_HOLDSUSPEND_AFTER_REQUEST)
+	if(!strcmp(mmc_hostname(host), "mmc1")){
+		if (host->busbusy_flags & FLAG_NO_SUSPEND_IF_BUSBUSY) {
+			/* if system starts to resume, enable busbusy wakelock again */
+			host->busbusy_wakelock_en = 1;
+		}
+	}
+#endif
 
 	ret = host->bus_ops->resume(host);
 	if (ret)

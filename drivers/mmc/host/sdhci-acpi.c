@@ -206,7 +206,11 @@ static const struct sdhci_acpi_slot sdhci_acpi_slot_int_emmc = {
 		MMC_CAP2_CACHE_CTRL | MMC_CAP2_HS200_1_8V_SDR |
 		MMC_CAP2_CAN_DO_CMDQ | MMC_CAP2_PACKED_CMD,
 	.flags   = SDHCI_ACPI_RUNTIME_PM,
+#if defined(CONFIG_SDHCI_QUIRK2_HOLDSUSPEND_AFTER_REQUEST)
+	.quirks2 = SDHCI_QUIRK2_TUNING_POLL | SDHCI_QUIRK2_PRESET_VALUE_BROKEN |SDHCI_QUIRK2_HOLDSUSPEND_AFTER_REQUEST,
+#else
 	.quirks2 = SDHCI_QUIRK2_TUNING_POLL | SDHCI_QUIRK2_PRESET_VALUE_BROKEN,
+#endif
 	.pm_caps = MMC_PM_TUNING_AFTER_RTRESUME,
 	.probe_slot = sdhci_acpi_probe_slot,
 	.remove_slot = sdhci_acpi_remove_slot,
@@ -230,7 +234,11 @@ static const struct sdhci_acpi_slot sdhci_acpi_slot_int_sd = {
 	.caps2   = MMC_CAP2_FULL_PWR_CYCLE,
 #endif
 	.flags   = SDHCI_ACPI_SD_CD | SDHCI_ACPI_RUNTIME_PM,
+#if defined(CONFIG_SDHCI_QUIRK2_HOLDSUSPEND_AFTER_REQUEST)
+	.quirks2 = SDHCI_QUIRK2_PRESET_VALUE_BROKEN |SDHCI_QUIRK2_HOLDSUSPEND_AFTER_REQUEST,
+#else
 	.quirks2 = SDHCI_QUIRK2_PRESET_VALUE_BROKEN,
+#endif
 	.probe_slot = sdhci_acpi_sd_probe_slot,
 	.remove_slot = sdhci_acpi_remove_slot,
 };
