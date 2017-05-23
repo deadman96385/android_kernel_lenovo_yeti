@@ -169,7 +169,7 @@ static const struct reg_default ts3a227e_reg_defaults[] = {
 	{ TS3A227E_REG_INTERRUPT_DISABLE, 0x08 },
 	{ TS3A227E_REG_SETTING_1, 0x27 },
 	{ TS3A227E_REG_SETTING_2, 0x00 },
-	{ TS3A227E_REG_SETTING_3, 0x3f },
+	{ TS3A227E_REG_SETTING_3, 0x27 },    // 0x3f
 	{ TS3A227E_REG_SWITCH_CONTROL_1, 0x00 },
 	{ TS3A227E_REG_SWITCH_CONTROL_2, 0x00 },
 	{ TS3A227E_REG_SWITCH_STATUS_1, 0x0c },
@@ -286,6 +286,25 @@ static void long_press_func(struct work_struct *work)
 
 	/*volume up&down  long press */
 	for (i = 0; i < TS3A227E_NUM_KEYS;  i++) {
+		/* add key_media long press  - 20170523 */
+		if (key_status_map[i].key_num == KEY_MEDIA &&
+			key_status_map[i].key_value == KEY_IS_DOWN) {
+			key_status_map[i].key_value = KEY_IS_WAIT_UP;
+			pr_err("%s, i:%x , key_voicecommand down %d ,value:%d\n", __func__, i,
+					KEY_VOICECOMMAND, key_status_map[i].key_value);
+			input_report_key(ts3a227e->button_dev, KEY_VOICECOMMAND, 1);
+			input_sync(ts3a227e->button_dev);
+		}
+		/* add key_voicecommand long press  - 20170523 */
+		if (key_status_map[i].key_num == KEY_VOICECOMMAND&&
+			key_status_map[i + 1].key_value == KEY_IS_DOWN) {
+			key_status_map[i + 1].key_value = KEY_IS_WAIT_UP;
+			pr_err("%s, i:%x , key_voicecommand down %d ,value:%d\n", __func__, i,
+					KEY_NEXTSONG, key_status_map[i + 1].key_value);
+			input_report_key(ts3a227e->button_dev, KEY_NEXTSONG, 1);
+			input_sync(ts3a227e->button_dev);
+		}
+
 		if (key_status_map[i].key_num == KEY_VOLUMEUP &&
 			key_status_map[i].key_value == KEY_IS_DOWN) {
 			key_status_map[i].key_value = KEY_IS_WAIT_UP;
@@ -324,6 +343,7 @@ static void check_jack_status(struct ts3a227e *ts3a227e)
 		for (i = 0; i < TS3A227E_NUM_KEYS; i++) {
 			if (ts3a227e->kp_int_reg & PRESS_MASK(i)) {
 				pr_err("%s, kp %d down \n", __func__, i);
+				/*
 				if (key_status_map[i].key_num  != KEY_VOLUMEUP
 					&&  key_status_map[i].key_num != KEY_VOLUMEDOWN)
 					input_report_key(ts3a227e->button_dev, ts3a227e_keycodes[i], 1);
@@ -331,29 +351,60 @@ static void check_jack_status(struct ts3a227e *ts3a227e)
 					key_status_map[i].key_value = KEY_IS_DOWN;
 					long_press_det = true;
 				}
+				*/
+
+				if (key_status_map[i].key_num != KEY_VOICECOMMAND) {
+					key_status_map[i].key_value = KEY_IS_DOWN;
+				} else {
+					pr_err("%s, key_voicecommand %d is detected, remap to key %d.\n", __func__, key_status_map[i].key_num, key_status_map[i+1].key_num);
+					key_status_map[i+1].key_value = KEY_IS_DOWN;
+				}
+				long_press_det = true;
+				pr_err("Qidi - keypress - key_status_map[%d].value = %d\n", i, key_status_map[i].key_value);
 			}
 
 			if (ts3a227e->kp_int_reg & RELEASE_MASK(i)) {
 
 				pr_err("%s, kp %d up\n", __func__, i);
-				/* just for volume up & down long press */
-				if (key_status_map[i].key_value == KEY_IS_DOWN) {
-						pr_err("%s, kp %d short up \n", __func__, i);
-						cancel_delayed_work_sync(&ts3a227e->long_press_work);
-						input_report_key(ts3a227e->button_dev,
-						 ts3a227e_keycodes[i], 1);
-						key_status_map[i].key_value = KEY_IS_UP;
-				} else if (key_status_map[i].key_value == KEY_IS_WAIT_UP) {
-					pr_err("%s, kp %d long up  code:%d\n", __func__, i, key_status_map[i].key_num);
-					if (key_status_map[i].key_num == KEY_VOLUMEUP)
-						input_report_key(ts3a227e->button_dev, KEY_PREVIOUSSONG, 0);
-					else if (key_status_map[i].key_num == KEY_VOLUMEDOWN)
-						input_report_key(ts3a227e->button_dev, KEY_NEXTSONG, 0);
+				if (i != 2) {
+					/* just for volume up & down long press */
+					if (key_status_map[i].key_value == KEY_IS_DOWN) {
+							pr_err("%s, kp %d short up \n", __func__, i);
+							cancel_delayed_work_sync(&ts3a227e->long_press_work);
+							input_report_key(ts3a227e->button_dev,
+							 ts3a227e_keycodes[i], 1);
+							key_status_map[i].key_value = KEY_IS_UP;
+					} else if (key_status_map[i].key_value == KEY_IS_WAIT_UP) {
+						pr_err("%s, kp %d long up  code:%d\n", __func__, i, key_status_map[i].key_num);
+						if (key_status_map[i].key_num == KEY_VOLUMEUP)
+							input_report_key(ts3a227e->button_dev, KEY_PREVIOUSSONG, 0);
+						else if (key_status_map[i].key_num == KEY_VOLUMEDOWN)
+							input_report_key(ts3a227e->button_dev, KEY_NEXTSONG, 0);
+						else if (key_status_map[i].key_num == KEY_MEDIA)
+							input_report_key(ts3a227e->button_dev, KEY_VOICECOMMAND, 0);
 
-					key_status_map[i].key_value = KEY_IS_UP;
+						key_status_map[i].key_value = KEY_IS_UP;
+					}
+					input_report_key(ts3a227e->button_dev,
+							 ts3a227e_keycodes[i], 0);
+				}else {
+					/* just for key_voicecommand long press */
+					if (key_status_map[i + 1].key_value == KEY_IS_DOWN) {
+							pr_err("%s, kp %d short up \n", __func__, i + 1);
+							cancel_delayed_work_sync(&ts3a227e->long_press_work);
+							input_report_key(ts3a227e->button_dev,
+							 ts3a227e_keycodes[i + 1], 1);
+							key_status_map[i + 1].key_value = KEY_IS_UP;
+					} else if (key_status_map[i + 1].key_value == KEY_IS_WAIT_UP) {
+						pr_err("%s, kp %d long up  code:%d\n", __func__, i + 1, key_status_map[i + 1].key_num);
+						if (key_status_map[i + 1].key_num == KEY_VOLUMEDOWN)
+							input_report_key(ts3a227e->button_dev, KEY_NEXTSONG, 0);
+
+						key_status_map[i + 1].key_value = KEY_IS_UP;
+					}
+					input_report_key(ts3a227e->button_dev,
+							 ts3a227e_keycodes[i + 1], 0);
 				}
-				input_report_key(ts3a227e->button_dev,
-						 ts3a227e_keycodes[i], 0);
 			}
 		}
 

@@ -99,7 +99,7 @@ static struct rt5677_init_reg init_list[] = {
 	{RT5677_PRIV_INDEX		, 0x0014},
 	{RT5677_PRIV_DATA		, 0x018a},
 	{RT5677_IN1			, 0x00c0},
-	{RT5677_MICBIAS			, 0x4000},
+	{RT5677_MICBIAS			, 0x0000},    //0x4000
 	{RT5677_STO1_ADC_MIXER		, 0x5480},
 	//{RT5677_STO2_ADC_MIXER		, 0x9440},
 	{RT5677_DMIC_CTRL1		, 0x2505},
