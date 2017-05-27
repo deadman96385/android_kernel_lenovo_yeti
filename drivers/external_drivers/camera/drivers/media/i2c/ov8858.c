@@ -37,8 +37,6 @@
 #endif
 #include "ov8858_otp.h"
 
-static struct ov8858_resolution *last_res_tab = NULL;
-static int last_res_idx = 0;
 static int otp_flag=0;
 static struct otp_struct ov8858_otp_struct ;
 static int ov8858_i2c_read(struct i2c_client *client, u16 len, u16 addr,
@@ -418,12 +416,7 @@ static int __ov8858_set_exposure(struct v4l2_subdev *sd, int exposure, int gain,
 		return ret;
 
 	ret = ov8858_write_reg(client, OV8858_16BIT, OV8858_LONG_GAIN,
-				gain & 0x7FF);
-	if (ret)
-		return ret;
-
-	ret = ov8858_write_reg(client, OV8858_16BIT, OV8858_LONG_DIGI_GAIN,
-				dig_gain & 0xFFF);
+				gain & 0x07ff);
 	if (ret)
 		return ret;
 
@@ -441,12 +434,11 @@ static int ov8858_set_exposure(struct v4l2_subdev *sd, int exposure, int gain,
 	const struct ov8858_resolution *res;
 	u16 hts, vts;
 	int ret;
-	
 	/* W/A: In CHT_MRD there is a sync problem between the new exposure,
 	 * and the statistics being reported to AE. This delay allows the old
 	 * statistics to be correctly reported before applying a new exposure */
-	/*if (strcmp(dmi_get_system_info(DMI_BOARD_NAME), CHT_HR_DEV_NAME) != 0)
-		usleep_range(4000, 6000);*/ //zhanglp2 remove this W/A to align with yeti M codebase
+	if (strcmp(dmi_get_system_info(DMI_BOARD_NAME), CHT_HR_DEV_NAME) != 0)
+		usleep_range(4000, 6000);
 
 	mutex_lock(&dev->input_lock);
 
@@ -1101,9 +1093,6 @@ static int power_down(struct v4l2_subdev *sd)
 	
 	dev_dbg(&client->dev, "%s\n", __func__);
 
-	last_res_tab = NULL;
-	last_res_idx = -1;
-
 	udelay(30);//delay after i2c operation stop
 
 	ret = dev->platform_data->flisclk_ctrl(sd, 0);
@@ -1576,38 +1565,7 @@ static int nearest_resolution_index(struct v4l2_subdev *sd, int w, int h)
 	const struct ov8858_resolution *tmp_res = NULL;
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
 	struct ov8858_device *dev = to_ov8858_sensor(sd);
-
-	dev_dbg(&client->dev, "%s: w = %d, h = %d.\n", __func__, w, h);
-	if ((dev->curr_res_table == ov8858_res_preview) ||
-		(dev->curr_res_table == ov8858_res_still)) {
-		if (((w == 1336 && h == 1096)) ||
-			((w == 352 && h == 288)) ||
-			((w == 368 && h == 304)) ||
-			((w == 176 && h == 144)) ||
-			((w == 192 && h == 160))) {
-			w = 1632;
-			h = 1224;
-		}
-
-	}
-
-
-
-	if (dev->curr_res_table == ov8858_res_preview) {
-		if (((w == 1280 && h == 720)) ||
-			((w == 1296 && h == 736))) {
-			w = 1640;
-			h = 926;
-		}
-	}
-
-	if (dev->curr_res_table == ov8858_res_still) {
-		if (((w == 1280 && h == 720)) ||
-			((w == 1296 && h == 736))) {
-			w = 3216;
-			h = 1816;
-		}
-	}
+	dev_dbg(&client->dev, "%s: w=%d, h=%d\n", __func__, w, h);
 
 	for (i = 0; i < dev->entries_curr_table; i++) {
 		tmp_res = &dev->curr_res_table[i];
@@ -1715,7 +1673,7 @@ static int ov8858_s_mbus_fmt(struct v4l2_subdev *sd,
 		goto out;
 	}
 	res = &dev->curr_res_table[dev->fmt_idx];
-	dev_info(&client->dev, "bingo...%s: selected width = %d, height = %d\n",
+	dev_dbg(&client->dev, "%s: selected width = %d, height = %d\n",
 		__func__, res->width, res->height);
 
 	/* Adjust the FPS selection based on the resolution selected */
@@ -1725,14 +1683,9 @@ static int ov8858_s_mbus_fmt(struct v4l2_subdev *sd,
 	if (!dev->regs)
 		dev->regs = res->regs;
 
-	if ((last_res_tab != dev->curr_res_table) ||
-			(last_res_idx != dev->fmt_idx)) {
-	ret = ov8858_write_reg_array(client, dev->regs);	 
-	
-	/*zhanglp2 remove this W/A to align with yeti M codebase*/
+	ret = ov8858_write_reg_array(client, dev->regs);
 	/* W/A: For MRD, the valid BLC lines are different than in HR
-	 * making the image look green. */	
-#if 0
+	 * making the image look green. */
 	if (strcmp(dmi_get_system_info(DMI_BOARD_NAME), CHT_HR_DEV_NAME) != 0) {
 		if (res->bin_factor_x || res->bin_factor_y)
 			ret = ov8858_write_reg(client, OV8858_8BIT,
@@ -1740,14 +1693,9 @@ static int ov8858_s_mbus_fmt(struct v4l2_subdev *sd,
 		else
 			ret = ov8858_write_reg_array(client, ov8858_BLC_MRD);
 	}
-#endif
-
 	if (ret)
 		goto out;
-	}
 
-	last_res_tab = (struct ov8858_resolution *)(dev->curr_res_table);
-	last_res_idx = dev->fmt_idx;
 	dev->pixels_per_line = res->fps_options[dev->fps_index].pixels_per_line;
 	dev->lines_per_frame = res->fps_options[dev->fps_index].lines_per_frame;
 
@@ -1902,7 +1850,6 @@ static int ov8858_s_stream(struct v4l2_subdev *sd, int enable)
 		dev->fps_index = 0;
 		dev->fps = 0;
 	}
-	msleep(25);
 out:
 	mutex_unlock(&dev->input_lock);
 	return ret;
@@ -2160,16 +2107,11 @@ static int ov8858_s_ctrl(struct v4l2_ctrl *ctrl)
 			dev->curr_res_table = ov8858_res_preview;
 			dev->entries_curr_table =
 					ARRAY_SIZE(ov8858_res_preview);
-            break;
 		}
 
-		dev_dbg(&client->dev, "V4L2_CID_RUN_MODE = %d\n",
-				ctrl->val);
 		dev->fmt_idx = 0;
 		dev->fps_index = 0;
 
-		return 0;
-	case V4L2_CID_TEST_PATTERN:
 		return 0;
 	case V4L2_CID_FOCUS_ABSOLUTE:
 		if (dev->vcm_driver && dev->vcm_driver->t_focus_abs)
@@ -2498,13 +2440,6 @@ static const struct v4l2_ctrl_config ctrls[] = {
 		.step = 1,
 		.def = 0x00,
 		.flags = V4L2_CTRL_FLAG_READ_ONLY | V4L2_CTRL_FLAG_VOLATILE,
-	}, {
-		.ops = &ctrl_ops,
-		.id = V4L2_CID_TEST_PATTERN,
-		.name = "Test pattern",
-		.type = V4L2_CTRL_TYPE_INTEGER,
-		.step = 1,
-		.max = 0xffff,
 	}, {
 		.ops = &ctrl_ops,
 		.id = V4L2_CID_FOCUS_ABSOLUTE,
