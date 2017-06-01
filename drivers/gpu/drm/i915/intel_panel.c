@@ -811,17 +811,18 @@ static void vlv_set_backlight_to_ic(struct intel_connector *connector, u32 level
 void
 intel_panel_actually_set_backlight(struct intel_connector *connector, u32 level)
 {
-	struct drm_device *dev = connector->base.dev;
-	struct drm_i915_private *dev_priv = dev->dev_private;
-
 	DRM_DEBUG_DRIVER("set backlight PWM = %d\n", level);
 
 	level = intel_panel_compute_brightness(connector, level);
-	dev_priv->display.set_backlight(connector, level);
+	//dev_priv->display.set_backlight(connector, level);
 
 #ifdef BLADE_BACKLIGHT_CONTROL_BY_I2C
 	if(get_backlight_controllor_type() == BL_CTRL_BY_I2C)
 		vlv_set_backlight_to_ic(connector, level);
+#else
+	struct drm_device *dev = connector->base.dev;
+	struct drm_i915_private *dev_priv = dev->dev_private;
+	dev_priv->display.set_backlight(connector, level);
 #endif
 
 }
