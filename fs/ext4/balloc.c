@@ -532,7 +532,9 @@ static int ext4_has_free_clusters(struct ext4_sb_info *sbi,
 		return 1;
 
 	/* Hm, nope.  Are (enough) root reserved clusters available? */
-	if (uid_eq(sbi->s_resuid, current_fsuid()) ||
+	//lizq13,reserve space for uid <= s_resuid
+	if (uid_gte(sbi->s_resuid, current_fsuid()) ||
+	//lizq13,end
 	    (!gid_eq(sbi->s_resgid, GLOBAL_ROOT_GID) && in_group_p(sbi->s_resgid)) ||
 	    capable(CAP_SYS_RESOURCE) ||
 	    (flags & EXT4_MB_USE_ROOT_BLOCKS)) {
