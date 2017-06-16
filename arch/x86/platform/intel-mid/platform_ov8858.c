@@ -98,6 +98,12 @@ static int ov8858_flisclk_ctrl(struct v4l2_subdev *sd, int flag)
 
 	if (flag)
 		ret = vlv2_plat_set_clock_freq(OSC_CAM0_CLK, VLV2_CLK_19P2MHZ);
+
+/*YETIN-2070,fix CameraStress test after a period of time can't connect to the camera appeared*/
+#if 1
+		usleep_range(2000, 2100);
+#endif
+
 	if(ret){
 		printk("bingo...%s(): set clk freq ret is %d, .\n", __func__, ret);
 		return ret;

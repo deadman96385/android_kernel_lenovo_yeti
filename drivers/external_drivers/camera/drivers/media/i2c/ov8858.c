@@ -1143,7 +1143,7 @@ static int __ov8858_s_power(struct v4l2_subdev *sd, int on)
 
 	return ret;
 }
-
+#if 0
 static int ov8858_s_power(struct v4l2_subdev *sd, int on)
 {
 	int ret;
@@ -1162,7 +1162,53 @@ static int ov8858_s_power(struct v4l2_subdev *sd, int on)
 
 	return ret;
 }
+#endif
+/*YETIN-2070,fix CameraStress test after a period of time can't connect to the camera appeared*/
+#if 1
+static int ov8858_s_power(struct v4l2_subdev *sd, int on)
+{
+	struct ov8858_device *dev = to_ov8858_sensor(sd);
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
+	int ret = 0;
+	dev_dbg(&client->dev, "%s ov8858_s_power,on=%d.\n", __func__,on);
+	mutex_lock(&dev->input_lock);
 
+	if (on == 0) {
+		if (dev->vcm_driver && dev->vcm_driver->power_down) ret = dev->vcm_driver->power_down(sd);
+		if (ret) dev_err(&client->dev, "vcm power-down failed.\n");
+		ret = power_down(sd);
+	} else {
+		ret = power_up(sd);
+		dev_dbg(&client->dev, "%s __ov8858_s_power,1 ret=%d.\n", __func__,ret);
+		if (ret) {
+			dev_err(&client->dev, "ov8858 power_up failed.\n");
+			power_down(sd);
+			goto done;
+		}
+
+		ret = __ov8858_init(sd);
+		dev_dbg(&client->dev, "%s __ov8858_s_power,2 ret=%d.\n", __func__,ret);
+		if (ret) {
+			dev_err(&client->dev, "__ov8858_init failed.\n");
+			power_down(sd);
+			goto done;
+		}
+
+		if (dev->vcm_driver && dev->vcm_driver->power_up)
+			ret = dev->vcm_driver->power_up(sd);
+			dev_dbg(&client->dev, "%s __ov8858_s_power,3 ret=%d.\n", __func__,ret);
+		if (ret) {
+			dev_err(&client->dev, "ov8858 vcm power_up failed.\n");
+			power_down(sd);
+			goto done;
+		}
+	}
+done:
+	mutex_unlock(&dev->input_lock);
+
+	return ret;
+}
+#endif
 #ifndef CONFIG_GMIN_INTEL_MID
 static int ov8858_g_chip_ident(struct v4l2_subdev *sd,
 			       struct v4l2_dbg_chip_ident *chip)
