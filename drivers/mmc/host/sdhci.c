@@ -2057,7 +2057,6 @@ static int sdhci_execute_tuning(struct mmc_host *mmc, u32 opcode)
 	do {
 		struct mmc_command cmd = {0};
 		struct mmc_request mrq = {NULL};
-		unsigned int intmask;
 
 		cmd.opcode = opcode;
 		cmd.arg = 0;
@@ -2107,7 +2106,8 @@ static int sdhci_execute_tuning(struct mmc_host *mmc, u32 opcode)
 			u64 clock;
 			do {
 				clock = sched_clock();
-				intmask = sdhci_readl(host, SDHCI_INT_STATUS);
+				unsigned int intmask =
+					sdhci_readl(host, SDHCI_INT_STATUS);
 				if (!(intmask & SDHCI_INT_DATA_AVAIL))
 					continue;
 				host->tuning_done = 1;
@@ -2350,11 +2350,9 @@ static void sdhci_tasklet_finish(unsigned long param)
 	struct sdhci_host *host;
 	unsigned long flags;
 	struct mmc_request *mrq;
-	struct mmc_host *mmc;
 	int opcode;
 
 	host = (struct sdhci_host *)param;
-	mmc = host->mmc;
 
 	spin_lock_irqsave(&host->lock, flags);
 
@@ -2417,27 +2415,6 @@ static void sdhci_tasklet_finish(unsigned long param)
 	 */
 	if (!mmc_op_cmdq_execute_task(opcode))
 		sdhci_runtime_pm_put(host);
-
-#if defined(CONFIG_SDHCI_QUIRK2_HOLDSUSPEND_AFTER_REQUEST)
-	if (host->quirks2 & SDHCI_QUIRK2_HOLDSUSPEND_AFTER_REQUEST) {
-		if(!strcmp(mmc_hostname(mmc), "mmc0")){
-//			pr_info("%s:busbusy_wakelock_en=%d\tcnt=%d\topcode=%d\n", mmc_hostname(mmc), mmc->busbusy_wakelock_en, mmc->tasklet_cnt, opcode);
-			mmc->tasklet_cnt++;
-			if ((mmc->busbusy_wakelock_en)&&(mmc->tasklet_cnt == (CONFIG_SDHCI_WAKELOCK_EMMC_TASKLET_SKIP_CNT))){
-				wake_lock_timeout(&mmc->busbusy_wakelock, mmc->busbusy_timeout);
-				mmc->tasklet_cnt = 0;
-			}
-		}else if(!strcmp(mmc_hostname(mmc), "mmc1")){
-//			pr_info("%s:busbusy_wakelock_en=%d\tcnt=%d\topcode=%d\n", mmc_hostname(mmc), mmc->busbusy_wakelock_en, mmc->tasklet_cnt, opcode);
-			mmc->tasklet_cnt++;
-			if ((mmc->busbusy_wakelock_en)&&(mmc->tasklet_cnt == (CONFIG_SDHCI_WAKELOCK_SDCARD_TASKLET_SKIP_CNT))){
-				wake_lock_timeout(&mmc->busbusy_wakelock, mmc->busbusy_timeout);
-				mmc->tasklet_cnt = 0;
-			}
-		}
-	}
-#endif
-
 }
 
 static void sdhci_timeout_timer(unsigned long data)
@@ -2967,22 +2944,6 @@ int sdhci_runtime_suspend_host(struct sdhci_host *host)
 {
 	unsigned long flags;
 	int ret = 0;
-	struct mmc_host *mmc = host->mmc;
-
-#if defined(CONFIG_SDHCI_QUIRK2_HOLDSUSPEND_AFTER_REQUEST)
-//	pr_info("%s:%s\n",__func__, mmc_hostname(mmc));
-	if(!strcmp(mmc_hostname(mmc), "mmc0")){
-		if (mmc->busbusy_flags & FLAG_NO_SUSPEND_IF_BUSBUSY) {
-			/*
-			* If system has entered suspend, do not hold wakelock,
-			* or the system may have no chance to enter suspend for ever.
-			*/
-			mmc->busbusy_wakelock_en = 0;
-			if (wake_lock_active(&mmc->busbusy_wakelock))
-				wake_unlock(&mmc->busbusy_wakelock);
-		}
-	}
-#endif
 
 	/* Disable tuning since we are suspending */
 	if (host->flags & SDHCI_USING_RETUNING_TIMER) {
@@ -3008,16 +2969,6 @@ int sdhci_runtime_resume_host(struct sdhci_host *host)
 {
 	unsigned long flags;
 	int ret = 0, host_flags = host->flags;
-	struct mmc_host *mmc = host->mmc;
-#if defined(CONFIG_SDHCI_QUIRK2_HOLDSUSPEND_AFTER_REQUEST)
-//	pr_info("%s:%s\n",__func__, mmc_hostname(mmc));
-	if(!strcmp(mmc_hostname(mmc), "mmc0")){
-		if (mmc->busbusy_flags & FLAG_NO_SUSPEND_IF_BUSBUSY) {
-			/* if system starts to resume, enable busbusy wakelock again */
-			mmc->busbusy_wakelock_en = 1;
-		}
-	}
-#endif
 
 	if (host_flags & (SDHCI_USE_SDMA | SDHCI_USE_ADMA)) {
 		if (host->ops->enable_dma)
@@ -3583,21 +3534,6 @@ int sdhci_add_host(struct sdhci_host *host)
 		goto untasklet;
 	}
 
-#if defined(CONFIG_SDHCI_QUIRK2_HOLDSUSPEND_AFTER_REQUEST)
-	wake_lock_init(&mmc->busbusy_wakelock, WAKE_LOCK_SUSPEND,
-            (const char *)mmc_hostname(mmc));
-	if (host->quirks2 & SDHCI_QUIRK2_HOLDSUSPEND_AFTER_REQUEST) {
-		mmc->busbusy_flags |= FLAG_NO_SUSPEND_IF_BUSBUSY;
-		mmc->busbusy_wakelock_en = 1;
-		if(!strcmp(mmc_hostname(mmc), "mmc0")){
-			mmc->busbusy_timeout = ((CONFIG_SDHCI_WAKELOCK_EMMC_TIMEOUT_INDEX) * HZ);
-			mmc->tasklet_cnt = 0;
-		}else if(!strcmp(mmc_hostname(mmc), "mmc1")){
-			mmc->busbusy_timeout = ((CONFIG_SDHCI_WAKELOCK_SDCARD_TIMEOUT_INDEX) * HZ);
-		}
-	}
-#endif
-
 #ifdef CONFIG_MMC_DEBUG
 	sdhci_dumpregs(host);
 #endif
@@ -3635,9 +3571,6 @@ int sdhci_add_host(struct sdhci_host *host)
 
 #ifdef SDHCI_USE_LEDS_CLASS
 reset:
-#if defined(CONFIG_SDHCI_QUIRK2_HOLDSUSPEND_AFTER_REQUEST)
-	wake_lock_destroy(&mmc->busbusy_wakelock);
-#endif
 	sdhci_reset(host, SDHCI_RESET_ALL);
 	sdhci_mask_irqs(host, SDHCI_INT_ALL_MASK);
 	free_irq(host->irq, host);
