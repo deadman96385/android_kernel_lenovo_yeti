@@ -114,49 +114,6 @@ config MMC_CAP2_CD_ACTIVE_HIGH
 	help
 	  SDCard card detection needs active high interrupt
 
-config SDHCI_QUIRK2_HOLDSUSPEND_AFTER_REQUEST
-	bool "Host for eMMC and SDCard hold wakelock during IO operation"
-	depends on MMC_SDHCI_ACPI
-	help
-	  Host for eMMC and SDCard hold wakelock during IO operation, so 
-	  that the bus clock would not be gated if there is suspend request
-
-config SDHCI_WAKELOCK_EMMC_TASKLET_SKIP_CNT
-	int "Skip Count for Wakelock generation when eMMC RW tasklet runs"
-	depends on SDHCI_QUIRK2_HOLDSUSPEND_AFTER_REQUEST
-	default 50
-	help
-	  sdhci_runtime_resume_host() is called short after sdhci_runtime_suspend_host(), 
-	  and set busbusy_wakelock_en again, so that sdhci_tasklet_finish() will always 
-	  generate timed-out wakelock, system suspend sequence will be blocked. when kernel
-	  syncs filesystems, there are about 10 sdhci_tasklet_finish() operations, there should
-	  be no wakelock at such moment. For normal RW operation, sdhci_runtime_suspend_host()
-	  and sdhci_runtime_resume_host() has more than 50 sdhci_tasklet_finish() inside, so a
-	  threshold is needed to tell kernel when and whether a timed-out wakelock is needed.
-
-config SDHCI_WAKELOCK_SDCARD_TASKLET_SKIP_CNT
-	int "Skip Count for Wakelock generation when SDCard RW tasklet runs"
-	depends on SDHCI_QUIRK2_HOLDSUSPEND_AFTER_REQUEST
-	default 25
-	help
-	  sdhci_runtime_resume_host() is called short after sdhci_runtime_suspend_host(),
-	  and set busbusy_wakelock_en again, so that sdhci_tasklet_finish() will always
-	  generate timed-out wakelock, system suspend sequence will be blocked. when kernel
-	  syncs filesystems, there are about 10 sdhci_tasklet_finish() operations, there should
-	  be no wakelock at such moment. For normal RW operation, sdhci_runtime_suspend_host()
-	  and sdhci_runtime_resume_host() has more than 25 sdhci_tasklet_finish() inside, so a
-	  threshold is needed to tell kernel when and whether a timed-out wakelock is needed.
-
-config SDHCI_WAKELOCK_EMMC_TIMEOUT_INDEX
-	int "SDHCI WakeLock Timeout Index For eMMC"
-	depends on SDHCI_QUIRK2_HOLDSUSPEND_AFTER_REQUEST
-	default 2
-
-config SDHCI_WAKELOCK_SDCARD_TIMEOUT_INDEX
-	int "SDHCI WakeLock Timeout Index For SDCard"
-	depends on SDHCI_QUIRK2_HOLDSUSPEND_AFTER_REQUEST
-	default 3
-
 config MMC_SDHCI_PLTFM
 	tristate "SDHCI platform and OF driver helper"
 	depends on MMC_SDHCI
